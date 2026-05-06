@@ -77,3 +77,8 @@ CI uses `CHAWAN_SPEC_ROOT` after checking out the sibling
 - Add Swift, Kotlin, and TypeScript/React clients only as sibling roots after
   `../chawan-product-spec` passes `dart tool/check_spec.dart`.
 - Add conformance tooling around canonical vectors before pre-1.0 release prep.
+- Run SDK hardening only after the sibling spec freeze checklist exists.
+- Keep public API ergonomics, examples, theme adapter stability, and error
+  handling docs tied to canonical contracts and vectors.
+- Leave pub.dev publication, package name, and versioning for a separate release
+  decision issue while `publish_to: none` remains set.
