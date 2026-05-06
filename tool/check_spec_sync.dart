@@ -25,6 +25,7 @@ void checkSdkBoundary(List<String> failures) {
     'LICENSE',
     'README.md',
     'design',
+    'example',
     'lib',
     'pubspec.yaml',
     'test',
