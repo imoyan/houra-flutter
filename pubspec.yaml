@@ -1,0 +1,24 @@
+name: okaka
+description: Flutter SDK candidate for the Okomedev Chawan client API subset.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+  meta: ^1.12.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  lints: ^5.0.0
+
+flutter:
+  assets:
+    - design/theme.schema.json
+    - design/themes/smoke.json
