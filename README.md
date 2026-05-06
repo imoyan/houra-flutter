@@ -24,11 +24,17 @@ Out of scope for this package version:
 
 ## Install
 
+This package is not published to pub.dev yet. Use a local checkout while it is
+in draft:
+
 ```yaml
 dependencies:
   okaka:
-    path: .
+    path: ../okaka-flutter
 ```
+
+Keep `../chawan-product-spec` checked out next to this repository for local
+contract and design-token validation.
 
 ## Usage
 
@@ -49,6 +55,9 @@ Future<void> main() async {
   }
 }
 ```
+
+See `example/main.dart` for a minimal command-line usage example backed by the
+current contract surface.
 
 ## Themes
 

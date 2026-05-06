@@ -2,6 +2,13 @@ name: okaka
 description: Flutter SDK candidate for the Okomedev Chawan client API subset.
 version: 0.1.0
 publish_to: none
+repository: https://github.com/okomedev/okaka-flutter
+issue_tracker: https://github.com/okomedev/okaka-flutter/issues
+topics:
+  - chawan
+  - sdk
+  - flutter
+  - api-client
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
