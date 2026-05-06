@@ -28,7 +28,7 @@ final class ContractVector {
 }
 
 ContractVector readVector(String path) {
-  return ContractVector(readJsonObject('../chawan-product-spec/$path'));
+  return ContractVector(readJsonObject('${_specRoot().path}/$path'));
 }
 
 Map<String, Object?> readJsonObject(String path) {
@@ -37,6 +37,14 @@ Map<String, Object?> readJsonObject(String path) {
     return decoded.cast<String, Object?>();
   }
   fail('$path must contain a JSON object.');
+}
+
+Directory _specRoot() {
+  final fromEnv = Platform.environment['CHAWAN_SPEC_ROOT'];
+  if (fromEnv != null && fromEnv.isNotEmpty) {
+    return Directory(fromEnv);
+  }
+  return Directory('../chawan-product-spec');
 }
 
 Map<String, Object?> objectFrom(Map<String, Object?> json, String key) {

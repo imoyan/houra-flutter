@@ -211,8 +211,9 @@ void checkDocReferences(List<String> failures) {
     }
     for (final match in relativeSpecPathPattern.allMatches(source)) {
       final path = match.group(1)!;
-      if (!File(path).existsSync() && !Directory(path).existsSync()) {
-        failures.add('${doc.path} references missing spec path: $path');
+      final resolved = resolveSpecReference(path, specRoot);
+      if (!File(resolved).existsSync() && !Directory(resolved).existsSync()) {
+        failures.add('${doc.path} references missing spec path: $resolved');
       }
     }
   }
@@ -224,6 +225,17 @@ Directory canonicalSpecRoot() {
     return Directory(fromEnv);
   }
   return Directory('../chawan-product-spec');
+}
+
+String resolveSpecReference(String path, Directory specRoot) {
+  const siblingPrefix = '../chawan-product-spec';
+  if (path == siblingPrefix) {
+    return specRoot.path;
+  }
+  if (path.startsWith('$siblingPrefix/')) {
+    return '${specRoot.path}/${path.substring(siblingPrefix.length + 1)}';
+  }
+  return path;
 }
 
 Map<String, File> filesByRelativePath(Directory root) {
