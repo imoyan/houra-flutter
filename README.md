@@ -84,6 +84,8 @@ implementations are not canonical behavior sources.
 
 When this package is developed next to `../chawan-product-spec`, contract and
 theme checks read that sibling source directory directly.
+Set `CHAWAN_SPEC_ROOT` when the canonical spec checkout lives somewhere else,
+such as in GitHub Actions.
 
 ## Local checks
 
@@ -96,7 +98,8 @@ flutter test
 ```
 
 `tool/check_spec_sync.dart` also runs `../chawan-product-spec/tool/check_spec.dart`
-before checking bundled theme and vector references.
+before checking bundled theme and vector references. If `CHAWAN_SPEC_ROOT` is
+set, that path is used instead of `../chawan-product-spec`.
 
 ## Roadmap
 

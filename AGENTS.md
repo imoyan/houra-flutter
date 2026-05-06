@@ -15,6 +15,9 @@ Use this priority order when implementing behavior:
 4. Stable public specifications when a contract explicitly points to them
 5. Official Dart and Flutter documentation
 
+If the canonical spec checkout is not available at `../chawan-product-spec`,
+set `CHAWAN_SPEC_ROOT` to its absolute or relative path before running checks.
+
 Do not treat any server implementation as canonical.
 
 ## Clean-Room Rule
@@ -64,6 +67,8 @@ but the token names and light/dark values should remain shared.
 The local bundled theme files must match `../chawan-product-spec/design/`.
 Run `dart run tool/check_spec_sync.dart` before SDK checks; it also runs the
 sibling spec root consistency check.
+CI uses `CHAWAN_SPEC_ROOT` after checking out the sibling
+`chawan-product-spec` repository next to this repository.
 
 ## Long-Term Guardrails
 

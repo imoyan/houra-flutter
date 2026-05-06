@@ -70,13 +70,13 @@ void checkSdkBoundary(List<String> failures) {
 }
 
 void checkCanonicalSpecRoot(List<String> failures) {
-  final specRoot = Directory('../chawan-product-spec');
+  final specRoot = canonicalSpecRoot();
   if (!specRoot.existsSync()) {
     failures.add('Missing sibling spec root: ${specRoot.path}');
     return;
   }
 
-  final script = File('../chawan-product-spec/tool/check_spec.dart');
+  final script = File('${specRoot.path}/tool/check_spec.dart');
   if (!script.existsSync()) {
     failures.add('Missing canonical spec check: ${script.path}');
     return;
@@ -96,7 +96,8 @@ void checkCanonicalSpecRoot(List<String> failures) {
 
 void checkDesignSync(List<String> failures) {
   final localRoot = Directory('design');
-  final canonicalRoot = Directory('../chawan-product-spec/design');
+  final specRoot = canonicalSpecRoot();
+  final canonicalRoot = Directory('${specRoot.path}/design');
 
   if (!localRoot.existsSync()) {
     failures.add('Missing local design directory: ${localRoot.path}');
@@ -119,7 +120,7 @@ void checkDesignSync(List<String> failures) {
     if (local.readAsStringSync() != canonical.readAsStringSync()) {
       failures.add(
         'design/$relativePath differs from '
-        '../chawan-product-spec/design/$relativePath',
+        '${specRoot.path}/design/$relativePath',
       );
     }
   }
@@ -147,10 +148,11 @@ void checkVectorReferences(List<String> failures) {
     final relativeTestPath = relativePath(file, Directory.current);
     for (final match in readVectorPattern.allMatches(source)) {
       final vectorPath = match.group(1)!;
-      final canonical = File('../chawan-product-spec/$vectorPath');
+      final specRoot = canonicalSpecRoot();
+      final canonical = File('${specRoot.path}/$vectorPath');
       if (!canonical.existsSync()) {
         failures.add('$relativeTestPath references missing vector: '
-            '../chawan-product-spec/$vectorPath');
+            '${specRoot.path}/$vectorPath');
       }
     }
 
@@ -165,14 +167,14 @@ void checkVectorReferences(List<String> failures) {
 }
 
 void checkDocReferences(List<String> failures) {
-  final specRoot = Directory('../chawan-product-spec');
+  final specRoot = canonicalSpecRoot();
   if (!specRoot.existsSync()) {
     failures.add('Missing sibling spec root: ${specRoot.path}');
     return;
   }
 
   final contractIds = <String>{};
-  final contractRoot = Directory('../chawan-product-spec/contracts');
+  final contractRoot = Directory('${specRoot.path}/contracts');
   if (!contractRoot.existsSync()) {
     failures.add('Missing canonical contract directory: ${contractRoot.path}');
     return;
@@ -213,6 +215,14 @@ void checkDocReferences(List<String> failures) {
       }
     }
   }
+}
+
+Directory canonicalSpecRoot() {
+  final fromEnv = Platform.environment['CHAWAN_SPEC_ROOT'];
+  if (fromEnv != null && fromEnv.isNotEmpty) {
+    return Directory(fromEnv);
+  }
+  return Directory('../chawan-product-spec');
 }
 
 Map<String, File> filesByRelativePath(Directory root) {

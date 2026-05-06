@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('required canonical spec files exist next to okaka', () {
-    final root = Directory('../chawan-product-spec');
+    final root = _specRoot();
     expect(root.existsSync(), isTrue);
     final requiredFiles = [
       'contracts/SPEC-001-discovery-versions.md',
@@ -44,11 +44,10 @@ void main() {
   });
 
   test('bundled theme files match canonical spec design files', () {
+    final root = _specRoot();
     final pairs = {
-      'design/theme.schema.json':
-          '../chawan-product-spec/design/theme.schema.json',
-      'design/themes/smoke.json':
-          '../chawan-product-spec/design/themes/smoke.json',
+      'design/theme.schema.json': '${root.path}/design/theme.schema.json',
+      'design/themes/smoke.json': '${root.path}/design/themes/smoke.json',
     };
 
     for (final entry in pairs.entries) {
@@ -59,4 +58,12 @@ void main() {
       );
     }
   });
+}
+
+Directory _specRoot() {
+  final fromEnv = Platform.environment['CHAWAN_SPEC_ROOT'];
+  if (fromEnv != null && fromEnv.isNotEmpty) {
+    return Directory(fromEnv);
+  }
+  return Directory('../chawan-product-spec');
 }
