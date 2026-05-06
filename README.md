@@ -101,6 +101,24 @@ flutter test
 before checking bundled theme and vector references. If `CHAWAN_SPEC_ROOT` is
 set, that path is used instead of `../chawan-product-spec`.
 
+## Pre-1.0 SDK Hardening Checklist
+
+Before a pre-1.0 release decision, verify:
+
+- Public API names, constructor parameters, and return models are small,
+  profile-oriented, and covered by canonical contract tests.
+- Examples show only behavior backed by `../chawan-product-spec` contracts and
+  vectors.
+- Theme adapter behavior remains limited to bundled design assets that are
+  checked against `../chawan-product-spec/design`.
+- Error handling docs and examples use typed SDK errors without inventing
+  server-specific behavior.
+- `publish_to: none` remains in place until a separate release decision issue
+  covers pub.dev publication, package name, and versioning.
+
+This package must not copy canonical contracts or test vectors. It should read
+them from the sibling spec checkout or `CHAWAN_SPEC_ROOT`.
+
 ## Roadmap
 
 The long-term path is spec root publication, Flutter SDK hardening, shared
