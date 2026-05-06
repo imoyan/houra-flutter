@@ -76,7 +76,10 @@ void main() {
 
 List<Directory> _cleanRoots() {
   final roots = [Directory.current];
-  final siblingSpec = Directory('../chawan-product-spec');
+  final specPath = Platform.environment['CHAWAN_SPEC_ROOT'];
+  final siblingSpec = Directory(
+    specPath == null || specPath.isEmpty ? '../chawan-product-spec' : specPath,
+  );
   if (siblingSpec.existsSync()) {
     roots.add(siblingSpec);
   }

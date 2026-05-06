@@ -15,6 +15,7 @@
 - [ ] `dart format --set-exit-if-changed .`
 - [ ] `flutter analyze`
 - [ ] `flutter test`
+- [ ] GitHub Actions `SDK Check`
 
 ## Clean-Room Check
 
