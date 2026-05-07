@@ -91,7 +91,7 @@ void main() {
     expect(event.eventId, r'$event:example.test');
     expect(event.textMessage?.body, valid.expected['text_body']);
 
-    final bad = readVector('test-vectors/sync/bad-event-payload.json');
+    final bad = readVector('test-vectors/events/bad-event-payload.json');
     expect(
       () => OkakaEvent.fromJson(objectFrom(bad.raw, 'event')),
       throwsA(isA<OkakaResponseFormatException>()),

@@ -30,11 +30,11 @@ void main() {
       'test-vectors/rooms/leave-room-basic.json',
       'test-vectors/rooms/room-state-basic.json',
       'test-vectors/events/event-basic.json',
+      'test-vectors/events/bad-event-payload.json',
       'test-vectors/messaging/send-text-basic.json',
       'test-vectors/sync/room-list-basic.json',
       'test-vectors/sync/timeline-basic.json',
       'test-vectors/sync/basic-sync.json',
-      'test-vectors/sync/bad-event-payload.json',
       'test-vectors/media/upload-basic.json',
       'test-vectors/media/download-metadata-basic.json',
     ];
