@@ -128,6 +128,21 @@ Before a pre-1.0 release decision, verify:
 This package must not copy canonical contracts or test vectors. It should read
 them from the sibling spec checkout or `CHAWAN_SPEC_ROOT`.
 
+## Pre-1.0 Release Decision
+
+Current decision: keep this package unpublished while the SDK remains a draft.
+
+- Package name: keep `okaka`.
+- Version: keep `0.1.0` until the first release candidate is cut.
+- License: Apache-2.0, as declared in `LICENSE`.
+- Publication: keep `publish_to: none`.
+- Canonical source: continue reading contracts, vectors, and design tokens from
+  `../chawan-product-spec` or `CHAWAN_SPEC_ROOT`.
+
+Before publishing to pub.dev, open a separate release PR that removes
+`publish_to: none` only after package ownership, repository metadata,
+versioning, and the final chawan freeze baseline are confirmed.
+
 ## Roadmap
 
 The long-term path is spec root publication, Flutter SDK hardening, shared
