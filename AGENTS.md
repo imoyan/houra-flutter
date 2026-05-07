@@ -2,8 +2,8 @@
 
 ## Scope
 
-This directory is a clean Flutter SDK candidate for Okomedev Chawan clients.
-Treat it as a future standalone repository.
+This repository is the standalone Flutter SDK candidate for Okomedev Chawan
+clients.
 
 ## Source of Truth
 
