@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:okaka/okaka.dart';
+import 'package:houra/houra.dart';
 
 import 'vector_test_support.dart';
 
@@ -13,7 +13,7 @@ void main() {
     final requestBody = objectFrom(vector.request, 'body');
 
     late http.Request observed;
-    final client = OkakaClient(
+    final client = HouraClient(
       serverBaseUri: Uri.parse('https://example.test'),
       httpClient: MockClient((request) async {
         observed = request;
@@ -37,8 +37,8 @@ void main() {
 
   test('send response parser rejects malformed responses', () {
     expect(
-      () => OkakaSendMessageResponse.fromJson({'event_id': ''}),
-      throwsA(isA<OkakaResponseFormatException>()),
+      () => HouraSendMessageResponse.fromJson({'event_id': ''}),
+      throwsA(isA<HouraResponseFormatException>()),
     );
   });
 }

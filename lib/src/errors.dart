@@ -1,6 +1,6 @@
-/// Base class for okaka SDK exceptions.
-abstract class OkakaException implements Exception {
-  const OkakaException(this.message);
+/// Base class for houra SDK exceptions.
+abstract class HouraException implements Exception {
+  const HouraException(this.message);
 
   final String message;
 
@@ -9,8 +9,8 @@ abstract class OkakaException implements Exception {
 }
 
 /// Thrown when a request fails before an HTTP response is received.
-final class OkakaTransportException extends OkakaException {
-  const OkakaTransportException(
+final class HouraTransportException extends HouraException {
+  const HouraTransportException(
     super.message, {
     this.cause,
     this.stackTrace,
@@ -21,8 +21,8 @@ final class OkakaTransportException extends OkakaException {
 }
 
 /// Thrown when an HTTP response has a non-success status code.
-final class OkakaHttpException extends OkakaException {
-  OkakaHttpException({
+final class HouraHttpException extends HouraException {
+  HouraHttpException({
     required this.statusCode,
     required this.uri,
     required this.responseBody,
@@ -42,13 +42,13 @@ final class OkakaHttpException extends OkakaException {
 }
 
 /// Thrown when a successful response does not match the expected contract.
-final class OkakaResponseFormatException extends OkakaException {
-  const OkakaResponseFormatException(super.message);
+final class HouraResponseFormatException extends HouraException {
+  const HouraResponseFormatException(super.message);
 }
 
 /// Thrown when a shared theme token file is malformed.
-final class OkakaThemeFormatException extends OkakaException {
-  const OkakaThemeFormatException(super.message);
+final class HouraThemeFormatException extends HouraException {
+  const HouraThemeFormatException(super.message);
 }
 
 String _summarize(String body) {

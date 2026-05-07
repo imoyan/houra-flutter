@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('required canonical spec files exist next to okaka', () {
+  test('required canonical spec files exist next to houra', () {
     final root = _specRoot();
     expect(root.existsSync(), isTrue);
     final requiredFiles = [
@@ -61,9 +61,9 @@ void main() {
 }
 
 Directory _specRoot() {
-  final fromEnv = Platform.environment['CHAWAN_SPEC_ROOT'];
+  final fromEnv = Platform.environment['ICHI_GO_SPEC_ROOT'];
   if (fromEnv != null && fromEnv.isNotEmpty) {
     return Directory(fromEnv);
   }
-  return Directory('../chawan-product-spec');
+  return Directory('../ichi-go-spec');
 }

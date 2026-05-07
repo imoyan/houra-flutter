@@ -2,15 +2,15 @@ import 'models.dart';
 import 'transport.dart';
 
 /// Host-owned persistence for sync tokens.
-abstract interface class OkakaSyncTokenStore {
+abstract interface class HouraSyncTokenStore {
   Future<String?> read();
 
   Future<void> write(String token);
 }
 
 /// In-memory token store for tests and demos.
-final class OkakaMemorySyncTokenStore implements OkakaSyncTokenStore {
-  OkakaMemorySyncTokenStore([this._token]);
+final class HouraMemorySyncTokenStore implements HouraSyncTokenStore {
+  HouraMemorySyncTokenStore([this._token]);
 
   String? _token;
 
@@ -24,32 +24,32 @@ final class OkakaMemorySyncTokenStore implements OkakaSyncTokenStore {
 }
 
 /// Sync endpoints for room lists, timelines, and incremental sync.
-final class OkakaSyncClient {
-  const OkakaSyncClient(this._transport);
+final class HouraSyncClient {
+  const HouraSyncClient(this._transport);
 
-  final OkakaTransport _transport;
+  final HouraTransport _transport;
 
-  Future<OkakaRoomList> listRooms({required String accessToken}) async {
+  Future<HouraRoomList> listRooms({required String accessToken}) async {
     final response = await _transport.send(
-      OkakaRequest(
+      HouraRequest(
         method: 'GET',
-        pathSegments: const ['_chawan', 'client', 'rooms'],
+        pathSegments: const ['_ichi-go', 'client', 'rooms'],
         accessToken: accessToken,
       ),
     );
-    return OkakaRoomList.fromJson(response.jsonObject);
+    return HouraRoomList.fromJson(response.jsonObject);
   }
 
-  Future<OkakaTimelinePage> getTimeline({
+  Future<HouraTimelinePage> getTimeline({
     required String accessToken,
     required String roomId,
     String? from,
     int? limit,
   }) async {
     final response = await _transport.send(
-      OkakaRequest(
+      HouraRequest(
         method: 'GET',
-        pathSegments: ['_chawan', 'client', 'rooms', roomId, 'timeline'],
+        pathSegments: ['_ichi-go', 'client', 'rooms', roomId, 'timeline'],
         accessToken: accessToken,
         queryParameters: {
           if (from != null) 'from': from,
@@ -57,18 +57,18 @@ final class OkakaSyncClient {
         },
       ),
     );
-    return OkakaTimelinePage.fromJson(response.jsonObject);
+    return HouraTimelinePage.fromJson(response.jsonObject);
   }
 
-  Future<OkakaSyncBatch> sync({
+  Future<HouraSyncBatch> sync({
     required String accessToken,
     String? since,
     Duration? timeout,
   }) async {
     final response = await _transport.send(
-      OkakaRequest(
+      HouraRequest(
         method: 'GET',
-        pathSegments: const ['_chawan', 'client', 'sync'],
+        pathSegments: const ['_ichi-go', 'client', 'sync'],
         accessToken: accessToken,
         queryParameters: {
           if (since != null) 'since': since,
@@ -76,12 +76,12 @@ final class OkakaSyncClient {
         },
       ),
     );
-    return OkakaSyncBatch.fromJson(response.jsonObject);
+    return HouraSyncBatch.fromJson(response.jsonObject);
   }
 
-  Future<OkakaSyncBatch> pollOnce({
+  Future<HouraSyncBatch> pollOnce({
     required String accessToken,
-    required OkakaSyncTokenStore tokenStore,
+    required HouraSyncTokenStore tokenStore,
     Duration? timeout,
   }) async {
     final batch = await sync(

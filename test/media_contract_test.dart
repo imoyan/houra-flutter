@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:okaka/okaka.dart';
+import 'package:houra/houra.dart';
 
 import 'vector_test_support.dart';
 
@@ -56,22 +56,22 @@ void main() {
 
   test('media parsers reject malformed responses', () {
     expect(
-      () => OkakaMediaUpload.fromJson({'media_id': 'media1'}),
-      throwsA(isA<OkakaResponseFormatException>()),
+      () => HouraMediaUpload.fromJson({'media_id': 'media1'}),
+      throwsA(isA<HouraResponseFormatException>()),
     );
     expect(
-      () => OkakaMediaMetadata.fromJson({
+      () => HouraMediaMetadata.fromJson({
         'media_id': 'media1',
         'content_type': 'image/png',
         'download_url': '',
       }),
-      throwsA(isA<OkakaResponseFormatException>()),
+      throwsA(isA<HouraResponseFormatException>()),
     );
   });
 }
 
-OkakaClient _client(Future<http.Response> Function(http.Request) handler) {
-  return OkakaClient(
+HouraClient _client(Future<http.Response> Function(http.Request) handler) {
+  return HouraClient(
     serverBaseUri: Uri.parse('https://example.test'),
     httpClient: MockClient(handler),
   );

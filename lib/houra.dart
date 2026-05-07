@@ -1,5 +1,5 @@
-/// Flutter SDK candidate for the Okomedev Chawan client API subset.
-library okaka;
+/// Flutter SDK candidate for the Okomedev Ichi-Go client API subset.
+library houra;
 
 export 'src/auth.dart';
 export 'src/client.dart';

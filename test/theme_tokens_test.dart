@@ -2,16 +2,16 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:okaka/okaka.dart';
+import 'package:houra/houra.dart';
 
 void main() {
   test('smoke theme resolves shared light and dark tokens', () {
-    final tokens = OkakaThemeTokens.fromJsonString(
+    final tokens = HouraThemeTokens.fromJsonString(
       File('design/themes/smoke.json').readAsStringSync(),
     );
 
-    final light = tokens.resolve(OkakaThemeVariant.light);
-    final dark = tokens.resolve(OkakaThemeVariant.dark);
+    final light = tokens.resolve(HouraThemeVariant.light);
+    final dark = tokens.resolve(HouraThemeVariant.dark);
 
     expect(tokens.name, 'smoke');
     expect(light.colorHex('background'), '#F7FAFC');
@@ -22,7 +22,7 @@ void main() {
 
   test('theme parser rejects unknown references and cycles', () {
     expect(
-      () => OkakaThemeTokens.fromJson({
+      () => HouraThemeTokens.fromJson({
         'name': 'broken',
         'version': '0.1.0',
         'defs': <String, Object?>{},
@@ -30,11 +30,11 @@ void main() {
           'primary': {'light': 'missing', 'dark': '#000000'},
         },
       }),
-      throwsA(isA<OkakaThemeFormatException>()),
+      throwsA(isA<HouraThemeFormatException>()),
     );
 
     expect(
-      () => OkakaThemeTokens.fromJson({
+      () => HouraThemeTokens.fromJson({
         'name': 'cycle',
         'version': '0.1.0',
         'defs': {'a': 'b', 'b': 'a'},
@@ -42,16 +42,16 @@ void main() {
           'primary': {'light': 'a', 'dark': '#000000'},
         },
       }),
-      throwsA(isA<OkakaThemeFormatException>()),
+      throwsA(isA<HouraThemeFormatException>()),
     );
   });
 
   test('Flutter adapter maps resolved tokens to ThemeData', () {
-    final tokens = OkakaThemeTokens.fromJsonString(
+    final tokens = HouraThemeTokens.fromJsonString(
       File('design/themes/smoke.json').readAsStringSync(),
     );
-    final theme = OkakaFlutterTheme.themeData(
-      tokens.resolve(OkakaThemeVariant.dark),
+    final theme = HouraFlutterTheme.themeData(
+      tokens.resolve(HouraThemeVariant.dark),
     );
 
     expect(theme.brightness, Brightness.dark);

@@ -2,21 +2,21 @@
 
 ## Scope
 
-This repository is the standalone Flutter SDK candidate for Okomedev Chawan
+This repository is the standalone Flutter SDK candidate for Okomedev Ichi-Go
 clients.
 
 ## Source of Truth
 
 Use this priority order when implementing behavior:
 
-1. `../chawan-product-spec/contracts/`
-2. `../chawan-product-spec/test-vectors/`
-3. `../chawan-product-spec/design/`
+1. `../ichi-go-spec/contracts/`
+2. `../ichi-go-spec/test-vectors/`
+3. `../ichi-go-spec/design/`
 4. Stable public specifications when a contract explicitly points to them
 5. Official Dart and Flutter documentation
 
-If the canonical spec checkout is not available at `../chawan-product-spec`,
-set `CHAWAN_SPEC_ROOT` to its absolute or relative path before running checks.
+If the canonical spec checkout is not available at `../ichi-go-spec`,
+set `ICHI_GO_SPEC_ROOT` to its absolute or relative path before running checks.
 
 Do not treat any server implementation as canonical.
 
@@ -28,7 +28,7 @@ and request a contract clarification.
 
 ## Repository Boundary
 
-- This package follows `../chawan-product-spec`.
+- This package follows `../ichi-go-spec`.
 - Do not move canonical behavior into this package.
 - Keep README user-facing and concise.
 - Keep Codex-facing rules here.
@@ -64,18 +64,18 @@ Shared theme files live under `design/themes/` and must remain platform-neutral.
 Client implementations may map the same JSON tokens to native theme systems,
 but the token names and light/dark values should remain shared.
 
-The local bundled theme files must match `../chawan-product-spec/design/`.
+The local bundled theme files must match `../ichi-go-spec/design/`.
 Run `dart run tool/check_spec_sync.dart` before SDK checks; it also runs the
 sibling spec root consistency check.
-CI uses `CHAWAN_SPEC_ROOT` after checking out the sibling
-`chawan-product-spec` repository next to this repository.
+CI uses `ICHI_GO_SPEC_ROOT` after checking out the sibling
+`ichi-go-spec` repository next to this repository.
 
 ## Long-Term Guardrails
 
-- Keep `okaka-flutter` as the first client implementation, not the source of
+- Keep `houra-flutter` as the first client implementation, not the source of
   behavior.
 - Add Swift, Kotlin, and TypeScript/React clients only as sibling roots after
-  `../chawan-product-spec` passes `dart tool/check_spec.dart`.
+  `../ichi-go-spec` passes `dart tool/check_spec.dart`.
 - Add conformance tooling around canonical vectors before pre-1.0 release prep.
 - Run SDK hardening only after the sibling spec freeze checklist exists.
 - Keep public API ergonomics, examples, theme adapter stability, and error

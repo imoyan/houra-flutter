@@ -40,11 +40,11 @@ Map<String, Object?> readJsonObject(String path) {
 }
 
 Directory _specRoot() {
-  final fromEnv = Platform.environment['CHAWAN_SPEC_ROOT'];
+  final fromEnv = Platform.environment['ICHI_GO_SPEC_ROOT'];
   if (fromEnv != null && fromEnv.isNotEmpty) {
     return Directory(fromEnv);
   }
-  return Directory('../chawan-product-spec');
+  return Directory('../ichi-go-spec');
 }
 
 Map<String, Object?> objectFrom(Map<String, Object?> json, String key) {

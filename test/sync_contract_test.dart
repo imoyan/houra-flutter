@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:okaka/okaka.dart';
+import 'package:houra/houra.dart';
 
 import 'vector_test_support.dart';
 
@@ -50,7 +50,7 @@ void main() {
     final vector = readVector('test-vectors/sync/basic-sync.json');
     final query = objectFrom(vector.request, 'query');
     late http.Request observed;
-    final store = OkakaMemorySyncTokenStore(query['since'] as String);
+    final store = HouraMemorySyncTokenStore(query['since'] as String);
     final client = _client((request) async {
       observed = request;
       return http.Response(jsonEncode(vector.bodyContains), 200);
@@ -75,18 +75,18 @@ void main() {
 
   test('sync parsers reject malformed payloads', () {
     expect(
-      () => OkakaSyncBatch.fromJson({'next_batch': '', 'rooms': []}),
-      throwsA(isA<OkakaResponseFormatException>()),
+      () => HouraSyncBatch.fromJson({'next_batch': '', 'rooms': []}),
+      throwsA(isA<HouraResponseFormatException>()),
     );
     expect(
-      () => OkakaTimelinePage.fromJson({'events': [], 'start': ''}),
-      throwsA(isA<OkakaResponseFormatException>()),
+      () => HouraTimelinePage.fromJson({'events': [], 'start': ''}),
+      throwsA(isA<HouraResponseFormatException>()),
     );
   });
 }
 
-OkakaClient _client(Future<http.Response> Function(http.Request) handler) {
-  return OkakaClient(
+HouraClient _client(Future<http.Response> Function(http.Request) handler) {
+  return HouraClient(
     serverBaseUri: Uri.parse('https://example.test'),
     httpClient: MockClient(handler),
   );

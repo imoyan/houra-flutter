@@ -1,8 +1,8 @@
 import 'errors.dart';
 
 /// SPEC-001 Discovery / Versions response.
-final class OkakaServerVersions {
-  const OkakaServerVersions({
+final class HouraServerVersions {
+  const HouraServerVersions({
     required this.project,
     required this.apiVersion,
     required this.compatibilityLevel,
@@ -14,8 +14,8 @@ final class OkakaServerVersions {
   final String compatibilityLevel;
   final List<String> features;
 
-  factory OkakaServerVersions.fromJson(Map<String, Object?> json) {
-    return OkakaServerVersions(
+  factory HouraServerVersions.fromJson(Map<String, Object?> json) {
+    return HouraServerVersions(
       project: _requiredString(json, 'project'),
       apiVersion: _requiredString(json, 'api_version'),
       compatibilityLevel: _requiredString(json, 'compatibility_level'),
@@ -25,25 +25,25 @@ final class OkakaServerVersions {
 }
 
 /// SPEC-003 Login Flow Discovery response.
-final class OkakaLoginFlows {
-  const OkakaLoginFlows({required this.flows});
+final class HouraLoginFlows {
+  const HouraLoginFlows({required this.flows});
 
-  final List<OkakaLoginFlow> flows;
+  final List<HouraLoginFlow> flows;
 
-  factory OkakaLoginFlows.fromJson(Map<String, Object?> json) {
+  factory HouraLoginFlows.fromJson(Map<String, Object?> json) {
     final value = json['flows'];
     if (value is! List || value.isEmpty) {
-      throw OkakaResponseFormatException(
+      throw HouraResponseFormatException(
         'Expected non-empty login flow array "flows".',
       );
     }
-    return OkakaLoginFlows(
+    return HouraLoginFlows(
       flows: List.unmodifiable(
         value.map((item) {
           if (item is Map) {
-            return OkakaLoginFlow.fromJson(item.cast<String, Object?>());
+            return HouraLoginFlow.fromJson(item.cast<String, Object?>());
           }
-          throw OkakaResponseFormatException(
+          throw HouraResponseFormatException(
             'Expected login flow object in "flows".',
           );
         }),
@@ -53,19 +53,19 @@ final class OkakaLoginFlows {
 }
 
 /// One supported login flow.
-final class OkakaLoginFlow {
-  const OkakaLoginFlow({required this.type});
+final class HouraLoginFlow {
+  const HouraLoginFlow({required this.type});
 
   final String type;
 
-  factory OkakaLoginFlow.fromJson(Map<String, Object?> json) {
-    return OkakaLoginFlow(type: _requiredString(json, 'type'));
+  factory HouraLoginFlow.fromJson(Map<String, Object?> json) {
+    return HouraLoginFlow(type: _requiredString(json, 'type'));
   }
 }
 
 /// SPEC-004 login response.
-final class OkakaAuthSession {
-  const OkakaAuthSession({
+final class HouraAuthSession {
+  const HouraAuthSession({
     required this.userId,
     required this.accessToken,
     this.deviceId,
@@ -75,8 +75,8 @@ final class OkakaAuthSession {
   final String accessToken;
   final String? deviceId;
 
-  factory OkakaAuthSession.fromJson(Map<String, Object?> json) {
-    return OkakaAuthSession(
+  factory HouraAuthSession.fromJson(Map<String, Object?> json) {
+    return HouraAuthSession(
       userId: _requiredString(json, 'user_id'),
       accessToken: _requiredString(json, 'access_token'),
       deviceId: _optionalString(json, 'device_id'),
@@ -85,14 +85,14 @@ final class OkakaAuthSession {
 }
 
 /// SPEC-004 current token identity response.
-final class OkakaWhoami {
-  const OkakaWhoami({required this.userId, this.deviceId});
+final class HouraWhoami {
+  const HouraWhoami({required this.userId, this.deviceId});
 
   final String userId;
   final String? deviceId;
 
-  factory OkakaWhoami.fromJson(Map<String, Object?> json) {
-    return OkakaWhoami(
+  factory HouraWhoami.fromJson(Map<String, Object?> json) {
+    return HouraWhoami(
       userId: _requiredString(json, 'user_id'),
       deviceId: _optionalString(json, 'device_id'),
     );
@@ -100,42 +100,42 @@ final class OkakaWhoami {
 }
 
 /// SPEC-006 room membership values.
-enum OkakaRoomMembership {
+enum HouraRoomMembership {
   join('join'),
   invite('invite'),
   leave('leave');
 
-  const OkakaRoomMembership(this.wireName);
+  const HouraRoomMembership(this.wireName);
 
   final String wireName;
 
-  static OkakaRoomMembership parse(String value) {
+  static HouraRoomMembership parse(String value) {
     for (final membership in values) {
       if (membership.wireName == value) {
         return membership;
       }
     }
-    throw OkakaResponseFormatException('Unknown room membership "$value".');
+    throw HouraResponseFormatException('Unknown room membership "$value".');
   }
 }
 
 /// SPEC-006 room object.
-final class OkakaRoom {
-  const OkakaRoom({
+final class HouraRoom {
+  const HouraRoom({
     required this.roomId,
     required this.membership,
     this.name,
   });
 
   final String roomId;
-  final OkakaRoomMembership membership;
+  final HouraRoomMembership membership;
   final String? name;
 
-  factory OkakaRoom.fromJson(Map<String, Object?> json) {
-    return OkakaRoom(
+  factory HouraRoom.fromJson(Map<String, Object?> json) {
+    return HouraRoom(
       roomId: _requiredString(json, 'room_id'),
       name: _optionalString(json, 'name'),
-      membership: OkakaRoomMembership.parse(
+      membership: HouraRoomMembership.parse(
         _requiredString(json, 'membership'),
       ),
     );
@@ -143,19 +143,19 @@ final class OkakaRoom {
 }
 
 /// SPEC-006 room state response.
-final class OkakaRoomState {
-  const OkakaRoomState({required this.events});
+final class HouraRoomState {
+  const HouraRoomState({required this.events});
 
-  final List<OkakaEvent> events;
+  final List<HouraEvent> events;
 
-  factory OkakaRoomState.fromJson(Map<String, Object?> json) {
-    return OkakaRoomState(events: _requiredEventList(json, 'events'));
+  factory HouraRoomState.fromJson(Map<String, Object?> json) {
+    return HouraRoomState(events: _requiredEventList(json, 'events'));
   }
 }
 
 /// SPEC-007 event object.
-final class OkakaEvent {
-  const OkakaEvent({
+final class HouraEvent {
+  const HouraEvent({
     required this.eventId,
     required this.roomId,
     required this.sender,
@@ -171,8 +171,8 @@ final class OkakaEvent {
   final String type;
   final Map<String, Object?> content;
 
-  factory OkakaEvent.fromJson(Map<String, Object?> json) {
-    return OkakaEvent(
+  factory HouraEvent.fromJson(Map<String, Object?> json) {
+    return HouraEvent(
       eventId: _requiredString(json, 'event_id'),
       roomId: _requiredString(json, 'room_id'),
       sender: _requiredString(json, 'sender'),
@@ -182,15 +182,15 @@ final class OkakaEvent {
     );
   }
 
-  OkakaTextMessageEvent? get textMessage {
-    if (type != 'chawan.room.message') {
+  HouraTextMessageEvent? get textMessage {
+    if (type != 'ichigo.room.message') {
       return null;
     }
     final msgtype = content['msgtype'];
-    if (msgtype != 'chawan.text') {
+    if (msgtype != 'ichigo.text') {
       return null;
     }
-    return OkakaTextMessageEvent(
+    return HouraTextMessageEvent(
       event: this,
       body: _requiredString(content, 'body'),
     );
@@ -198,55 +198,55 @@ final class OkakaEvent {
 }
 
 /// Typed view of a SPEC-007 text message event.
-final class OkakaTextMessageEvent {
-  const OkakaTextMessageEvent({required this.event, required this.body});
+final class HouraTextMessageEvent {
+  const HouraTextMessageEvent({required this.event, required this.body});
 
-  final OkakaEvent event;
+  final HouraEvent event;
   final String body;
 }
 
 /// SPEC-008 send message response.
-final class OkakaSendMessageResponse {
-  const OkakaSendMessageResponse({required this.eventId});
+final class HouraSendMessageResponse {
+  const HouraSendMessageResponse({required this.eventId});
 
   final String eventId;
 
-  factory OkakaSendMessageResponse.fromJson(Map<String, Object?> json) {
-    return OkakaSendMessageResponse(
+  factory HouraSendMessageResponse.fromJson(Map<String, Object?> json) {
+    return HouraSendMessageResponse(
       eventId: _requiredString(json, 'event_id'),
     );
   }
 }
 
 /// SPEC-009 room list response.
-final class OkakaRoomList {
-  const OkakaRoomList({required this.rooms});
+final class HouraRoomList {
+  const HouraRoomList({required this.rooms});
 
-  final List<OkakaRoom> rooms;
+  final List<HouraRoom> rooms;
 
-  factory OkakaRoomList.fromJson(Map<String, Object?> json) {
-    return OkakaRoomList(
+  factory HouraRoomList.fromJson(Map<String, Object?> json) {
+    return HouraRoomList(
       rooms: List.unmodifiable(
-        _requiredObjectList(json, 'rooms').map(OkakaRoom.fromJson),
+        _requiredObjectList(json, 'rooms').map(HouraRoom.fromJson),
       ),
     );
   }
 }
 
 /// SPEC-010 room timeline response.
-final class OkakaTimelinePage {
-  const OkakaTimelinePage({
+final class HouraTimelinePage {
+  const HouraTimelinePage({
     required this.events,
     required this.start,
     this.end,
   });
 
-  final List<OkakaEvent> events;
+  final List<HouraEvent> events;
   final String start;
   final String? end;
 
-  factory OkakaTimelinePage.fromJson(Map<String, Object?> json) {
-    return OkakaTimelinePage(
+  factory HouraTimelinePage.fromJson(Map<String, Object?> json) {
+    return HouraTimelinePage(
       events: _requiredEventList(json, 'events'),
       start: _requiredString(json, 'start'),
       end: _optionalString(json, 'end'),
@@ -255,33 +255,33 @@ final class OkakaTimelinePage {
 }
 
 /// SPEC-011 incremental sync response.
-final class OkakaSyncBatch {
-  const OkakaSyncBatch({required this.nextBatch, required this.rooms});
+final class HouraSyncBatch {
+  const HouraSyncBatch({required this.nextBatch, required this.rooms});
 
   final String nextBatch;
-  final List<OkakaSyncRoom> rooms;
+  final List<HouraSyncRoom> rooms;
 
-  factory OkakaSyncBatch.fromJson(Map<String, Object?> json) {
-    return OkakaSyncBatch(
+  factory HouraSyncBatch.fromJson(Map<String, Object?> json) {
+    return HouraSyncBatch(
       nextBatch: _requiredString(json, 'next_batch'),
       rooms: List.unmodifiable(
-        _requiredObjectList(json, 'rooms').map(OkakaSyncRoom.fromJson),
+        _requiredObjectList(json, 'rooms').map(HouraSyncRoom.fromJson),
       ),
     );
   }
 }
 
 /// One room entry in a SPEC-011 sync response.
-final class OkakaSyncRoom {
-  const OkakaSyncRoom({required this.roomId, required this.timeline});
+final class HouraSyncRoom {
+  const HouraSyncRoom({required this.roomId, required this.timeline});
 
   final String roomId;
-  final OkakaSyncTimeline timeline;
+  final HouraSyncTimeline timeline;
 
-  factory OkakaSyncRoom.fromJson(Map<String, Object?> json) {
-    return OkakaSyncRoom(
+  factory HouraSyncRoom.fromJson(Map<String, Object?> json) {
+    return HouraSyncRoom(
       roomId: _requiredString(json, 'room_id'),
-      timeline: OkakaSyncTimeline.fromJson(
+      timeline: HouraSyncTimeline.fromJson(
         _requiredJsonObject(json, 'timeline'),
       ),
     );
@@ -289,25 +289,25 @@ final class OkakaSyncRoom {
 }
 
 /// Timeline portion of one sync room entry.
-final class OkakaSyncTimeline {
-  const OkakaSyncTimeline({required this.events});
+final class HouraSyncTimeline {
+  const HouraSyncTimeline({required this.events});
 
-  final List<OkakaEvent> events;
+  final List<HouraEvent> events;
 
-  factory OkakaSyncTimeline.fromJson(Map<String, Object?> json) {
-    return OkakaSyncTimeline(events: _requiredEventList(json, 'events'));
+  factory HouraSyncTimeline.fromJson(Map<String, Object?> json) {
+    return HouraSyncTimeline(events: _requiredEventList(json, 'events'));
   }
 }
 
 /// SPEC-020 media upload response.
-final class OkakaMediaUpload {
-  const OkakaMediaUpload({required this.mediaId, required this.contentUri});
+final class HouraMediaUpload {
+  const HouraMediaUpload({required this.mediaId, required this.contentUri});
 
   final String mediaId;
   final String contentUri;
 
-  factory OkakaMediaUpload.fromJson(Map<String, Object?> json) {
-    return OkakaMediaUpload(
+  factory HouraMediaUpload.fromJson(Map<String, Object?> json) {
+    return HouraMediaUpload(
       mediaId: _requiredString(json, 'media_id'),
       contentUri: _requiredString(json, 'content_uri'),
     );
@@ -315,8 +315,8 @@ final class OkakaMediaUpload {
 }
 
 /// SPEC-020 media metadata response.
-final class OkakaMediaMetadata {
-  const OkakaMediaMetadata({
+final class HouraMediaMetadata {
+  const HouraMediaMetadata({
     required this.mediaId,
     required this.contentType,
     required this.downloadUrl,
@@ -328,8 +328,8 @@ final class OkakaMediaMetadata {
   final String contentType;
   final String downloadUrl;
 
-  factory OkakaMediaMetadata.fromJson(Map<String, Object?> json) {
-    return OkakaMediaMetadata(
+  factory HouraMediaMetadata.fromJson(Map<String, Object?> json) {
+    return HouraMediaMetadata(
       mediaId: _requiredString(json, 'media_id'),
       filename: _optionalString(json, 'filename'),
       contentType: _requiredString(json, 'content_type'),
@@ -343,7 +343,7 @@ String _requiredString(Map<String, Object?> json, String key) {
   if (value is String && value.isNotEmpty) {
     return value;
   }
-  throw OkakaResponseFormatException('Expected non-empty string "$key".');
+  throw HouraResponseFormatException('Expected non-empty string "$key".');
 }
 
 int _requiredInt(Map<String, Object?> json, String key) {
@@ -351,7 +351,7 @@ int _requiredInt(Map<String, Object?> json, String key) {
   if (value is int) {
     return value;
   }
-  throw OkakaResponseFormatException('Expected integer "$key".');
+  throw HouraResponseFormatException('Expected integer "$key".');
 }
 
 Map<String, Object?> _requiredJsonObject(
@@ -362,7 +362,7 @@ Map<String, Object?> _requiredJsonObject(
   if (value is Map) {
     return Map<String, Object?>.unmodifiable(value.cast<String, Object?>());
   }
-  throw OkakaResponseFormatException('Expected object "$key".');
+  throw HouraResponseFormatException('Expected object "$key".');
 }
 
 List<Map<String, Object?>> _requiredObjectList(
@@ -371,7 +371,7 @@ List<Map<String, Object?>> _requiredObjectList(
 ) {
   final value = json[key];
   if (value is! List) {
-    throw OkakaResponseFormatException('Expected object array "$key".');
+    throw HouraResponseFormatException('Expected object array "$key".');
   }
   return List<Map<String, Object?>>.unmodifiable(
     value.map((item) {
@@ -380,14 +380,14 @@ List<Map<String, Object?>> _requiredObjectList(
           item.cast<String, Object?>(),
         );
       }
-      throw OkakaResponseFormatException('Expected object array "$key".');
+      throw HouraResponseFormatException('Expected object array "$key".');
     }),
   );
 }
 
-List<OkakaEvent> _requiredEventList(Map<String, Object?> json, String key) {
+List<HouraEvent> _requiredEventList(Map<String, Object?> json, String key) {
   return List.unmodifiable(
-    _requiredObjectList(json, key).map(OkakaEvent.fromJson),
+    _requiredObjectList(json, key).map(HouraEvent.fromJson),
   );
 }
 
@@ -399,18 +399,18 @@ String? _optionalString(Map<String, Object?> json, String key) {
   if (value is String && value.isNotEmpty) {
     return value;
   }
-  throw OkakaResponseFormatException('Expected optional string "$key".');
+  throw HouraResponseFormatException('Expected optional string "$key".');
 }
 
 List<String> _requiredStringList(Map<String, Object?> json, String key) {
   final value = json[key];
   if (value is! List) {
-    throw OkakaResponseFormatException('Expected string array "$key".');
+    throw HouraResponseFormatException('Expected string array "$key".');
   }
   final result = <String>[];
   for (final item in value) {
     if (item is! String || item.isEmpty) {
-      throw OkakaResponseFormatException('Expected string array "$key".');
+      throw HouraResponseFormatException('Expected string array "$key".');
     }
     result.add(item);
   }

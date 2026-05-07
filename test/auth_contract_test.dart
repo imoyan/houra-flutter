@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:okaka/src/transport.dart';
-import 'package:okaka/okaka.dart';
+import 'package:houra/src/transport.dart';
+import 'package:houra/houra.dart';
 
 import 'vector_test_support.dart';
 
@@ -14,7 +14,7 @@ void main() {
     final body = vector.bodyContains;
 
     late http.Request observed;
-    final client = OkakaClient(
+    final client = HouraClient(
       serverBaseUri: Uri.parse('https://example.test'),
       httpClient: MockClient((request) async {
         observed = request;
@@ -30,7 +30,7 @@ void main() {
     expect(observed.method, vector.request['method']);
     expect(observed.url.path, vector.request['path']);
     expect(flows.flows, hasLength(1));
-    expect(flows.flows.single.type, okakaPasswordLoginType);
+    expect(flows.flows.single.type, houraPasswordLoginType);
   });
 
   test('loginWithPassword follows SPEC-004 vector', () async {
@@ -39,7 +39,7 @@ void main() {
     final body = vector.bodyContains;
 
     late http.Request observed;
-    final client = OkakaClient(
+    final client = HouraClient(
       serverBaseUri: Uri.parse('https://example.test'),
       httpClient: MockClient((request) async {
         observed = request;
@@ -70,7 +70,7 @@ void main() {
     final body = vector.bodyContains;
 
     late http.Request observed;
-    final client = OkakaClient(
+    final client = HouraClient(
       serverBaseUri: Uri.parse('https://example.test'),
       httpClient: MockClient((request) async {
         observed = request;
@@ -97,7 +97,7 @@ void main() {
     final vector = readVector('test-vectors/auth/logout-basic.json');
 
     late http.Request observed;
-    final client = OkakaClient(
+    final client = HouraClient(
       serverBaseUri: Uri.parse('https://example.test'),
       httpClient: MockClient((request) async {
         observed = request;
@@ -117,37 +117,37 @@ void main() {
 
   test('auth parsers reject malformed responses', () {
     expect(
-      () => OkakaLoginFlows.fromJson({'flows': <Object?>[]}),
-      throwsA(isA<OkakaResponseFormatException>()),
+      () => HouraLoginFlows.fromJson({'flows': <Object?>[]}),
+      throwsA(isA<HouraResponseFormatException>()),
     );
     expect(
-      () => OkakaLoginFlows.fromJson({
+      () => HouraLoginFlows.fromJson({
         'flows': [
           {'type': ''},
         ],
       }),
-      throwsA(isA<OkakaResponseFormatException>()),
+      throwsA(isA<HouraResponseFormatException>()),
     );
     expect(
-      () => OkakaAuthSession.fromJson({
+      () => HouraAuthSession.fromJson({
         'user_id': '@alice:example.test',
         'access_token': '',
       }),
-      throwsA(isA<OkakaResponseFormatException>()),
+      throwsA(isA<HouraResponseFormatException>()),
     );
     expect(
-      () => OkakaWhoami.fromJson({'device_id': 'DEVICE1'}),
-      throwsA(isA<OkakaResponseFormatException>()),
+      () => HouraWhoami.fromJson({'device_id': 'DEVICE1'}),
+      throwsA(isA<HouraResponseFormatException>()),
     );
   });
 
-  test('auth HTTP errors preserve Chawan error fields', () async {
+  test('auth HTTP errors preserve Ichi-Go error fields', () async {
     final vector = readVector('test-vectors/auth/auth-error-basic.json');
     final response = objectFrom(vector.raw, 'response');
     final expected = objectFrom(vector.raw, 'expected');
     final body = objectFrom(response, 'body');
 
-    final client = OkakaClient(
+    final client = HouraClient(
       serverBaseUri: Uri.parse('https://example.test'),
       httpClient: MockClient(
         (_) async => http.Response(
@@ -160,7 +160,7 @@ void main() {
     await expectLater(
       client.auth.whoami(accessToken: 'bad-token'),
       throwsA(
-        isA<OkakaHttpException>()
+        isA<HouraHttpException>()
             .having((error) => error.statusCode, 'statusCode', 401)
             .having((error) => error.code, 'code', expected['code'])
             .having(
@@ -179,12 +179,12 @@ void main() {
 
   test('transport rejects access_token query parameters', () {
     expect(
-      () => OkakaRequest(
+      () => HouraRequest(
         method: 'GET',
-        pathSegments: const ['_chawan', 'client', 'account', 'whoami'],
+        pathSegments: const ['_ichi-go', 'client', 'account', 'whoami'],
         queryParameters: const {'access_token': 'token-1'},
       ),
-      throwsA(isA<OkakaTransportException>()),
+      throwsA(isA<HouraTransportException>()),
     );
   });
 }

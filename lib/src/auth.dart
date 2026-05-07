@@ -1,41 +1,41 @@
 import 'models.dart';
 import 'transport.dart';
 
-const String okakaPasswordLoginType = 'chawan.login.password';
-const String okakaUserIdentifierType = 'chawan.id.user';
+const String houraPasswordLoginType = 'ichigo.login.password';
+const String houraUserIdentifierType = 'ichigo.id.user';
 
-/// Auth endpoints for the Chawan auth profile.
-final class OkakaAuthClient {
-  const OkakaAuthClient(this._transport);
+/// Auth endpoints for the Ichi-Go auth profile.
+final class HouraAuthClient {
+  const HouraAuthClient(this._transport);
 
-  final OkakaTransport _transport;
+  final HouraTransport _transport;
 
   /// Fetches SPEC-003 supported login flows.
-  Future<OkakaLoginFlows> fetchLoginFlows() async {
+  Future<HouraLoginFlows> fetchLoginFlows() async {
     final response = await _transport.send(
-      OkakaRequest(
+      HouraRequest(
         method: 'GET',
-        pathSegments: const ['_chawan', 'client', 'login'],
+        pathSegments: const ['_ichi-go', 'client', 'login'],
       ),
     );
-    return OkakaLoginFlows.fromJson(response.jsonObject);
+    return HouraLoginFlows.fromJson(response.jsonObject);
   }
 
   /// Performs SPEC-004 password login.
-  Future<OkakaAuthSession> loginWithPassword({
+  Future<HouraAuthSession> loginWithPassword({
     required String username,
     required String password,
     String? deviceId,
     String? initialDeviceDisplayName,
   }) async {
     final response = await _transport.send(
-      OkakaRequest(
+      HouraRequest(
         method: 'POST',
-        pathSegments: const ['_chawan', 'client', 'login'],
+        pathSegments: const ['_ichi-go', 'client', 'login'],
         body: {
-          'type': okakaPasswordLoginType,
+          'type': houraPasswordLoginType,
           'identifier': {
-            'type': okakaUserIdentifierType,
+            'type': houraUserIdentifierType,
             'user': username,
           },
           'password': password,
@@ -45,27 +45,27 @@ final class OkakaAuthClient {
         },
       ),
     );
-    return OkakaAuthSession.fromJson(response.jsonObject);
+    return HouraAuthSession.fromJson(response.jsonObject);
   }
 
   /// Validates an access token and returns the current user identity.
-  Future<OkakaWhoami> whoami({required String accessToken}) async {
+  Future<HouraWhoami> whoami({required String accessToken}) async {
     final response = await _transport.send(
-      OkakaRequest(
+      HouraRequest(
         method: 'GET',
-        pathSegments: const ['_chawan', 'client', 'account', 'whoami'],
+        pathSegments: const ['_ichi-go', 'client', 'account', 'whoami'],
         accessToken: accessToken,
       ),
     );
-    return OkakaWhoami.fromJson(response.jsonObject);
+    return HouraWhoami.fromJson(response.jsonObject);
   }
 
   /// Logs out the current token. Token persistence remains host-owned.
   Future<void> logout({required String accessToken}) async {
     await _transport.send(
-      OkakaRequest(
+      HouraRequest(
         method: 'POST',
-        pathSegments: const ['_chawan', 'client', 'logout'],
+        pathSegments: const ['_ichi-go', 'client', 'logout'],
         accessToken: accessToken,
       ),
     );

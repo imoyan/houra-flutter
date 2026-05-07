@@ -1,17 +1,17 @@
 import 'models.dart';
 import 'transport.dart';
 
-/// Discovery client for the Chawan core profile.
-final class OkakaDiscoveryClient {
-  const OkakaDiscoveryClient(this._transport);
+/// Discovery client for the Ichi-Go core profile.
+final class HouraDiscoveryClient {
+  const HouraDiscoveryClient(this._transport);
 
-  final OkakaTransport _transport;
+  final HouraTransport _transport;
 
   /// Fetches SPEC-001 server discovery metadata.
-  Future<OkakaServerVersions> fetchVersions() async {
+  Future<HouraServerVersions> fetchVersions() async {
     final json = await _transport.getJsonObject(
-      const ['_chawan', 'client', 'versions'],
+      const ['_ichi-go', 'client', 'versions'],
     );
-    return OkakaServerVersions.fromJson(json);
+    return HouraServerVersions.fromJson(json);
   }
 }
