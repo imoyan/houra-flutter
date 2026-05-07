@@ -75,15 +75,7 @@ void main() {
 }
 
 List<Directory> _cleanRoots() {
-  final roots = [Directory.current];
-  final specPath = Platform.environment['CHAWAN_SPEC_ROOT'];
-  final siblingSpec = Directory(
-    specPath == null || specPath.isEmpty ? '../chawan-product-spec' : specPath,
-  );
-  if (siblingSpec.existsSync()) {
-    roots.add(siblingSpec);
-  }
-  return roots;
+  return [Directory.current];
 }
 
 bool _isIgnored(File file) {

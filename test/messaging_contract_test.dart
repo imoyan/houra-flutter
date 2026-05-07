@@ -24,6 +24,7 @@ void main() {
     final eventId = await client.messaging.sendTextMessage(
       accessToken: vector.request['access_token'] as String,
       roomId: '!room:example.test',
+      clientTransactionId: requestBody['client_transaction_id'] as String,
       body: requestBody['body'] as String,
     );
 
