@@ -1,7 +1,7 @@
-import 'package:okaka/okaka.dart';
+import 'package:houra/houra.dart';
 
 Future<void> main() async {
-  final client = OkakaClient(serverBaseUri: Uri.parse('https://example.test'));
+  final client = HouraClient(serverBaseUri: Uri.parse('https://example.test'));
   try {
     final versions = await client.discovery.fetchVersions();
     final flows = await client.auth.fetchLoginFlows();

@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Propose SDK support after a matching Chawan contract exists.
+about: Propose SDK support after a matching Ichi-Go contract exists.
 title: ""
 labels: enhancement
 assignees: ""

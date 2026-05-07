@@ -3,81 +3,81 @@ import 'dart:convert';
 import 'errors.dart';
 
 /// Light or dark variant for a shared theme token file.
-enum OkakaThemeVariant { light, dark }
+enum HouraThemeVariant { light, dark }
 
 /// Platform-neutral shared theme token set.
-final class OkakaThemeTokens {
-  OkakaThemeTokens({
+final class HouraThemeTokens {
+  HouraThemeTokens({
     required this.name,
     required this.version,
     required Map<String, String> defs,
-    required Map<String, OkakaThemeColorToken> theme,
+    required Map<String, HouraThemeColorToken> theme,
   })  : defs = Map.unmodifiable(defs),
         theme = Map.unmodifiable(theme);
 
   final String name;
   final String version;
   final Map<String, String> defs;
-  final Map<String, OkakaThemeColorToken> theme;
+  final Map<String, HouraThemeColorToken> theme;
 
-  factory OkakaThemeTokens.fromJsonString(String source) {
+  factory HouraThemeTokens.fromJsonString(String source) {
     final Object? decoded;
     try {
       decoded = jsonDecode(source);
     } on FormatException catch (error) {
-      throw OkakaThemeFormatException('Theme JSON is invalid: $error');
+      throw HouraThemeFormatException('Theme JSON is invalid: $error');
     }
     if (decoded is! Map<String, Object?>) {
-      throw const OkakaThemeFormatException('Theme root must be an object.');
+      throw const HouraThemeFormatException('Theme root must be an object.');
     }
-    return OkakaThemeTokens.fromJson(decoded);
+    return HouraThemeTokens.fromJson(decoded);
   }
 
-  factory OkakaThemeTokens.fromJson(Map<String, Object?> json) {
+  factory HouraThemeTokens.fromJson(Map<String, Object?> json) {
     final defs = _readStringMap(json, 'defs');
     final rawTheme = json['theme'];
     if (rawTheme is! Map<String, Object?> || rawTheme.isEmpty) {
-      throw const OkakaThemeFormatException(
+      throw const HouraThemeFormatException(
         'Theme field "theme" must be a non-empty object.',
       );
     }
 
-    final theme = <String, OkakaThemeColorToken>{};
+    final theme = <String, HouraThemeColorToken>{};
     for (final entry in rawTheme.entries) {
       final value = entry.value;
       if (value is! Map<String, Object?>) {
-        throw OkakaThemeFormatException(
+        throw HouraThemeFormatException(
           'Theme token "${entry.key}" must be an object.',
         );
       }
-      theme[entry.key] = OkakaThemeColorToken(
+      theme[entry.key] = HouraThemeColorToken(
         light: _readRequiredString(value, 'light'),
         dark: _readRequiredString(value, 'dark'),
       );
     }
 
-    final tokens = OkakaThemeTokens(
+    final tokens = HouraThemeTokens(
       name: _readRequiredString(json, 'name'),
       version: _readRequiredString(json, 'version'),
       defs: defs,
       theme: theme,
     );
-    tokens.resolve(OkakaThemeVariant.light);
-    tokens.resolve(OkakaThemeVariant.dark);
+    tokens.resolve(HouraThemeVariant.light);
+    tokens.resolve(HouraThemeVariant.dark);
     return tokens;
   }
 
   /// Resolves references in [defs] into concrete hex colors.
-  OkakaResolvedTheme resolve(OkakaThemeVariant variant) {
+  HouraResolvedTheme resolve(HouraThemeVariant variant) {
     final colors = <String, String>{};
     for (final entry in theme.entries) {
       final raw = switch (variant) {
-        OkakaThemeVariant.light => entry.value.light,
-        OkakaThemeVariant.dark => entry.value.dark,
+        HouraThemeVariant.light => entry.value.light,
+        HouraThemeVariant.dark => entry.value.dark,
       };
       colors[entry.key] = _resolveColor(raw, <String>{});
     }
-    return OkakaResolvedTheme(
+    return HouraResolvedTheme(
       name: name,
       version: version,
       variant: variant,
@@ -92,12 +92,12 @@ final class OkakaThemeTokens {
     }
     final referenced = defs[normalized];
     if (referenced == null) {
-      throw OkakaThemeFormatException(
+      throw HouraThemeFormatException(
         'Unknown theme color reference "$normalized".',
       );
     }
     if (!stack.add(normalized)) {
-      throw OkakaThemeFormatException(
+      throw HouraThemeFormatException(
         'Cyclic theme color reference "$normalized".',
       );
     }
@@ -106,16 +106,16 @@ final class OkakaThemeTokens {
 }
 
 /// Light/dark pair for one platform-neutral color token.
-final class OkakaThemeColorToken {
-  const OkakaThemeColorToken({required this.light, required this.dark});
+final class HouraThemeColorToken {
+  const HouraThemeColorToken({required this.light, required this.dark});
 
   final String light;
   final String dark;
 }
 
 /// Concrete theme values after reference resolution.
-final class OkakaResolvedTheme {
-  OkakaResolvedTheme({
+final class HouraResolvedTheme {
+  HouraResolvedTheme({
     required this.name,
     required this.version,
     required this.variant,
@@ -124,13 +124,13 @@ final class OkakaResolvedTheme {
 
   final String name;
   final String version;
-  final OkakaThemeVariant variant;
+  final HouraThemeVariant variant;
   final Map<String, String> colors;
 
   String colorHex(String token) {
     final color = colors[token];
     if (color == null) {
-      throw OkakaThemeFormatException('Unknown resolved color token "$token".');
+      throw HouraThemeFormatException('Unknown resolved color token "$token".');
     }
     return color;
   }
@@ -139,13 +139,13 @@ final class OkakaResolvedTheme {
 Map<String, String> _readStringMap(Map<String, Object?> json, String key) {
   final value = json[key];
   if (value is! Map<String, Object?>) {
-    throw OkakaThemeFormatException('Theme field "$key" must be an object.');
+    throw HouraThemeFormatException('Theme field "$key" must be an object.');
   }
   final result = <String, String>{};
   for (final entry in value.entries) {
     final item = entry.value;
     if (item is! String || item.trim().isEmpty) {
-      throw OkakaThemeFormatException(
+      throw HouraThemeFormatException(
         'Theme definition "${entry.key}" must be a non-empty string.',
       );
     }
@@ -159,7 +159,7 @@ String _readRequiredString(Map<String, Object?> json, String key) {
   if (value is String && value.trim().isNotEmpty) {
     return value;
   }
-  throw OkakaThemeFormatException(
+  throw HouraThemeFormatException(
     'Theme field "$key" must be a non-empty string.',
   );
 }

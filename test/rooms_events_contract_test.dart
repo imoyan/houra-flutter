@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:okaka/okaka.dart';
+import 'package:houra/houra.dart';
 
 import 'vector_test_support.dart';
 
@@ -32,7 +32,7 @@ void main() {
     expect(jsonDecode(observed.body), requestBody);
     expect(room.roomId, vector.bodyContains['room_id']);
     expect(room.name, vector.bodyContains['name']);
-    expect(room.membership, OkakaRoomMembership.join);
+    expect(room.membership, HouraRoomMembership.join);
   });
 
   test('joinRoom and leaveRoom follow SPEC-006 vectors', () async {
@@ -58,10 +58,10 @@ void main() {
 
     expect(observed.first.method, joinVector.request['method']);
     expect(observed.first.url.path, joinVector.request['path']);
-    expect(joined.membership, OkakaRoomMembership.join);
+    expect(joined.membership, HouraRoomMembership.join);
     expect(observed.last.method, leaveVector.request['method']);
     expect(observed.last.url.path, leaveVector.request['path']);
-    expect(left.membership, OkakaRoomMembership.leave);
+    expect(left.membership, HouraRoomMembership.leave);
   });
 
   test('getRoomState parses SPEC-006 event state vector', () async {
@@ -80,34 +80,34 @@ void main() {
     expect(observed.method, vector.request['method']);
     expect(observed.url.path, vector.request['path']);
     expect(state.events, hasLength(1));
-    expect(state.events.single.type, 'chawan.room.name');
+    expect(state.events.single.type, 'ichigo.room.name');
     expect(state.events.single.content['name'], 'General');
   });
 
   test('event model parses text events and rejects untrusted content', () {
     final valid = readVector('test-vectors/events/event-basic.json');
-    final event = OkakaEvent.fromJson(objectFrom(valid.raw, 'event'));
+    final event = HouraEvent.fromJson(objectFrom(valid.raw, 'event'));
 
     expect(event.eventId, r'$event:example.test');
     expect(event.textMessage?.body, valid.expected['text_body']);
 
     final bad = readVector('test-vectors/events/bad-event-payload.json');
     expect(
-      () => OkakaEvent.fromJson(objectFrom(bad.raw, 'event')),
-      throwsA(isA<OkakaResponseFormatException>()),
+      () => HouraEvent.fromJson(objectFrom(bad.raw, 'event')),
+      throwsA(isA<HouraResponseFormatException>()),
     );
     expect(
-      () => OkakaRoom.fromJson({
+      () => HouraRoom.fromJson({
         'room_id': '!room:example.test',
         'membership': 'unknown',
       }),
-      throwsA(isA<OkakaResponseFormatException>()),
+      throwsA(isA<HouraResponseFormatException>()),
     );
   });
 }
 
-OkakaClient _client(Future<http.Response> Function(http.Request) handler) {
-  return OkakaClient(
+HouraClient _client(Future<http.Response> Function(http.Request) handler) {
+  return HouraClient(
     serverBaseUri: Uri.parse('https://example.test'),
     httpClient: MockClient(handler),
   );

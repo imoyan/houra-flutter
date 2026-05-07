@@ -5,8 +5,8 @@ import 'package:http/http.dart' as http;
 
 import 'errors.dart';
 
-final class OkakaRequest {
-  OkakaRequest({
+final class HouraRequest {
+  HouraRequest({
     required this.method,
     required this.pathSegments,
     Map<String, String> queryParameters = const {},
@@ -25,8 +25,8 @@ final class OkakaRequest {
   final Object? body;
 }
 
-final class OkakaResponse {
-  const OkakaResponse({
+final class HouraResponse {
+  const HouraResponse({
     required this.statusCode,
     required this.uri,
     required this.json,
@@ -43,12 +43,12 @@ final class OkakaResponse {
     if (value is Map<String, Object?>) {
       return value;
     }
-    throw OkakaResponseFormatException('Expected JSON object from $uri.');
+    throw HouraResponseFormatException('Expected JSON object from $uri.');
   }
 }
 
-final class OkakaTransport {
-  OkakaTransport({
+final class HouraTransport {
+  HouraTransport({
     required Uri serverBaseUri,
     http.Client? httpClient,
     Duration requestTimeout = const Duration(seconds: 60),
@@ -70,20 +70,20 @@ final class OkakaTransport {
 
   Future<Map<String, Object?>> getJsonObject(List<String> pathSegments) async {
     final response = await send(
-      OkakaRequest(method: 'GET', pathSegments: pathSegments),
+      HouraRequest(method: 'GET', pathSegments: pathSegments),
     );
     return response.jsonObject;
   }
 
-  Future<OkakaResponse> send(OkakaRequest request) async {
+  Future<HouraResponse> send(HouraRequest request) async {
     final uri = _buildUri(request);
     final http.Response response;
     try {
       response = await _sendOnce(uri, request).timeout(_requestTimeout);
-    } on OkakaTransportException {
+    } on HouraTransportException {
       rethrow;
     } on Object catch (error, stackTrace) {
-      throw OkakaTransportException(
+      throw HouraTransportException(
         'Request failed before response.',
         cause: error,
         stackTrace: stackTrace,
@@ -93,7 +93,7 @@ final class OkakaTransport {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final decoded = _tryDecodeResponseJson(response.body);
       final errorFields = _errorFields(decoded);
-      throw OkakaHttpException(
+      throw HouraHttpException(
         statusCode: response.statusCode,
         uri: uri,
         responseBody: response.body,
@@ -103,7 +103,7 @@ final class OkakaTransport {
     }
 
     final decoded = _decodeResponseJson(response.body, uri);
-    return OkakaResponse(
+    return HouraResponse(
       statusCode: response.statusCode,
       uri: uri,
       json: decoded,
@@ -111,7 +111,7 @@ final class OkakaTransport {
     );
   }
 
-  Future<http.Response> _sendOnce(Uri uri, OkakaRequest request) {
+  Future<http.Response> _sendOnce(Uri uri, HouraRequest request) {
     final body = request.body;
     final headers = _headersFor(request);
     return switch (request.method) {
@@ -131,13 +131,13 @@ final class OkakaTransport {
           headers: headers,
           body: body == null ? null : jsonEncode(body),
         ),
-      _ => throw OkakaTransportException(
+      _ => throw HouraTransportException(
           'Unsupported HTTP method: ${request.method}.',
         ),
     };
   }
 
-  Map<String, String> _headersFor(OkakaRequest request) {
+  Map<String, String> _headersFor(HouraRequest request) {
     final headers = <String, String>{...request.headers};
     final accessToken = request.accessToken;
     if (accessToken != null) {
@@ -157,7 +157,7 @@ final class OkakaTransport {
     try {
       decoded = jsonDecode(body);
     } on FormatException catch (error) {
-      throw OkakaResponseFormatException(
+      throw HouraResponseFormatException(
         'Response body from $uri was not valid JSON: $error',
       );
     }
@@ -175,7 +175,7 @@ final class OkakaTransport {
     }
   }
 
-  Uri _buildUri(OkakaRequest request) {
+  Uri _buildUri(HouraRequest request) {
     final baseSegments = _serverBaseUri.pathSegments.where(
       (segment) => segment.isNotEmpty,
     );
@@ -197,7 +197,7 @@ Map<String, String> _validateQueryParameters(
   Map<String, String> queryParameters,
 ) {
   if (queryParameters.containsKey('access_token')) {
-    throw OkakaTransportException(
+    throw HouraTransportException(
       'Use Authorization Bearer instead of access_token query parameters.',
     );
   }
@@ -229,15 +229,15 @@ Object _validateJsonBody(Object body) {
       body is bool) {
     return body;
   }
-  throw OkakaTransportException('Request body must be JSON encodable.');
+  throw HouraTransportException('Request body must be JSON encodable.');
 }
 
 Uri _normalizeServerBaseUri(Uri uri) {
   if (uri.scheme != 'http' && uri.scheme != 'https') {
-    throw OkakaTransportException('Server base URI must use http or https.');
+    throw HouraTransportException('Server base URI must use http or https.');
   }
   if (uri.host.isEmpty) {
-    throw OkakaTransportException('Server base URI must include a host.');
+    throw HouraTransportException('Server base URI must include a host.');
   }
   return Uri(
     scheme: uri.scheme,

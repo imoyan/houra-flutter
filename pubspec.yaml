@@ -1,11 +1,11 @@
-name: okaka
-description: Flutter SDK candidate for the Okomedev Chawan client API subset.
+name: houra
+description: Flutter SDK candidate for the Okomedev Ichi-Go client API subset.
 version: 0.1.0
 publish_to: none
-repository: https://github.com/okomedev/okaka-flutter
-issue_tracker: https://github.com/okomedev/okaka-flutter/issues
+repository: https://github.com/imoyan/houra-flutter
+issue_tracker: https://github.com/imoyan/houra-flutter/issues
 topics:
-  - chawan
+  - ichi-go
   - sdk
   - flutter
   - api-client

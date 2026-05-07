@@ -1,6 +1,7 @@
-# okaka
+# houra
 
-`okaka` is a Flutter SDK candidate for the Okomedev Chawan client API subset.
+`houra` is a Flutter SDK candidate for the Okomedev Ichi-Go client API subset.
+The name comes from horagai, a conch shell used to signal over distance.
 
 ## Status
 
@@ -29,20 +30,20 @@ in draft:
 
 ```yaml
 dependencies:
-  okaka:
-    path: ../okaka-flutter
+  houra:
+    path: ../houra-flutter
 ```
 
-Keep `../chawan-product-spec` checked out next to this repository for local
+Keep `../ichi-go-spec` checked out next to this repository for local
 contract and design-token validation.
 
 ## Usage
 
 ```dart
-import 'package:okaka/okaka.dart';
+import 'package:houra/houra.dart';
 
 Future<void> main() async {
-  final client = OkakaClient(serverBaseUri: Uri.parse('https://example.test'));
+  final client = HouraClient(serverBaseUri: Uri.parse('https://example.test'));
   try {
     final versions = await client.discovery.fetchVersions();
     final flows = await client.auth.fetchLoginFlows();
@@ -66,34 +67,34 @@ Shared visual themes live in `design/themes/*.json`.
 Each theme file uses platform-neutral color tokens with `light` and `dark`
 values. Flutter reads the same JSON and maps it to `ThemeData`; other client
 implementations can map the same token file to their native theme systems.
-The canonical copy is expected to live in `../chawan-product-spec/design`; this
+The canonical copy is expected to live in `../ichi-go-spec/design`; this
 package keeps bundled copies for Flutter asset loading and checks that they stay
 in sync during local development.
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:okaka/okaka.dart';
+import 'package:houra/houra.dart';
 
 Future<ThemeData> loadTheme() async {
   final source = await rootBundle.loadString(
-    'packages/okaka/design/themes/smoke.json',
+    'packages/houra/design/themes/smoke.json',
   );
-  final tokens = OkakaThemeTokens.fromJsonString(source);
-  return OkakaFlutterTheme.themeData(
-    tokens.resolve(OkakaThemeVariant.light),
+  final tokens = HouraThemeTokens.fromJsonString(source);
+  return HouraFlutterTheme.themeData(
+    tokens.resolve(HouraThemeVariant.light),
   );
 }
 ```
 
 ## Source of Truth
 
-Behavior is defined by Okomedev Chawan contracts and test vectors. Server
+Behavior is defined by Okomedev Ichi-Go contracts and test vectors. Server
 implementations are not canonical behavior sources.
 
-When this package is developed next to `../chawan-product-spec`, contract and
+When this package is developed next to `../ichi-go-spec`, contract and
 theme checks read that sibling source directory directly.
-Set `CHAWAN_SPEC_ROOT` when the canonical spec checkout lives somewhere else,
+Set `ICHI_GO_SPEC_ROOT` when the canonical spec checkout lives somewhere else,
 such as in GitHub Actions.
 
 ## Local checks
@@ -106,9 +107,9 @@ flutter analyze
 flutter test
 ```
 
-`tool/check_spec_sync.dart` also runs `../chawan-product-spec/tool/check_spec.dart`
-before checking bundled theme and vector references. If `CHAWAN_SPEC_ROOT` is
-set, that path is used instead of `../chawan-product-spec`.
+`tool/check_spec_sync.dart` also runs `../ichi-go-spec/tool/check_spec.dart`
+before checking bundled theme and vector references. If `ICHI_GO_SPEC_ROOT` is
+set, that path is used instead of `../ichi-go-spec`.
 
 ## Pre-1.0 SDK Hardening Checklist
 
@@ -116,32 +117,32 @@ Before a pre-1.0 release decision, verify:
 
 - Public API names, constructor parameters, and return models are small,
   profile-oriented, and covered by canonical contract tests.
-- Examples show only behavior backed by `../chawan-product-spec` contracts and
+- Examples show only behavior backed by `../ichi-go-spec` contracts and
   vectors.
 - Theme adapter behavior remains limited to bundled design assets that are
-  checked against `../chawan-product-spec/design`.
+  checked against `../ichi-go-spec/design`.
 - Error handling docs and examples use typed SDK errors without inventing
   server-specific behavior.
 - `publish_to: none` remains in place until a separate release decision issue
   covers pub.dev publication, package name, and versioning.
 
 This package must not copy canonical contracts or test vectors. It should read
-them from the sibling spec checkout or `CHAWAN_SPEC_ROOT`.
+them from the sibling spec checkout or `ICHI_GO_SPEC_ROOT`.
 
 ## Pre-1.0 Release Decision
 
 Current decision: keep this package unpublished while the SDK remains a draft.
 
-- Package name: keep `okaka`.
+- Package name: keep `houra`.
 - Version: keep `0.1.0` until the first release candidate is cut.
 - License: Apache-2.0, as declared in `LICENSE`.
 - Publication: keep `publish_to: none`.
 - Canonical source: continue reading contracts, vectors, and design tokens from
-  `../chawan-product-spec` or `CHAWAN_SPEC_ROOT`.
+  `../ichi-go-spec` or `ICHI_GO_SPEC_ROOT`.
 
 Before publishing to pub.dev, open a separate release PR that removes
 `publish_to: none` only after package ownership, repository metadata,
-versioning, and the final chawan freeze baseline are confirmed.
+versioning, and the final Ichi-Go freeze baseline are confirmed.
 
 ## Roadmap
 

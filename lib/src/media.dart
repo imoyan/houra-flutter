@@ -2,21 +2,21 @@ import 'models.dart';
 import 'transport.dart';
 
 /// Media endpoints for metadata and base64 upload.
-final class OkakaMediaClient {
-  const OkakaMediaClient(this._transport);
+final class HouraMediaClient {
+  const HouraMediaClient(this._transport);
 
-  final OkakaTransport _transport;
+  final HouraTransport _transport;
 
-  Future<OkakaMediaUpload> uploadBase64({
+  Future<HouraMediaUpload> uploadBase64({
     required String accessToken,
     required String filename,
     required String contentType,
     required String bytesBase64,
   }) async {
     final response = await _transport.send(
-      OkakaRequest(
+      HouraRequest(
         method: 'POST',
-        pathSegments: const ['_chawan', 'client', 'media'],
+        pathSegments: const ['_ichi-go', 'client', 'media'],
         accessToken: accessToken,
         body: {
           'filename': filename,
@@ -25,20 +25,20 @@ final class OkakaMediaClient {
         },
       ),
     );
-    return OkakaMediaUpload.fromJson(response.jsonObject);
+    return HouraMediaUpload.fromJson(response.jsonObject);
   }
 
-  Future<OkakaMediaMetadata> getMetadata({
+  Future<HouraMediaMetadata> getMetadata({
     required String accessToken,
     required String mediaId,
   }) async {
     final response = await _transport.send(
-      OkakaRequest(
+      HouraRequest(
         method: 'GET',
-        pathSegments: ['_chawan', 'client', 'media', mediaId],
+        pathSegments: ['_ichi-go', 'client', 'media', mediaId],
         accessToken: accessToken,
       ),
     );
-    return OkakaMediaMetadata.fromJson(response.jsonObject);
+    return HouraMediaMetadata.fromJson(response.jsonObject);
   }
 }

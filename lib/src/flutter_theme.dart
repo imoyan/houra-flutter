@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'theme_tokens.dart';
 
-/// Flutter adapter for platform-neutral Okaka theme tokens.
-final class OkakaFlutterTheme {
-  const OkakaFlutterTheme._();
+/// Flutter adapter for platform-neutral Houra theme tokens.
+final class HouraFlutterTheme {
+  const HouraFlutterTheme._();
 
-  static ThemeData themeData(OkakaResolvedTheme theme) {
+  static ThemeData themeData(HouraResolvedTheme theme) {
     final brightness = switch (theme.variant) {
-      OkakaThemeVariant.light => Brightness.light,
-      OkakaThemeVariant.dark => Brightness.dark,
+      HouraThemeVariant.light => Brightness.light,
+      HouraThemeVariant.dark => Brightness.dark,
     };
     final colorScheme = ColorScheme.fromSeed(
       seedColor: _color(theme.colorHex('primary')),
@@ -38,7 +38,7 @@ final class OkakaFlutterTheme {
   }
 
   static TextTheme _textTheme(
-    OkakaResolvedTheme theme,
+    HouraResolvedTheme theme,
     Brightness brightness,
   ) {
     final base = brightness == Brightness.dark

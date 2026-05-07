@@ -1,13 +1,13 @@
 import 'models.dart';
 import 'transport.dart';
 
-const String okakaTextMessageType = 'chawan.text';
+const String houraTextMessageType = 'ichigo.text';
 
-/// Messaging endpoints for the Chawan messaging profile.
-final class OkakaMessagingClient {
-  const OkakaMessagingClient(this._transport);
+/// Messaging endpoints for the Ichi-Go messaging profile.
+final class HouraMessagingClient {
+  const HouraMessagingClient(this._transport);
 
-  final OkakaTransport _transport;
+  final HouraTransport _transport;
 
   Future<String> sendTextMessage({
     required String accessToken,
@@ -16,17 +16,17 @@ final class OkakaMessagingClient {
     required String body,
   }) async {
     final response = await _transport.send(
-      OkakaRequest(
+      HouraRequest(
         method: 'POST',
-        pathSegments: ['_chawan', 'client', 'rooms', roomId, 'messages'],
+        pathSegments: ['_ichi-go', 'client', 'rooms', roomId, 'messages'],
         accessToken: accessToken,
         body: {
           'client_transaction_id': clientTransactionId,
-          'msgtype': okakaTextMessageType,
+          'msgtype': houraTextMessageType,
           'body': body,
         },
       ),
     );
-    return OkakaSendMessageResponse.fromJson(response.jsonObject).eventId;
+    return HouraSendMessageResponse.fromJson(response.jsonObject).eventId;
   }
 }

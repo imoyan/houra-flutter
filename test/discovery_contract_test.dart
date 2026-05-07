@@ -3,17 +3,17 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:okaka/okaka.dart';
+import 'package:houra/houra.dart';
 
 import 'vector_test_support.dart';
 
 void main() {
-  test('fetchVersions uses the SPEC-001 Chawan discovery endpoint', () async {
+  test('fetchVersions uses the SPEC-001 Ichi-Go discovery endpoint', () async {
     final vector = readVector('test-vectors/core/versions-basic.json');
     final bodyContains = vector.bodyContains;
 
     late http.Request observed;
-    final client = OkakaClient(
+    final client = HouraClient(
       serverBaseUri: Uri.parse('https://example.test/base'),
       httpClient: MockClient((request) async {
         observed = request;
@@ -38,32 +38,32 @@ void main() {
   });
 
   test('fetchVersions rejects malformed response bodies', () async {
-    final arrayClient = OkakaClient(
+    final arrayClient = HouraClient(
       serverBaseUri: Uri.parse('https://example.test'),
       httpClient: MockClient((_) async => http.Response('[]', 200)),
     );
 
     await expectLater(
       arrayClient.discovery.fetchVersions(),
-      throwsA(isA<OkakaResponseFormatException>()),
+      throwsA(isA<HouraResponseFormatException>()),
     );
 
-    final invalidJsonClient = OkakaClient(
+    final invalidJsonClient = HouraClient(
       serverBaseUri: Uri.parse('https://example.test'),
       httpClient: MockClient((_) async => http.Response('{', 200)),
     );
 
     await expectLater(
       invalidJsonClient.discovery.fetchVersions(),
-      throwsA(isA<OkakaResponseFormatException>()),
+      throwsA(isA<HouraResponseFormatException>()),
     );
 
-    final invalidFeatureClient = OkakaClient(
+    final invalidFeatureClient = HouraClient(
       serverBaseUri: Uri.parse('https://example.test'),
       httpClient: MockClient(
         (_) async => http.Response(
           jsonEncode({
-            'project': 'okomedev-chawan',
+            'project': 'okomedev-ichi-go',
             'api_version': '0.1-draft',
             'compatibility_level': 'level-1-csapi-subset',
             'features': [1],
@@ -75,12 +75,12 @@ void main() {
 
     await expectLater(
       invalidFeatureClient.discovery.fetchVersions(),
-      throwsA(isA<OkakaResponseFormatException>()),
+      throwsA(isA<HouraResponseFormatException>()),
     );
   });
 
   test('fetchVersions preserves HTTP error status and body summary', () async {
-    final client = OkakaClient(
+    final client = HouraClient(
       serverBaseUri: Uri.parse('https://example.test'),
       httpClient: MockClient(
         (_) async => http.Response('server unavailable', 503),
@@ -90,7 +90,7 @@ void main() {
     await expectLater(
       client.discovery.fetchVersions(),
       throwsA(
-        isA<OkakaHttpException>()
+        isA<HouraHttpException>()
             .having((error) => error.statusCode, 'statusCode', 503)
             .having(
               (error) => error.responseBody,
