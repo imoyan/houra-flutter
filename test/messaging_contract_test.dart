@@ -41,4 +41,23 @@ void main() {
       throwsA(isA<HouraResponseFormatException>()),
     );
   });
+
+  test('sendTextMessage rejects empty client transaction IDs', () async {
+    final client = HouraClient(
+      serverBaseUri: Uri.parse('https://example.test'),
+      httpClient: MockClient((request) async {
+        fail('empty client transaction IDs must not be sent');
+      }),
+    );
+
+    await expectLater(
+      client.messaging.sendTextMessage(
+        accessToken: 'token-1',
+        roomId: '!room:example.test',
+        clientTransactionId: '',
+        body: 'hello',
+      ),
+      throwsA(isA<HouraTransportException>()),
+    );
+  });
 }
