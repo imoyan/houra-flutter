@@ -80,7 +80,7 @@ void main() {
     expect(observed.method, vector.request['method']);
     expect(observed.url.path, vector.request['path']);
     expect(state.events, hasLength(1));
-    expect(state.events.single.type, 'ichigo.room.name');
+    expect(state.events.single.type, 'houra.room.name');
     expect(state.events.single.content['name'], 'General');
   });
 

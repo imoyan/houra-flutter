@@ -1,6 +1,6 @@
-# houra
+# houra-labs
 
-`houra` is a Flutter SDK candidate for the Okomedev Ichi-Go client API subset.
+`houra` is a Flutter SDK prototype for the Houra client API subset.
 The name comes from horagai, a conch shell used to signal over distance.
 
 ## Status
@@ -13,6 +13,8 @@ Out of scope for this package version:
 
 - end-to-end encryption
 - federation
+- production React Native client behavior
+- production TypeScript server behavior
 - server implementation behavior
 
 ## Features
@@ -31,10 +33,10 @@ in draft:
 ```yaml
 dependencies:
   houra:
-    path: ../houra-flutter
+    path: ../houra-labs
 ```
 
-Keep `../ichi-go-spec` checked out next to this repository for local
+Keep `../houra-spec` checked out next to this repository for local
 contract and design-token validation.
 
 ## Usage
@@ -67,7 +69,7 @@ Shared visual themes live in `design/themes/*.json`.
 Each theme file uses platform-neutral color tokens with `light` and `dark`
 values. Flutter reads the same JSON and maps it to `ThemeData`; other client
 implementations can map the same token file to their native theme systems.
-The canonical copy is expected to live in `../ichi-go-spec/design`; this
+The canonical copy is expected to live in `../houra-spec/design`; this
 package keeps bundled copies for Flutter asset loading and checks that they stay
 in sync during local development.
 
@@ -89,12 +91,12 @@ Future<ThemeData> loadTheme() async {
 
 ## Source of Truth
 
-Behavior is defined by Okomedev Ichi-Go contracts and test vectors. Server
+Behavior is defined by Houra contracts and test vectors. Server
 implementations are not canonical behavior sources.
 
-When this package is developed next to `../ichi-go-spec`, contract and
+When this package is developed next to `../houra-spec`, contract and
 theme checks read that sibling source directory directly.
-Set `ICHI_GO_SPEC_ROOT` when the canonical spec checkout lives somewhere else,
+Set `HOURA_SPEC_ROOT` when the canonical spec checkout lives somewhere else,
 such as in GitHub Actions.
 
 ## Local checks
@@ -107,9 +109,9 @@ flutter analyze
 flutter test
 ```
 
-`tool/check_spec_sync.dart` also runs `../ichi-go-spec/tool/check_spec.dart`
-before checking bundled theme and vector references. If `ICHI_GO_SPEC_ROOT` is
-set, that path is used instead of `../ichi-go-spec`.
+`tool/check_spec_sync.dart` also runs `../houra-spec/tool/check_spec.dart`
+before checking bundled theme and vector references. If `HOURA_SPEC_ROOT` is
+set, that path is used instead of `../houra-spec`.
 
 ## Pre-1.0 SDK Hardening Checklist
 
@@ -117,17 +119,17 @@ Before a pre-1.0 release decision, verify:
 
 - Public API names, constructor parameters, and return models are small,
   profile-oriented, and covered by canonical contract tests.
-- Examples show only behavior backed by `../ichi-go-spec` contracts and
+- Examples show only behavior backed by `../houra-spec` contracts and
   vectors.
 - Theme adapter behavior remains limited to bundled design assets that are
-  checked against `../ichi-go-spec/design`.
+  checked against `../houra-spec/design`.
 - Error handling docs and examples use typed SDK errors without inventing
   server-specific behavior.
 - `publish_to: none` remains in place until a separate release decision issue
   covers pub.dev publication, package name, and versioning.
 
 This package must not copy canonical contracts or test vectors. It should read
-them from the sibling spec checkout or `ICHI_GO_SPEC_ROOT`.
+them from the sibling spec checkout or `HOURA_SPEC_ROOT`.
 
 ## Pre-1.0 Release Decision
 
@@ -138,15 +140,15 @@ Current decision: keep this package unpublished while the SDK remains a draft.
 - License: Apache-2.0, as declared in `LICENSE`.
 - Publication: keep `publish_to: none`.
 - Canonical source: continue reading contracts, vectors, and design tokens from
-  `../ichi-go-spec` or `ICHI_GO_SPEC_ROOT`.
+  `../houra-spec` or `HOURA_SPEC_ROOT`.
 
 Before publishing to pub.dev, open a separate release PR that removes
 `publish_to: none` only after package ownership, repository metadata,
-versioning, and the final Ichi-Go freeze baseline are confirmed.
+versioning, and the final Houra freeze baseline are confirmed.
 
 ## Roadmap
 
-The long-term path is spec root publication, Flutter SDK hardening, shared
-theme adapter stability, conformance tooling, then pre-1.0 release prep. New
+The long-term path for this lab package is Flutter SDK hardening, shared theme
+adapter stability, and conformance tooling after the spec root is stable. New
 SDK surface should be added only after the matching `SPEC-*` contract and test
 vector exist.

@@ -14,16 +14,16 @@ jobs:
     name: Flutter SDK checks
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout houra-flutter
+      - name: Checkout houra-labs
         uses: actions/checkout@v4
         with:
-          path: houra-flutter
+          path: houra-labs
 
-      - name: Checkout ichi-go-spec
+      - name: Checkout houra-spec
         uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository_owner }}/ichi-go-spec
-          path: ichi-go-spec
+          repository: ${{ github.repository_owner }}/houra-spec
+          path: houra-spec
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -31,25 +31,25 @@ jobs:
           channel: stable
 
       - name: Get dependencies
-        working-directory: houra-flutter
+        working-directory: houra-labs
         run: flutter pub get
 
       - name: Check spec sync
-        working-directory: houra-flutter
+        working-directory: houra-labs
         env:
-          ICHI_GO_SPEC_ROOT: ../ichi-go-spec
+          HOURA_SPEC_ROOT: ../houra-spec
         run: dart run tool/check_spec_sync.dart
 
       - name: Check formatting
-        working-directory: houra-flutter
+        working-directory: houra-labs
         run: dart format --set-exit-if-changed .
 
       - name: Analyze
-        working-directory: houra-flutter
+        working-directory: houra-labs
         run: flutter analyze
 
       - name: Test
-        working-directory: houra-flutter
+        working-directory: houra-labs
         env:
-          ICHI_GO_SPEC_ROOT: ../ichi-go-spec
+          HOURA_SPEC_ROOT: ../houra-spec
         run: flutter test

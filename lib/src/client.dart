@@ -8,7 +8,7 @@ import 'rooms.dart';
 import 'sync.dart';
 import 'transport.dart';
 
-/// Root client for Ichi-Go API calls.
+/// Root client for Houra API calls.
 final class HouraClient {
   HouraClient({
     required Uri serverBaseUri,

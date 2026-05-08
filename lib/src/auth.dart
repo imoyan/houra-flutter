@@ -1,10 +1,10 @@
 import 'models.dart';
 import 'transport.dart';
 
-const String houraPasswordLoginType = 'ichigo.login.password';
-const String houraUserIdentifierType = 'ichigo.id.user';
+const String houraPasswordLoginType = 'houra.login.password';
+const String houraUserIdentifierType = 'houra.id.user';
 
-/// Auth endpoints for the Ichi-Go auth profile.
+/// Auth endpoints for the Houra auth profile.
 final class HouraAuthClient {
   const HouraAuthClient(this._transport);
 
@@ -15,7 +15,7 @@ final class HouraAuthClient {
     final response = await _transport.send(
       HouraRequest(
         method: 'GET',
-        pathSegments: const ['_ichi-go', 'client', 'login'],
+        pathSegments: const ['_houra', 'client', 'login'],
       ),
     );
     return HouraLoginFlows.fromJson(response.jsonObject);
@@ -31,7 +31,7 @@ final class HouraAuthClient {
     final response = await _transport.send(
       HouraRequest(
         method: 'POST',
-        pathSegments: const ['_ichi-go', 'client', 'login'],
+        pathSegments: const ['_houra', 'client', 'login'],
         body: {
           'type': houraPasswordLoginType,
           'identifier': {
@@ -53,7 +53,7 @@ final class HouraAuthClient {
     final response = await _transport.send(
       HouraRequest(
         method: 'GET',
-        pathSegments: const ['_ichi-go', 'client', 'account', 'whoami'],
+        pathSegments: const ['_houra', 'client', 'account', 'whoami'],
         accessToken: accessToken,
       ),
     );
@@ -65,7 +65,7 @@ final class HouraAuthClient {
     await _transport.send(
       HouraRequest(
         method: 'POST',
-        pathSegments: const ['_ichi-go', 'client', 'logout'],
+        pathSegments: const ['_houra', 'client', 'logout'],
         accessToken: accessToken,
       ),
     );

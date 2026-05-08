@@ -21,7 +21,7 @@ void main() {
     final response = await transport.send(
       HouraRequest(
         method: 'POST',
-        pathSegments: const ['_ichi-go', 'client', 'echo'],
+        pathSegments: const ['_houra', 'client', 'echo'],
         queryParameters: const {'trace': '1'},
         headers: const {'X-Houra-Test': 'yes'},
         body: const {'hello': 'world'},
@@ -31,7 +31,7 @@ void main() {
     expect(observed.method, 'POST');
     expect(
       observed.url.toString(),
-      'https://example.test/api/_ichi-go/client/echo?trace=1',
+      'https://example.test/api/_houra/client/echo?trace=1',
     );
     expect(observed.headers['x-houra-test'], 'yes');
     expect(observed.headers['content-type'], 'application/json');
@@ -39,7 +39,7 @@ void main() {
     expect(response.jsonObject, {'ok': true});
   });
 
-  test('transport preserves Ichi-Go error fields when present', () async {
+  test('transport preserves Houra error fields when present', () async {
     final transport = HouraTransport(
       serverBaseUri: Uri.parse('https://example.test'),
       httpClient: MockClient(
@@ -57,7 +57,7 @@ void main() {
       transport.send(
         HouraRequest(
           method: 'GET',
-          pathSegments: const ['_ichi-go', 'client', 'versions'],
+          pathSegments: const ['_houra', 'client', 'versions'],
         ),
       ),
       throwsA(
@@ -85,7 +85,7 @@ void main() {
       transport.send(
         HouraRequest(
           method: 'GET',
-          pathSegments: const ['_ichi-go', 'client', 'versions'],
+          pathSegments: const ['_houra', 'client', 'versions'],
         ),
       ),
       throwsA(isA<HouraTransportException>()),
@@ -104,7 +104,7 @@ void main() {
       transport.send(
         HouraRequest(
           method: 'PATCH',
-          pathSegments: const ['_ichi-go', 'client', 'versions'],
+          pathSegments: const ['_houra', 'client', 'versions'],
         ),
       ),
       throwsA(

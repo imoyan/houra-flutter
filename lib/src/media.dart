@@ -16,7 +16,7 @@ final class HouraMediaClient {
     final response = await _transport.send(
       HouraRequest(
         method: 'POST',
-        pathSegments: const ['_ichi-go', 'client', 'media'],
+        pathSegments: const ['_houra', 'client', 'media'],
         accessToken: accessToken,
         body: {
           'filename': filename,
@@ -35,7 +35,7 @@ final class HouraMediaClient {
     final response = await _transport.send(
       HouraRequest(
         method: 'GET',
-        pathSegments: ['_ichi-go', 'client', 'media', mediaId],
+        pathSegments: ['_houra', 'client', 'media', mediaId],
         accessToken: accessToken,
       ),
     );

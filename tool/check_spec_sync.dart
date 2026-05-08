@@ -142,7 +142,7 @@ void checkVectorReferences(List<String> failures) {
 
   final readVectorPattern = RegExp(r'''readVector\(\s*['"]([^'"]+)['"]\s*\)''');
   final directSpecVectorPattern = RegExp(
-    r'''(?:\.\./)?ichi-go-spec/test-vectors/[^'"\s)]+''',
+    r'''(?:\.\./)?houra-spec/test-vectors/[^'"\s)]+''',
   );
   for (final file in dartFilesUnder(testRoot)) {
     final source = file.readAsStringSync();
@@ -194,7 +194,7 @@ void checkDocReferences(List<String> failures) {
   ];
   final specReferencePattern = RegExp(r'\bSPEC-\d{3}\b');
   final relativeSpecPathPattern = RegExp(
-    r'''`?(\.\./ichi-go-spec(?:/[A-Za-z0-9._/\-]+)?)`?''',
+    r'''`?(\.\./houra-spec(?:/[A-Za-z0-9._/\-]+)?)`?''',
   );
 
   for (final doc in docFiles) {
@@ -220,15 +220,15 @@ void checkDocReferences(List<String> failures) {
 }
 
 Directory canonicalSpecRoot() {
-  final fromEnv = Platform.environment['ICHI_GO_SPEC_ROOT'];
+  final fromEnv = Platform.environment['HOURA_SPEC_ROOT'];
   if (fromEnv != null && fromEnv.isNotEmpty) {
     return Directory(fromEnv);
   }
-  return Directory('../ichi-go-spec');
+  return Directory('../houra-spec');
 }
 
 String resolveSpecReference(String path, Directory specRoot) {
-  const siblingPrefix = '../ichi-go-spec';
+  const siblingPrefix = '../houra-spec';
   if (path == siblingPrefix) {
     return specRoot.path;
   }

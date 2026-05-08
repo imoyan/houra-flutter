@@ -40,8 +40,8 @@ void main() {
     expect(houra.HouraThemeVariant, isA<Type>());
     expect(houra.HouraResolvedTheme, isA<Type>());
     expect(houra.HouraFlutterTheme, isA<Type>());
-    expect(houra.houraPasswordLoginType, 'ichigo.login.password');
-    expect(houra.houraUserIdentifierType, 'ichigo.id.user');
-    expect(houra.houraTextMessageType, 'ichigo.text');
+    expect(houra.houraPasswordLoginType, 'houra.login.password');
+    expect(houra.houraUserIdentifierType, 'houra.id.user');
+    expect(houra.houraTextMessageType, 'houra.text');
   });
 }

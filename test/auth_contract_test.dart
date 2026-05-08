@@ -141,7 +141,7 @@ void main() {
     );
   });
 
-  test('auth HTTP errors preserve Ichi-Go error fields', () async {
+  test('auth HTTP errors preserve Houra error fields', () async {
     final vector = readVector('test-vectors/auth/auth-error-basic.json');
     final response = objectFrom(vector.raw, 'response');
     final expected = objectFrom(vector.raw, 'expected');
@@ -181,7 +181,7 @@ void main() {
     expect(
       () => HouraRequest(
         method: 'GET',
-        pathSegments: const ['_ichi-go', 'client', 'account', 'whoami'],
+        pathSegments: const ['_houra', 'client', 'account', 'whoami'],
         queryParameters: const {'access_token': 'token-1'},
       ),
       throwsA(isA<HouraTransportException>()),

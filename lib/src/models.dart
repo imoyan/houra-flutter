@@ -183,11 +183,11 @@ final class HouraEvent {
   }
 
   HouraTextMessageEvent? get textMessage {
-    if (type != 'ichigo.room.message') {
+    if (type != 'houra.room.message') {
       return null;
     }
     final msgtype = content['msgtype'];
-    if (msgtype != 'ichigo.text') {
+    if (msgtype != 'houra.text') {
       return null;
     }
     return HouraTextMessageEvent(

@@ -8,7 +8,7 @@ import 'package:houra/houra.dart';
 import 'vector_test_support.dart';
 
 void main() {
-  test('fetchVersions uses the SPEC-001 Ichi-Go discovery endpoint', () async {
+  test('fetchVersions uses the SPEC-001 Houra discovery endpoint', () async {
     final vector = readVector('test-vectors/core/versions-basic.json');
     final bodyContains = vector.bodyContains;
 
@@ -63,7 +63,7 @@ void main() {
       httpClient: MockClient(
         (_) async => http.Response(
           jsonEncode({
-            'project': 'okomedev-ichi-go',
+            'project': 'houra',
             'api_version': '0.1-draft',
             'compatibility_level': 'level-1-csapi-subset',
             'features': [1],

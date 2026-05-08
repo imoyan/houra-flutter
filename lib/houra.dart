@@ -1,4 +1,4 @@
-/// Flutter SDK candidate for the Okomedev Ichi-Go client API subset.
+/// Flutter SDK candidate for the Houra client API subset.
 library houra;
 
 export 'src/auth.dart';
