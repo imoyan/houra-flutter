@@ -1,3 +1,4 @@
+import 'errors.dart';
 import 'models.dart';
 import 'transport.dart';
 
@@ -15,6 +16,11 @@ final class HouraMessagingClient {
     required String clientTransactionId,
     required String body,
   }) async {
+    if (clientTransactionId.isEmpty) {
+      throw const HouraTransportException(
+        'clientTransactionId must be non-empty.',
+      );
+    }
     final response = await _transport.send(
       HouraRequest(
         method: 'POST',
