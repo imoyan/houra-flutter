@@ -61,9 +61,9 @@ void main() {
 }
 
 Directory _specRoot() {
-  final fromEnv = Platform.environment['ICHI_GO_SPEC_ROOT'];
+  final fromEnv = Platform.environment['HOURA_SPEC_ROOT'];
   if (fromEnv != null && fromEnv.isNotEmpty) {
     return Directory(fromEnv);
   }
-  return Directory('../ichi-go-spec');
+  return Directory('../houra-spec');
 }

@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Propose SDK support after a matching Ichi-Go contract exists.
+about: Propose lab SDK support after a matching Houra contract exists.
 title: ""
 labels: enhancement
 assignees: ""

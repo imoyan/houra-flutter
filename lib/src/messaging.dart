@@ -2,9 +2,9 @@ import 'errors.dart';
 import 'models.dart';
 import 'transport.dart';
 
-const String houraTextMessageType = 'ichigo.text';
+const String houraTextMessageType = 'houra.text';
 
-/// Messaging endpoints for the Ichi-Go messaging profile.
+/// Messaging endpoints for the Houra messaging profile.
 final class HouraMessagingClient {
   const HouraMessagingClient(this._transport);
 
@@ -24,7 +24,7 @@ final class HouraMessagingClient {
     final response = await _transport.send(
       HouraRequest(
         method: 'POST',
-        pathSegments: ['_ichi-go', 'client', 'rooms', roomId, 'messages'],
+        pathSegments: ['_houra', 'client', 'rooms', roomId, 'messages'],
         accessToken: accessToken,
         body: {
           'client_transaction_id': clientTransactionId,

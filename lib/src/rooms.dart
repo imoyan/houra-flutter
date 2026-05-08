@@ -1,7 +1,7 @@
 import 'models.dart';
 import 'transport.dart';
 
-/// Room endpoints for the Ichi-Go rooms profile.
+/// Room endpoints for the Houra rooms profile.
 final class HouraRoomsClient {
   const HouraRoomsClient(this._transport);
 
@@ -14,7 +14,7 @@ final class HouraRoomsClient {
     final response = await _transport.send(
       HouraRequest(
         method: 'POST',
-        pathSegments: const ['_ichi-go', 'client', 'rooms'],
+        pathSegments: const ['_houra', 'client', 'rooms'],
         accessToken: accessToken,
         body: {
           if (name != null) 'name': name,
@@ -31,7 +31,7 @@ final class HouraRoomsClient {
     final response = await _transport.send(
       HouraRequest(
         method: 'POST',
-        pathSegments: ['_ichi-go', 'client', 'rooms', roomId, 'join'],
+        pathSegments: ['_houra', 'client', 'rooms', roomId, 'join'],
         accessToken: accessToken,
       ),
     );
@@ -45,7 +45,7 @@ final class HouraRoomsClient {
     final response = await _transport.send(
       HouraRequest(
         method: 'POST',
-        pathSegments: ['_ichi-go', 'client', 'rooms', roomId, 'leave'],
+        pathSegments: ['_houra', 'client', 'rooms', roomId, 'leave'],
         accessToken: accessToken,
       ),
     );
@@ -59,7 +59,7 @@ final class HouraRoomsClient {
     final response = await _transport.send(
       HouraRequest(
         method: 'GET',
-        pathSegments: ['_ichi-go', 'client', 'rooms', roomId, 'state'],
+        pathSegments: ['_houra', 'client', 'rooms', roomId, 'state'],
         accessToken: accessToken,
       ),
     );

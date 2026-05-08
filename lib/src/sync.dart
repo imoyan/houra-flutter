@@ -33,7 +33,7 @@ final class HouraSyncClient {
     final response = await _transport.send(
       HouraRequest(
         method: 'GET',
-        pathSegments: const ['_ichi-go', 'client', 'rooms'],
+        pathSegments: const ['_houra', 'client', 'rooms'],
         accessToken: accessToken,
       ),
     );
@@ -49,7 +49,7 @@ final class HouraSyncClient {
     final response = await _transport.send(
       HouraRequest(
         method: 'GET',
-        pathSegments: ['_ichi-go', 'client', 'rooms', roomId, 'timeline'],
+        pathSegments: ['_houra', 'client', 'rooms', roomId, 'timeline'],
         accessToken: accessToken,
         queryParameters: {
           if (from != null) 'from': from,
@@ -68,7 +68,7 @@ final class HouraSyncClient {
     final response = await _transport.send(
       HouraRequest(
         method: 'GET',
-        pathSegments: const ['_ichi-go', 'client', 'sync'],
+        pathSegments: const ['_houra', 'client', 'sync'],
         accessToken: accessToken,
         queryParameters: {
           if (since != null) 'since': since,
