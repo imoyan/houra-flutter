@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 pub const HOURA_PROTOCOL_CORE_ABI_VERSION: u32 = 1;
 pub const HOURA_PROTOCOL_CORE_MANIFEST_SCHEMA_VERSION: u32 = 1;
@@ -8,6 +9,7 @@ pub const HOURA_PROTOCOL_CORE_CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 pub const HOURA_PROTOCOL_CORE_CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
+const SUPPORTED_SPECS: &[&str] = &["SPEC-030", "SPEC-031"];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ArtifactManifest {
@@ -27,6 +29,18 @@ pub struct MatrixClientVersions {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixErrorEnvelope {
+    pub errcode: String,
+    pub error: Option<String>,
+    pub retry_after_ms: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFoundationValidation {
+    pub valid: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ProtocolErrorEnvelope {
     pub code: String,
     pub message: String,
@@ -40,11 +54,27 @@ pub struct MatrixClientVersionsParseEnvelope {
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixErrorParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixErrorEnvelope>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFoundationValidationEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFoundationValidation>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProtocolError {
     Json(String),
     EmptyVersions,
     EmptyVersion { index: usize },
+    MissingErrcode,
+    InvalidFoundationField { field: String },
 }
 
 impl ProtocolError {
@@ -53,13 +83,21 @@ impl ProtocolError {
             ProtocolError::Json(_) => "invalid_json",
             ProtocolError::EmptyVersions => "empty_versions",
             ProtocolError::EmptyVersion { .. } => "empty_version",
+            ProtocolError::MissingErrcode => "missing_errcode",
+            ProtocolError::InvalidFoundationField { .. } => "invalid_foundation_field",
         }
     }
 
     pub fn to_envelope(&self) -> ProtocolErrorEnvelope {
         let mut details = BTreeMap::new();
-        if let ProtocolError::EmptyVersion { index } = self {
-            details.insert("index".to_owned(), index.to_string());
+        match self {
+            ProtocolError::EmptyVersion { index } => {
+                details.insert("index".to_owned(), index.to_string());
+            }
+            ProtocolError::InvalidFoundationField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            _ => {}
         }
 
         ProtocolErrorEnvelope {
@@ -78,6 +116,12 @@ impl std::fmt::Display for ProtocolError {
             ProtocolError::EmptyVersion { index } => {
                 write!(formatter, "versions[{index}] must not be empty")
             }
+            ProtocolError::MissingErrcode => {
+                write!(formatter, "errcode must be a non-empty string")
+            }
+            ProtocolError::InvalidFoundationField { field } => {
+                write!(formatter, "{field} is not a valid Matrix foundation value")
+            }
         }
     }
 }
@@ -89,6 +133,13 @@ struct MatrixClientVersionsWire {
     versions: Vec<String>,
     #[serde(default)]
     unstable_features: BTreeMap<String, bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixErrorWire {
+    errcode: Option<String>,
+    error: Option<String>,
+    retry_after_ms: Option<u64>,
 }
 
 pub fn abi_version() -> u32 {
@@ -106,7 +157,10 @@ pub fn artifact_manifest_for_binding_kinds(binding_kinds: &[&str]) -> ArtifactMa
         crate_version: HOURA_PROTOCOL_CORE_CRATE_VERSION.to_owned(),
         abi_version: HOURA_PROTOCOL_CORE_ABI_VERSION,
         protocol_boundary: "pure-protocol-core".to_owned(),
-        supported_specs: vec!["SPEC-030".to_owned()],
+        supported_specs: SUPPORTED_SPECS
+            .iter()
+            .map(|spec| spec.to_string())
+            .collect(),
         supported_binding_kinds: binding_kinds.iter().map(|kind| kind.to_string()).collect(),
     }
 }
@@ -164,6 +218,192 @@ pub fn parse_matrix_client_versions_response_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_error_envelope(bytes: &[u8]) -> Result<MatrixErrorEnvelope, ProtocolError> {
+    let wire: MatrixErrorWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let errcode = wire.errcode.ok_or(ProtocolError::MissingErrcode)?;
+    if errcode.is_empty() {
+        return Err(ProtocolError::MissingErrcode);
+    }
+    Ok(MatrixErrorEnvelope {
+        errcode,
+        error: wire.error,
+        retry_after_ms: wire.retry_after_ms,
+    })
+}
+
+pub fn parse_matrix_error_envelope_envelope(bytes: &[u8]) -> MatrixErrorParseEnvelope {
+    match parse_matrix_error_envelope(bytes) {
+        Ok(value) => MatrixErrorParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixErrorParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_error_envelope_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_error_envelope_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn validate_matrix_foundation_identifiers(
+    value: &Value,
+) -> Result<MatrixFoundationValidation, ProtocolError> {
+    validate_field(value, "user_id", is_matrix_user_id)?;
+    validate_field(value, "room_id", is_matrix_room_id)?;
+    validate_field(value, "room_alias", is_matrix_room_alias)?;
+    validate_field(value, "event_id", is_matrix_event_id)?;
+    validate_field(value, "server_name", is_matrix_server_name)?;
+    validate_field(value, "content_uri", is_matrix_content_uri)?;
+    validate_field(value, "event_type", is_matrix_namespaced_identifier)?;
+    if !value
+        .get("origin_server_ts")
+        .and_then(Value::as_i64)
+        .is_some_and(|timestamp| timestamp >= 0)
+    {
+        return Err(ProtocolError::InvalidFoundationField {
+            field: "origin_server_ts".to_owned(),
+        });
+    }
+
+    Ok(MatrixFoundationValidation { valid: true })
+}
+
+pub fn validate_matrix_foundation_identifiers_envelope(
+    bytes: &[u8],
+) -> MatrixFoundationValidationEnvelope {
+    let parsed = serde_json::from_slice::<Value>(bytes)
+        .map_err(|error| ProtocolError::Json(error.to_string()))
+        .and_then(|value| validate_matrix_foundation_identifiers(&value));
+
+    match parsed {
+        Ok(value) => MatrixFoundationValidationEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFoundationValidationEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn validate_matrix_foundation_identifiers_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&validate_matrix_foundation_identifiers_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+fn validate_field(
+    value: &Value,
+    field: &str,
+    validate: impl Fn(&str) -> bool,
+) -> Result<(), ProtocolError> {
+    if value
+        .get(field)
+        .and_then(Value::as_str)
+        .is_some_and(validate)
+    {
+        return Ok(());
+    }
+    Err(ProtocolError::InvalidFoundationField {
+        field: field.to_owned(),
+    })
+}
+
+fn is_matrix_user_id(value: &str) -> bool {
+    let Some(rest) = value.strip_prefix('@') else {
+        return false;
+    };
+    has_localpart_and_server(rest)
+}
+
+fn is_matrix_room_id(value: &str) -> bool {
+    let Some(rest) = value.strip_prefix('!') else {
+        return false;
+    };
+    has_localpart_and_server(rest)
+}
+
+fn is_matrix_room_alias(value: &str) -> bool {
+    let Some(rest) = value.strip_prefix('#') else {
+        return false;
+    };
+    has_localpart_and_server(rest)
+}
+
+fn is_matrix_event_id(value: &str) -> bool {
+    let Some(rest) = value.strip_prefix('$') else {
+        return false;
+    };
+    if rest.is_empty() {
+        return false;
+    }
+    if let Some((event_id, server_name)) = rest.rsplit_once(':') {
+        !event_id.is_empty() && is_matrix_server_name(server_name)
+    } else {
+        true
+    }
+}
+
+fn is_matrix_content_uri(value: &str) -> bool {
+    let Some(rest) = value.strip_prefix("mxc://") else {
+        return false;
+    };
+    let Some((server_name, media_id)) = rest.split_once('/') else {
+        return false;
+    };
+    is_matrix_server_name(server_name) && is_opaque_part(media_id)
+}
+
+fn is_matrix_namespaced_identifier(value: &str) -> bool {
+    let mut parts = value.split('.');
+    let Some(first) = parts.next() else {
+        return false;
+    };
+    is_lower_alnum_part(first) && parts.clone().next().is_some() && parts.all(is_lower_alnum_part)
+}
+
+fn has_localpart_and_server(value: &str) -> bool {
+    let Some((localpart, server_name)) = value.rsplit_once(':') else {
+        return false;
+    };
+    is_opaque_part(localpart) && is_matrix_server_name(server_name)
+}
+
+fn is_matrix_server_name(value: &str) -> bool {
+    if value.is_empty() || value.contains(char::is_whitespace) {
+        return false;
+    }
+    let host = value.rsplit_once(':').map_or(value, |(host, _port)| host);
+    if host.starts_with('[') {
+        return host.ends_with(']') && host.len() > 2;
+    }
+    host.chars()
+        .all(|ch| ch.is_ascii_alphanumeric() || ch == '-' || ch == '.')
+}
+
+fn is_opaque_part(value: &str) -> bool {
+    !value.is_empty()
+        && value
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '=' | '-' | '/'))
+}
+
+fn is_lower_alnum_part(value: &str) -> bool {
+    !value.is_empty()
+        && value
+            .chars()
+            .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -184,7 +424,7 @@ mod tests {
         assert_eq!(manifest.crate_version, "0.1.0");
         assert_eq!(manifest.abi_version, abi_version());
         assert_eq!(manifest.protocol_boundary, "pure-protocol-core");
-        assert_eq!(manifest.supported_specs, vec!["SPEC-030"]);
+        assert_eq!(manifest.supported_specs, vec!["SPEC-030", "SPEC-031"]);
         assert!(manifest.supported_binding_kinds.is_empty());
     }
 
@@ -194,7 +434,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\"],\"supported_binding_kinds\":[]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\"],\"supported_binding_kinds\":[]}"
         );
     }
 
@@ -204,7 +444,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\"],\"supported_binding_kinds\":[\"wasm\"]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\"],\"supported_binding_kinds\":[\"wasm\"]}"
         );
     }
 
@@ -297,6 +537,76 @@ mod tests {
                 .expect_err("empty version strings must be rejected");
 
         assert_eq!(error, ProtocolError::EmptyVersion { index: 0 });
+    }
+
+    #[test]
+    fn parses_matrix_foundation_error_vector() {
+        let vector = read_spec_vector("test-vectors/core/matrix-foundation-error-basic.json");
+        let response_body = vector["response"]["body"].to_string();
+        let parsed = parse_matrix_error_envelope(response_body.as_bytes())
+            .expect("Matrix error vector should parse");
+
+        assert_eq!(parsed.errcode, "M_BAD_JSON");
+        assert_eq!(parsed.error.as_deref(), Some("Malformed JSON payload."));
+        assert_eq!(parsed.retry_after_ms, None);
+    }
+
+    #[test]
+    fn validates_matrix_foundation_identifier_vector() {
+        let vector = read_spec_vector("test-vectors/core/matrix-foundation-identifiers-basic.json");
+        let validation = validate_matrix_foundation_identifiers(&vector["event"])
+            .expect("Matrix foundation identifiers should validate");
+
+        assert!(validation.valid);
+    }
+
+    #[test]
+    fn serializes_matrix_error_parse_envelope() {
+        let json =
+            parse_matrix_error_envelope_json(br#"{"errcode":"M_BAD_JSON","error":"Bad JSON"}"#);
+
+        assert_eq!(
+            json,
+            "{\"ok\":true,\"value\":{\"errcode\":\"M_BAD_JSON\",\"error\":\"Bad JSON\",\"retry_after_ms\":null},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn rejects_houra_error_as_matrix_error() {
+        let envelope = parse_matrix_error_envelope_envelope(br#"{"code":"HOURA_BAD_REQUEST"}"#);
+
+        assert!(!envelope.ok);
+        assert!(envelope.value.is_none());
+        let error = envelope
+            .error
+            .expect("missing errcode should return an error");
+        assert_eq!(error.code, "missing_errcode");
+    }
+
+    #[test]
+    fn serializes_matrix_foundation_validation_envelope() {
+        let json = validate_matrix_foundation_identifiers_json(
+            br##"{"user_id":"@alice:example.org","room_id":"!roomid:example.org","room_alias":"#general:example.org","event_id":"$eventid:example.org","server_name":"example.org","content_uri":"mxc://example.org/mediaid","event_type":"m.room.message","origin_server_ts":1710000000000}"##,
+        );
+
+        assert_eq!(
+            json,
+            "{\"ok\":true,\"value\":{\"valid\":true},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_matrix_foundation_values() {
+        let envelope = validate_matrix_foundation_identifiers_envelope(
+            br##"{"user_id":"alice","room_id":"!roomid:example.org","room_alias":"#general:example.org","event_id":"$eventid:example.org","server_name":"example.org","content_uri":"mxc://example.org/mediaid","event_type":"m.room.message","origin_server_ts":1710000000000}"##,
+        );
+
+        assert!(!envelope.ok);
+        let error = envelope
+            .error
+            .expect("invalid user id should return an error");
+        assert_eq!(error.code, "invalid_foundation_field");
+        assert_eq!(error.details.get("field"), Some(&"user_id".to_owned()));
     }
 
     fn read_spec_vector(relative_path: &str) -> Value {
