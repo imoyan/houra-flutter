@@ -1,0 +1,14 @@
+[package]
+name = "houra-protocol-core-wasm"
+version = "0.1.0"
+edition = "2021"
+description = "WASM lab wrapper for Houra shared protocol parsing and validation."
+license = "Apache-2.0"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+houra-protocol-core = { path = "../rust-protocol-core" }
+wasm-bindgen = "0.2"

@@ -63,6 +63,7 @@ bool _isIgnored(File file) {
   return path.contains('/.dart_tool/') ||
       path.contains('/build/') ||
       path.contains('/.git/') ||
+      path.contains('/target/') ||
       path.endsWith('/.git') ||
       path.endsWith('/pubspec.lock') ||
       path.endsWith('/test/oss_hygiene_test.dart');
