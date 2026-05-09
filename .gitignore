@@ -5,3 +5,5 @@
 pubspec.lock
 build/
 coverage/
+target/
+rust-protocol-core/target/
