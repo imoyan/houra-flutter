@@ -37,6 +37,14 @@ cancellation, token storage, UI state, or framework lifecycle. Generated JS,
 `.wasm` files, npm packaging, and Next server / Node bindings are intentionally
 left out until a focused package issue exists.
 
+`ts-protocol-core-wasm/` is the matching TypeScript facade prototype for browser,
+Vue, and Next client experiments. It does not load WASM by itself and does not
+commit generated artifacts. Instead, a host app passes the generated
+`wasm-bindgen` module object into `createHouraProtocolCore()`, and the facade
+validates the manifest, ABI version, binding kind, and `SPEC-030` support before
+mapping the Rust JSON envelope into TypeScript result types. This keeps bundler
+choice, framework lifecycle, transport, and storage in the host layer.
+
 Out of scope for this package version:
 
 - end-to-end encryption
@@ -157,6 +165,15 @@ cargo fmt --check
 cargo test
 rustup target add wasm32-unknown-unknown
 cargo build --target wasm32-unknown-unknown
+```
+
+For the TypeScript WASM facade prototype, run:
+
+```bash
+cd ts-protocol-core-wasm
+npm ci
+npm run typecheck
+npm test
 ```
 
 If Rust is not installed locally, the same checks can run in a Rust Docker image

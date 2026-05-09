@@ -32,6 +32,7 @@ void checkSdkBoundary(List<String> failures) {
     'rust-protocol-core-wasm',
     'test',
     'tool',
+    'ts-protocol-core-wasm',
   };
   const allowedToolFiles = {'check_spec_sync.dart'};
   const canonicalOnlyEntries = {
@@ -287,5 +288,6 @@ bool isGeneratedEntry(String name) {
   return name == '.git' ||
       name == '.dart_tool' ||
       name == 'build' ||
+      name == 'node_modules' ||
       name == 'pubspec.lock';
 }

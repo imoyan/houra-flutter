@@ -1,0 +1,17 @@
+{
+  "name": "@houra/protocol-core-wasm-facade",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "TypeScript lab facade for the Houra Rust WASM protocol core.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test test/*.test.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

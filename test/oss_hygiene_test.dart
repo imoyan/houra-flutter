@@ -62,7 +62,9 @@ bool _isIgnored(File file) {
   final path = file.uri.path;
   return path.contains('/.dart_tool/') ||
       path.contains('/build/') ||
+      path.contains('/dist/') ||
       path.contains('/.git/') ||
+      path.contains('/node_modules/') ||
       path.contains('/target/') ||
       path.endsWith('/.git') ||
       path.endsWith('/pubspec.lock') ||

@@ -5,6 +5,10 @@
 pubspec.lock
 build/
 coverage/
+node_modules/
+dist/
 target/
 rust-protocol-core/target/
 rust-protocol-core-wasm/target/
+ts-protocol-core-wasm/dist/
+ts-protocol-core-wasm/node_modules/
