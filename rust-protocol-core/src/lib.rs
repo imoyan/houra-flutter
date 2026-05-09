@@ -1,9 +1,24 @@
 use std::collections::BTreeMap;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
+pub const HOURA_PROTOCOL_CORE_ABI_VERSION: u32 = 1;
+pub const HOURA_PROTOCOL_CORE_MANIFEST_SCHEMA_VERSION: u32 = 1;
+pub const HOURA_PROTOCOL_CORE_CRATE_NAME: &str = env!("CARGO_PKG_NAME");
+pub const HOURA_PROTOCOL_CORE_CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ArtifactManifest {
+    pub manifest_schema_version: u32,
+    pub crate_name: String,
+    pub crate_version: String,
+    pub abi_version: u32,
+    pub protocol_boundary: String,
+    pub supported_specs: Vec<String>,
+    pub supported_binding_kinds: Vec<String>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MatrixClientVersions {
@@ -39,6 +54,27 @@ struct MatrixClientVersionsWire {
     unstable_features: BTreeMap<String, bool>,
 }
 
+pub fn abi_version() -> u32 {
+    HOURA_PROTOCOL_CORE_ABI_VERSION
+}
+
+pub fn artifact_manifest() -> ArtifactManifest {
+    ArtifactManifest {
+        manifest_schema_version: HOURA_PROTOCOL_CORE_MANIFEST_SCHEMA_VERSION,
+        crate_name: HOURA_PROTOCOL_CORE_CRATE_NAME.to_owned(),
+        crate_version: HOURA_PROTOCOL_CORE_CRATE_VERSION.to_owned(),
+        abi_version: HOURA_PROTOCOL_CORE_ABI_VERSION,
+        protocol_boundary: "pure-protocol-core".to_owned(),
+        supported_specs: vec!["SPEC-030".to_owned()],
+        supported_binding_kinds: Vec::new(),
+    }
+}
+
+pub fn artifact_manifest_json() -> String {
+    serde_json::to_string(&artifact_manifest())
+        .expect("artifact manifest serialization should be infallible")
+}
+
 pub fn parse_matrix_client_versions_response(
     bytes: &[u8],
 ) -> Result<MatrixClientVersions, ProtocolError> {
@@ -66,6 +102,34 @@ mod tests {
     use super::*;
     use serde_json::Value;
     use std::path::{Path, PathBuf};
+
+    #[test]
+    fn exposes_abi_version() {
+        assert_eq!(abi_version(), 1);
+    }
+
+    #[test]
+    fn exposes_artifact_manifest() {
+        let manifest = artifact_manifest();
+
+        assert_eq!(manifest.manifest_schema_version, 1);
+        assert_eq!(manifest.crate_name, "houra-protocol-core");
+        assert_eq!(manifest.crate_version, "0.1.0");
+        assert_eq!(manifest.abi_version, abi_version());
+        assert_eq!(manifest.protocol_boundary, "pure-protocol-core");
+        assert_eq!(manifest.supported_specs, vec!["SPEC-030"]);
+        assert!(manifest.supported_binding_kinds.is_empty());
+    }
+
+    #[test]
+    fn serializes_artifact_manifest_stably() {
+        let json = artifact_manifest_json();
+
+        assert_eq!(
+            json,
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\"],\"supported_binding_kinds\":[]}"
+        );
+    }
 
     #[test]
     fn exposes_matrix_client_versions_request_metadata() {
