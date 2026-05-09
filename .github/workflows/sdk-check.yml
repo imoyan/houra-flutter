@@ -53,3 +53,33 @@ jobs:
         env:
           HOURA_SPEC_ROOT: ../houra-spec
         run: flutter test
+
+  rust-protocol-core:
+    name: Rust protocol core checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout houra-labs
+        uses: actions/checkout@v4
+        with:
+          path: houra-labs
+
+      - name: Checkout houra-spec
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/houra-spec
+          path: houra-spec
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Check Rust formatting
+        working-directory: houra-labs/rust-protocol-core
+        run: cargo fmt --check
+
+      - name: Test Rust protocol core
+        working-directory: houra-labs/rust-protocol-core
+        env:
+          HOURA_SPEC_ROOT: ../../houra-spec
+        run: cargo test --locked

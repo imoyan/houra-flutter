@@ -9,6 +9,11 @@ Draft. The current implementation covers the MVP client profiles from
 SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
 SPEC-010, SPEC-011, and SPEC-020.
 
+This repository also contains lab-only shared implementation experiments. The
+`rust-protocol-core/` crate is the first Rust shared protocol core prototype. It
+currently validates only the `SPEC-030` Matrix client versions vector and is not
+published, canonical, or required by the Flutter SDK.
+
 Out of scope for this package version:
 
 - end-to-end encryption
@@ -112,6 +117,29 @@ flutter test
 `tool/check_spec_sync.dart` also runs `../houra-spec/tool/check_spec.dart`
 before checking bundled theme and vector references. If `HOURA_SPEC_ROOT` is
 set, that path is used instead of `../houra-spec`.
+
+For the Rust protocol core prototype, run:
+
+```bash
+cd rust-protocol-core
+HOURA_SPEC_ROOT=../../houra-spec cargo fmt --check
+HOURA_SPEC_ROOT=../../houra-spec cargo test
+```
+
+If Rust is not installed locally, the same checks can run in a Rust Docker image
+with this repository and `houra-spec` mounted into the container. The official
+Rust image may not include `cargo fmt`, so install `rustfmt` inside the
+throwaway container and call it directly:
+
+```bash
+docker run --rm \
+  -v "$PWD":/workspace/houra-labs \
+  -v "$(cd ../houra-spec && pwd)":/workspace/houra-spec \
+  -w /workspace/houra-labs/rust-protocol-core \
+  -e HOURA_SPEC_ROOT=/workspace/houra-spec \
+  rust:1 \
+  sh -lc 'apt-get update >/tmp/apt-update.log && apt-get install -y rustfmt >/tmp/apt-install.log && rustfmt --check src/lib.rs && cargo test --locked'
+```
 
 ## Pre-1.0 SDK Hardening Checklist
 

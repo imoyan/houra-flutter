@@ -28,6 +28,7 @@ void checkSdkBoundary(List<String> failures) {
     'example',
     'lib',
     'pubspec.yaml',
+    'rust-protocol-core',
     'test',
     'tool',
   };
