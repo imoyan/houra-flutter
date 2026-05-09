@@ -1,11 +1,13 @@
 export const HOURA_PROTOCOL_CORE_ABI_VERSION = 1;
 export const HOURA_PROTOCOL_CORE_MANIFEST_SCHEMA_VERSION = 1;
 export const HOURA_PROTOCOL_CORE_WASM_BINDING_KIND = "wasm";
-export const HOURA_PROTOCOL_CORE_SPEC_ID = "SPEC-030";
+export const HOURA_PROTOCOL_CORE_SPEC_IDS = ["SPEC-030", "SPEC-031"] as const;
 
 export interface HouraProtocolCoreWasmBinding {
   houraArtifactManifestJson(): string;
   parseMatrixClientVersionsResponseJson(responseBody: string): string;
+  parseMatrixErrorEnvelopeJson(responseBody: string): string;
+  validateMatrixFoundationIdentifiersJson(value: string): string;
 }
 
 export interface ArtifactManifest {
@@ -23,6 +25,16 @@ export interface MatrixClientVersions {
   unstable_features: Record<string, boolean>;
 }
 
+export interface MatrixErrorEnvelope {
+  errcode: string;
+  error?: string;
+  retry_after_ms?: number;
+}
+
+export interface MatrixFoundationValidation {
+  valid: boolean;
+}
+
 export interface ProtocolErrorEnvelope {
   code: string;
   message: string;
@@ -38,6 +50,10 @@ export interface HouraProtocolCoreFacade {
   parseMatrixClientVersionsResponse(
     responseBody: string,
   ): ProtocolResult<MatrixClientVersions>;
+  parseMatrixErrorEnvelope(responseBody: string): ProtocolResult<MatrixErrorEnvelope>;
+  validateMatrixFoundationIdentifiers(
+    value: string,
+  ): ProtocolResult<MatrixFoundationValidation>;
 }
 
 export type FacadeErrorCode =
@@ -69,6 +85,20 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixClientVersionsEnvelope(envelope);
+    },
+    parseMatrixErrorEnvelope(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixErrorEnvelopeJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixErrorEnvelope(envelope);
+    },
+    validateMatrixFoundationIdentifiers(value: string) {
+      const envelope = parseJsonObject(
+        binding.validateMatrixFoundationIdentifiersJson(value),
+        "parse envelope",
+      );
+      return readMatrixFoundationValidationEnvelope(envelope);
     },
   };
 }
@@ -108,8 +138,11 @@ function assertManifestCompatible(manifest: ArtifactManifest): void {
   if (manifest.abi_version !== HOURA_PROTOCOL_CORE_ABI_VERSION) {
     issues.push("abi_version");
   }
-  if (!manifest.supported_specs.includes(HOURA_PROTOCOL_CORE_SPEC_ID)) {
-    issues.push("supported_specs");
+  for (const specId of HOURA_PROTOCOL_CORE_SPEC_IDS) {
+    if (!manifest.supported_specs.includes(specId)) {
+      issues.push("supported_specs");
+      break;
+    }
   }
   if (
     !manifest.supported_binding_kinds.includes(
@@ -157,6 +190,57 @@ function readMatrixClientVersions(
   return {
     versions: readStringArray(value, "versions", "invalid_envelope"),
     unstable_features: readBooleanRecord(unstable),
+  };
+}
+
+function readMatrixErrorEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixErrorEnvelope> {
+  return readProtocolResult(envelope, readMatrixErrorValue);
+}
+
+function readMatrixErrorValue(
+  value: Record<string, unknown>,
+): MatrixErrorEnvelope {
+  const result: MatrixErrorEnvelope = {
+    errcode: readString(value, "errcode", "invalid_envelope"),
+  };
+  if (value.error !== null && value.error !== undefined) {
+    result.error = readString(value, "error", "invalid_envelope");
+  }
+  if (value.retry_after_ms !== null && value.retry_after_ms !== undefined) {
+    result.retry_after_ms = readNumber(value, "retry_after_ms", "invalid_envelope");
+  }
+  return result;
+}
+
+function readMatrixFoundationValidationEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFoundationValidation> {
+  return readProtocolResult(envelope, (value) => ({
+    valid: readBoolean(value, "valid"),
+  }));
+}
+
+function readProtocolResult<T>(
+  envelope: Record<string, unknown>,
+  readValue: (value: Record<string, unknown>) => T,
+): ProtocolResult<T> {
+  const ok = readBoolean(envelope, "ok");
+  if (ok) {
+    return {
+      ok: true,
+      value: readValue(readRecord(envelope, "value", "parse envelope")),
+      error: null,
+    };
+  }
+
+  return {
+    ok: false,
+    value: null,
+    error: readProtocolErrorEnvelope(
+      readRecord(envelope, "error", "parse envelope"),
+    ),
   };
 }
 
@@ -222,11 +306,15 @@ function readString(
   return value;
 }
 
-function readNumber(source: Record<string, unknown>, field: string): number {
+function readNumber(
+  source: Record<string, unknown>,
+  field: string,
+  errorCode: FacadeErrorCode = "invalid_manifest",
+): number {
   const value = source[field];
   if (typeof value !== "number" || !Number.isInteger(value)) {
     throw new HouraProtocolCoreFacadeError(
-      "invalid_manifest",
+      errorCode,
       `${field} must be an integer`,
     );
   }

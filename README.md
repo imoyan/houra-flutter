@@ -11,8 +11,9 @@ SPEC-010, SPEC-011, and SPEC-020.
 
 This repository also contains lab-only shared implementation experiments. The
 `rust-protocol-core/` crate is the first Rust shared protocol core prototype. It
-currently validates only the `SPEC-030` Matrix client versions vector and is not
-published, canonical, or required by the Flutter SDK.
+currently validates the `SPEC-030` Matrix client versions vector and the
+`SPEC-031` Matrix foundation vectors. It is not published, canonical, or
+required by the Flutter SDK.
 
 The Rust prototype exposes `abi_version()` and `artifact_manifest()` as
 implementation metadata for future TS / Dart bindings. Bindings can use that
@@ -23,16 +24,17 @@ compatibility aid for prebuilt artifacts and thin adapter packages. Binding
 kinds remain empty until a WASM, N-API, Dart FFI, or Dart web adapter is added in
 a focused follow-up.
 
-The prototype also exposes a binding-safe JSON parse envelope for `SPEC-030`.
-That API returns a single `ok` / `value` / `error` object so WASM, N-API, FFI,
-and JS interop adapters can cross the language boundary once per parse instead
-of bouncing through many small calls. The envelope carries stable Rust-side
-error codes for adapter mapping, but it remains implementation metadata; public
-behavior still comes from `houra-spec` contracts and test vectors.
+The prototype also exposes binding-safe JSON envelopes for `SPEC-030` and
+`SPEC-031`. Those APIs return a single `ok` / `value` / `error` object so WASM,
+N-API, FFI, and JS interop adapters can cross the language boundary once per
+parse or validation call instead of bouncing through many small calls. The
+envelope carries stable Rust-side error codes for adapter mapping, but it
+remains implementation metadata; public behavior still comes from `houra-spec`
+contracts and test vectors.
 
 `rust-protocol-core-wasm/` is the first thin binding prototype for browser,
 Vue, and Next client experiments. It uses `wasm-bindgen` to export the manifest
-and `SPEC-030` JSON parse envelope, but it does not own HTTP, retries,
+and `SPEC-030` / `SPEC-031` JSON envelopes, but it does not own HTTP, retries,
 cancellation, token storage, UI state, or framework lifecycle. Generated JS,
 `.wasm` files, npm packaging, and Next server / Node bindings are intentionally
 left out until a focused package issue exists.
@@ -41,9 +43,15 @@ left out until a focused package issue exists.
 Vue, and Next client experiments. It does not load WASM by itself and does not
 commit generated artifacts. Instead, a host app passes the generated
 `wasm-bindgen` module object into `createHouraProtocolCore()`, and the facade
-validates the manifest, ABI version, binding kind, and `SPEC-030` support before
-mapping the Rust JSON envelope into TypeScript result types. This keeps bundler
-choice, framework lifecycle, transport, and storage in the host layer.
+validates the manifest, ABI version, binding kind, and supported `SPEC-*` ids
+before mapping the Rust JSON envelopes into TypeScript result types. This keeps
+bundler choice, framework lifecycle, transport, and storage in the host layer.
+
+SPEC-031 adoption record for issue #31: the Rust prototype now consumes the
+`houra-spec` `v0.2.0-pre.23` Matrix foundation vectors for Matrix error
+envelope parsing and identifier validation only. The WASM wrapper and
+TypeScript facade expose those envelopes without taking ownership of crypto,
+transport, storage, retries, or UI behavior.
 
 Out of scope for this package version:
 

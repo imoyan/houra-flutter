@@ -12,7 +12,7 @@ const manifest = {
   crate_version: "0.1.0",
   abi_version: 1,
   protocol_boundary: "pure-protocol-core",
-  supported_specs: ["SPEC-030"],
+  supported_specs: ["SPEC-030", "SPEC-031"],
   supported_binding_kinds: ["wasm"],
 };
 
@@ -33,10 +33,34 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixErrorEnvelopeJson() {
+      return JSON.stringify(
+        overrides.matrixErrorEnvelope ?? {
+          ok: true,
+          value: {
+            errcode: "M_BAD_JSON",
+            error: "Malformed JSON payload.",
+            retry_after_ms: null,
+          },
+          error: null,
+        },
+      );
+    },
+    validateMatrixFoundationIdentifiersJson() {
+      return JSON.stringify(
+        overrides.foundationValidationEnvelope ?? {
+          ok: true,
+          value: {
+            valid: true,
+          },
+          error: null,
+        },
+      );
+    },
   };
 }
 
-test("validates manifest and maps successful parse envelopes", () => {
+test("validates manifest and maps successful versions parse envelopes", () => {
   const core = createHouraProtocolCore(binding());
 
   assert.deepEqual(core.manifest.supported_binding_kinds, ["wasm"]);
@@ -48,6 +72,26 @@ test("validates manifest and maps successful parse envelopes", () => {
     unstable_features: {},
   });
   assert.equal(result.error, null);
+});
+
+test("maps SPEC-031 Matrix error and foundation validation envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+
+  assert.deepEqual(core.parseMatrixErrorEnvelope('{"errcode":"M_BAD_JSON"}'), {
+    ok: true,
+    value: {
+      errcode: "M_BAD_JSON",
+      error: "Malformed JSON payload.",
+    },
+    error: null,
+  });
+  assert.deepEqual(core.validateMatrixFoundationIdentifiers("{}"), {
+    ok: true,
+    value: {
+      valid: true,
+    },
+    error: null,
+  });
 });
 
 test("returns protocol error envelopes without throwing", () => {
