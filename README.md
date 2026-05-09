@@ -14,6 +14,15 @@ This repository also contains lab-only shared implementation experiments. The
 currently validates only the `SPEC-030` Matrix client versions vector and is not
 published, canonical, or required by the Flutter SDK.
 
+The Rust prototype exposes `abi_version()` and `artifact_manifest()` as
+implementation metadata for future TS / Dart bindings. Bindings can use that
+metadata to check the loaded artifact, manifest schema, crate version, ABI
+version, and covered `SPEC-*` IDs before calling into the core. The manifest is
+not a behavior contract and does not replace `houra-spec`; it is only a
+compatibility aid for prebuilt artifacts and thin adapter packages. Binding
+kinds remain empty until a WASM, N-API, Dart FFI, or Dart web adapter is added in
+a focused follow-up.
+
 Out of scope for this package version:
 
 - end-to-end encryption
