@@ -23,6 +23,13 @@ compatibility aid for prebuilt artifacts and thin adapter packages. Binding
 kinds remain empty until a WASM, N-API, Dart FFI, or Dart web adapter is added in
 a focused follow-up.
 
+The prototype also exposes a binding-safe JSON parse envelope for `SPEC-030`.
+That API returns a single `ok` / `value` / `error` object so WASM, N-API, FFI,
+and JS interop adapters can cross the language boundary once per parse instead
+of bouncing through many small calls. The envelope carries stable Rust-side
+error codes for adapter mapping, but it remains implementation metadata; public
+behavior still comes from `houra-spec` contracts and test vectors.
+
 Out of scope for this package version:
 
 - end-to-end encryption

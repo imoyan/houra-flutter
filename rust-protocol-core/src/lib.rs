@@ -20,10 +20,24 @@ pub struct ArtifactManifest {
     pub supported_binding_kinds: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixClientVersions {
     pub versions: Vec<String>,
     pub unstable_features: BTreeMap<String, bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ProtocolErrorEnvelope {
+    pub code: String,
+    pub message: String,
+    pub details: BTreeMap<String, String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixClientVersionsParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixClientVersions>,
+    pub error: Option<ProtocolErrorEnvelope>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,6 +45,29 @@ pub enum ProtocolError {
     Json(String),
     EmptyVersions,
     EmptyVersion { index: usize },
+}
+
+impl ProtocolError {
+    pub fn code(&self) -> &'static str {
+        match self {
+            ProtocolError::Json(_) => "invalid_json",
+            ProtocolError::EmptyVersions => "empty_versions",
+            ProtocolError::EmptyVersion { .. } => "empty_version",
+        }
+    }
+
+    pub fn to_envelope(&self) -> ProtocolErrorEnvelope {
+        let mut details = BTreeMap::new();
+        if let ProtocolError::EmptyVersion { index } = self {
+            details.insert("index".to_owned(), index.to_string());
+        }
+
+        ProtocolErrorEnvelope {
+            code: self.code().to_owned(),
+            message: self.to_string(),
+            details,
+        }
+    }
 }
 
 impl std::fmt::Display for ProtocolError {
@@ -97,6 +134,28 @@ pub fn parse_matrix_client_versions_response(
     })
 }
 
+pub fn parse_matrix_client_versions_response_envelope(
+    bytes: &[u8],
+) -> MatrixClientVersionsParseEnvelope {
+    match parse_matrix_client_versions_response(bytes) {
+        Ok(value) => MatrixClientVersionsParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixClientVersionsParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_client_versions_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_client_versions_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -151,6 +210,48 @@ mod tests {
 
         assert_eq!(parsed.versions, vec!["v1.18"]);
         assert!(parsed.unstable_features.is_empty());
+    }
+
+    #[test]
+    fn serializes_successful_matrix_client_versions_parse_envelope() {
+        let json = parse_matrix_client_versions_response_json(br#"{"versions":["v1.18"]}"#);
+
+        assert_eq!(
+            json,
+            "{\"ok\":true,\"value\":{\"versions\":[\"v1.18\"],\"unstable_features\":{}},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn serializes_invalid_json_parse_envelope() {
+        let envelope = parse_matrix_client_versions_response_envelope(b"not json");
+
+        assert!(!envelope.ok);
+        assert!(envelope.value.is_none());
+        let error = envelope.error.expect("invalid JSON should return an error");
+        assert_eq!(error.code, "invalid_json");
+        assert!(error.message.starts_with("invalid JSON:"));
+        assert!(error.details.is_empty());
+    }
+
+    #[test]
+    fn serializes_empty_versions_parse_envelope() {
+        let json = parse_matrix_client_versions_response_json(br#"{"versions":[]}"#);
+
+        assert_eq!(
+            json,
+            "{\"ok\":false,\"value\":null,\"error\":{\"code\":\"empty_versions\",\"message\":\"versions must not be empty\",\"details\":{}}}"
+        );
+    }
+
+    #[test]
+    fn serializes_empty_version_string_parse_envelope() {
+        let json = parse_matrix_client_versions_response_json(br#"{"versions":[""]}"#);
+
+        assert_eq!(
+            json,
+            "{\"ok\":false,\"value\":null,\"error\":{\"code\":\"empty_version\",\"message\":\"versions[0] must not be empty\",\"details\":{\"index\":\"0\"}}}"
+        );
     }
 
     #[test]
