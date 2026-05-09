@@ -73,6 +73,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
+          targets: wasm32-unknown-unknown
 
       - name: Check Rust formatting
         working-directory: houra-labs/rust-protocol-core
@@ -83,3 +84,15 @@ jobs:
         env:
           HOURA_SPEC_ROOT: ../../houra-spec
         run: cargo test --locked
+
+      - name: Check WASM wrapper formatting
+        working-directory: houra-labs/rust-protocol-core-wasm
+        run: cargo fmt --check
+
+      - name: Test WASM wrapper on host
+        working-directory: houra-labs/rust-protocol-core-wasm
+        run: cargo test --locked
+
+      - name: Build WASM wrapper
+        working-directory: houra-labs/rust-protocol-core-wasm
+        run: cargo build --locked --target wasm32-unknown-unknown

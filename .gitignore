@@ -7,3 +7,4 @@ build/
 coverage/
 target/
 rust-protocol-core/target/
+rust-protocol-core-wasm/target/

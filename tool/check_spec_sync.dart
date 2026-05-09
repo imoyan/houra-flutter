@@ -29,6 +29,7 @@ void checkSdkBoundary(List<String> failures) {
     'lib',
     'pubspec.yaml',
     'rust-protocol-core',
+    'rust-protocol-core-wasm',
     'test',
     'tool',
   };

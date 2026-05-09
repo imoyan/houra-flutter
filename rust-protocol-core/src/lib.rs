@@ -96,6 +96,10 @@ pub fn abi_version() -> u32 {
 }
 
 pub fn artifact_manifest() -> ArtifactManifest {
+    artifact_manifest_for_binding_kinds(&[])
+}
+
+pub fn artifact_manifest_for_binding_kinds(binding_kinds: &[&str]) -> ArtifactManifest {
     ArtifactManifest {
         manifest_schema_version: HOURA_PROTOCOL_CORE_MANIFEST_SCHEMA_VERSION,
         crate_name: HOURA_PROTOCOL_CORE_CRATE_NAME.to_owned(),
@@ -103,12 +107,16 @@ pub fn artifact_manifest() -> ArtifactManifest {
         abi_version: HOURA_PROTOCOL_CORE_ABI_VERSION,
         protocol_boundary: "pure-protocol-core".to_owned(),
         supported_specs: vec!["SPEC-030".to_owned()],
-        supported_binding_kinds: Vec::new(),
+        supported_binding_kinds: binding_kinds.iter().map(|kind| kind.to_string()).collect(),
     }
 }
 
 pub fn artifact_manifest_json() -> String {
-    serde_json::to_string(&artifact_manifest())
+    artifact_manifest_json_for_binding_kinds(&[])
+}
+
+pub fn artifact_manifest_json_for_binding_kinds(binding_kinds: &[&str]) -> String {
+    serde_json::to_string(&artifact_manifest_for_binding_kinds(binding_kinds))
         .expect("artifact manifest serialization should be infallible")
 }
 
@@ -187,6 +195,16 @@ mod tests {
         assert_eq!(
             json,
             "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\"],\"supported_binding_kinds\":[]}"
+        );
+    }
+
+    #[test]
+    fn serializes_artifact_manifest_with_binding_kinds() {
+        let json = artifact_manifest_json_for_binding_kinds(&["wasm"]);
+
+        assert_eq!(
+            json,
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\"],\"supported_binding_kinds\":[\"wasm\"]}"
         );
     }
 

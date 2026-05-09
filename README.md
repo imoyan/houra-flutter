@@ -30,6 +30,13 @@ of bouncing through many small calls. The envelope carries stable Rust-side
 error codes for adapter mapping, but it remains implementation metadata; public
 behavior still comes from `houra-spec` contracts and test vectors.
 
+`rust-protocol-core-wasm/` is the first thin binding prototype for browser,
+Vue, and Next client experiments. It uses `wasm-bindgen` to export the manifest
+and `SPEC-030` JSON parse envelope, but it does not own HTTP, retries,
+cancellation, token storage, UI state, or framework lifecycle. Generated JS,
+`.wasm` files, npm packaging, and Next server / Node bindings are intentionally
+left out until a focused package issue exists.
+
 Out of scope for this package version:
 
 - end-to-end encryption
@@ -142,6 +149,16 @@ HOURA_SPEC_ROOT=../../houra-spec cargo fmt --check
 HOURA_SPEC_ROOT=../../houra-spec cargo test
 ```
 
+For the browser WASM wrapper prototype, run:
+
+```bash
+cd rust-protocol-core-wasm
+cargo fmt --check
+cargo test
+rustup target add wasm32-unknown-unknown
+cargo build --target wasm32-unknown-unknown
+```
+
 If Rust is not installed locally, the same checks can run in a Rust Docker image
 with this repository and `houra-spec` mounted into the container. The official
 Rust image may not include `cargo fmt`, so install `rustfmt` inside the
@@ -155,6 +172,18 @@ docker run --rm \
   -e HOURA_SPEC_ROOT=/workspace/houra-spec \
   rust:1 \
   sh -lc 'apt-get update >/tmp/apt-update.log && apt-get install -y rustfmt >/tmp/apt-install.log && rustfmt --check src/lib.rs && cargo test --locked'
+```
+
+For the WASM wrapper in the same Docker image, install the distro-provided
+`wasm32-unknown-unknown` standard library package because the image does not
+ship `rustup`:
+
+```bash
+docker run --rm \
+  -v "$PWD":/workspace/houra-labs \
+  -w /workspace/houra-labs/rust-protocol-core-wasm \
+  rust:1 \
+  sh -lc 'apt-get update >/tmp/apt-update.log && apt-get install -y rustfmt libstd-rust-dev-wasm32 >/tmp/apt-install.log && rustfmt --check src/lib.rs && cargo test --locked && cargo build --locked --target wasm32-unknown-unknown'
 ```
 
 ## Pre-1.0 SDK Hardening Checklist
