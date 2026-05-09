@@ -96,3 +96,31 @@ jobs:
       - name: Build WASM wrapper
         working-directory: houra-labs/rust-protocol-core-wasm
         run: cargo build --locked --target wasm32-unknown-unknown
+
+  ts-wasm-facade:
+    name: TS WASM facade checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout houra-labs
+        uses: actions/checkout@v4
+        with:
+          path: houra-labs
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: houra-labs/ts-protocol-core-wasm/package-lock.json
+
+      - name: Install dependencies
+        working-directory: houra-labs/ts-protocol-core-wasm
+        run: npm ci
+
+      - name: Typecheck TS facade
+        working-directory: houra-labs/ts-protocol-core-wasm
+        run: npm run typecheck
+
+      - name: Test TS facade
+        working-directory: houra-labs/ts-protocol-core-wasm
+        run: npm test
