@@ -84,6 +84,10 @@ Out of scope for this package version:
 - Media metadata and base64 upload
 - Shared theme token parsing and Flutter `ThemeData` mapping
 
+Product-specific adapters and policy stay outside this package. Downstream apps
+own their route names, room mapping, roles, audit metadata, and integration
+glue.
+
 ## Install
 
 This package is not published to pub.dev yet. Use a local checkout while it is
@@ -150,8 +154,10 @@ Future<ThemeData> loadTheme() async {
 
 ## Source of Truth
 
-Behavior is defined by Houra contracts and test vectors. Server
-implementations are not canonical behavior sources.
+Behavior is defined by Houra contracts and test vectors. Existing client and
+server implementations are not canonical behavior sources. In particular, the
+sibling Matrix client workspace must not be used as a source to copy, translate,
+port, or derive Houra behavior while downstream integrations still depend on it.
 
 When this package is developed next to `../houra-spec`, contract and
 theme checks read that sibling source directory directly.

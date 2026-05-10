@@ -18,13 +18,15 @@ Use this priority order when implementing behavior:
 If the canonical spec checkout is not available at `../houra-spec`,
 set `HOURA_SPEC_ROOT` to its absolute or relative path before running checks.
 
-Do not treat any server implementation as canonical.
+Do not treat any existing client or server implementation as canonical.
 
 ## Clean-Room Rule
 
 Do not copy, translate, port, or derive implementation details from existing
-server implementations. If behavior is unclear, stop at the contract boundary
-and request a contract clarification.
+client or server implementations. This includes the sibling Matrix client
+workspace, even when it has useful Matrix-oriented code and active downstream
+dependents. If behavior is unclear, stop at the contract boundary and request a
+contract clarification.
 
 ## Repository Boundary
 
@@ -32,6 +34,9 @@ and request a contract clarification.
 - Do not move canonical behavior into this package.
 - Do not treat lab code as canonical or production behavior.
 - Keep production React Native client work in `../houra-client`.
+- Keep downstream product semantics outside this repository. Product-specific
+  adapters, route names, room mapping, roles, audit metadata, and app policy
+  belong in downstream repositories.
 - Keep README user-facing and concise.
 - Keep Codex-facing rules here.
 - Do not add broad publication docs until publication is being prepared.
