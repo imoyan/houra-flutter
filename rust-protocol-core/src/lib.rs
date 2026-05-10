@@ -10,7 +10,7 @@ pub const HOURA_PROTOCOL_CORE_CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
-    "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035",
+    "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -117,6 +117,11 @@ pub struct MatrixRoomIdResponse {
     pub room_id: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixEventIdResponse {
+    pub event_id: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MatrixClientEvent {
     pub content: BTreeMap<String, Value>,
@@ -134,6 +139,14 @@ pub struct MatrixClientEvent {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MatrixRoomState {
     pub events: Vec<MatrixClientEvent>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixMessagesResponse {
+    pub chunk: Vec<MatrixClientEvent>,
+    pub start: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -234,6 +247,13 @@ pub struct MatrixRoomIdResponseParseEnvelope {
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixEventIdResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixEventIdResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MatrixClientEventParseEnvelope {
     pub ok: bool,
@@ -245,6 +265,13 @@ pub struct MatrixClientEventParseEnvelope {
 pub struct MatrixRoomStateParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixRoomState>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixMessagesResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixMessagesResponse>,
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
@@ -454,6 +481,11 @@ struct MatrixRoomIdResponseWire {
 }
 
 #[derive(Debug, Deserialize)]
+struct MatrixEventIdResponseWire {
+    event_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 struct MatrixClientEventWire {
     content: Option<BTreeMap<String, Value>>,
     event_id: Option<String>,
@@ -464,6 +496,13 @@ struct MatrixClientEventWire {
     #[serde(rename = "type")]
     event_type: Option<String>,
     unsigned: Option<BTreeMap<String, Value>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixMessagesResponseWire {
+    chunk: Option<Vec<MatrixClientEventWire>>,
+    start: Option<String>,
+    end: Option<String>,
 }
 
 pub fn abi_version() -> u32 {
@@ -986,6 +1025,37 @@ pub fn parse_matrix_room_id_response_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_event_id_response(
+    bytes: &[u8],
+) -> Result<MatrixEventIdResponse, ProtocolError> {
+    let wire: MatrixEventIdResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+
+    Ok(MatrixEventIdResponse {
+        event_id: required_room_string(wire.event_id, "event_id")?,
+    })
+}
+
+pub fn parse_matrix_event_id_response_envelope(bytes: &[u8]) -> MatrixEventIdResponseParseEnvelope {
+    match parse_matrix_event_id_response(bytes) {
+        Ok(value) => MatrixEventIdResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixEventIdResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_event_id_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_event_id_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 pub fn parse_matrix_client_event(bytes: &[u8]) -> Result<MatrixClientEvent, ProtocolError> {
     let wire: MatrixClientEventWire =
         serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
@@ -1041,6 +1111,50 @@ pub fn parse_matrix_room_state_envelope(bytes: &[u8]) -> MatrixRoomStateParseEnv
 
 pub fn parse_matrix_room_state_json(bytes: &[u8]) -> String {
     serde_json::to_string(&parse_matrix_room_state_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_messages_response(
+    bytes: &[u8],
+) -> Result<MatrixMessagesResponse, ProtocolError> {
+    let wire: MatrixMessagesResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let chunk = wire
+        .chunk
+        .ok_or_else(|| invalid_room_field("messages.chunk"))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, event)| {
+            matrix_client_event_from_wire(event, &format!("messages.chunk.{index}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(MatrixMessagesResponse {
+        chunk,
+        start: required_room_string(wire.start, "messages.start")?,
+        end: optional_room_string(wire.end, "messages.end")?,
+    })
+}
+
+pub fn parse_matrix_messages_response_envelope(
+    bytes: &[u8],
+) -> MatrixMessagesResponseParseEnvelope {
+    match parse_matrix_messages_response(bytes) {
+        Ok(value) => MatrixMessagesResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixMessagesResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_messages_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_messages_response_envelope(bytes))
         .expect("parse envelope serialization should be infallible")
 }
 
@@ -1138,6 +1252,16 @@ fn required_room_string(value: Option<String>, field: &str) -> Result<String, Pr
     match value {
         Some(value) if !value.is_empty() => Ok(value),
         _ => Err(invalid_room_field(field)),
+    }
+}
+
+fn optional_room_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<Option<String>, ProtocolError> {
+    match value {
+        Some(value) if value.is_empty() => Err(invalid_room_field(field)),
+        other => Ok(other),
     }
 }
 
@@ -1295,7 +1419,9 @@ mod tests {
         assert_eq!(manifest.protocol_boundary, "pure-protocol-core");
         assert_eq!(
             manifest.supported_specs,
-            vec!["SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035"]
+            vec![
+                "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036"
+            ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
     }
@@ -1306,7 +1432,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\"],\"supported_binding_kinds\":[]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\",\"SPEC-036\"],\"supported_binding_kinds\":[]}"
         );
     }
 
@@ -1316,7 +1442,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\"],\"supported_binding_kinds\":[\"wasm\"]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\",\"SPEC-036\"],\"supported_binding_kinds\":[\"wasm\"]}"
         );
     }
 
@@ -1866,6 +1992,108 @@ mod tests {
         assert_eq!(
             error.details.get("field"),
             Some(&"events.0.origin_server_ts".to_owned())
+        );
+    }
+
+    #[test]
+    fn parses_matrix_messaging_vectors() {
+        let send = read_spec_vector("test-vectors/messaging/matrix-send-event-text-basic.json");
+        let parsed_send = parse_matrix_event_id_response(
+            send["expected"]["body_contains"].to_string().as_bytes(),
+        )
+        .expect("Matrix send event vector should parse");
+        assert_eq!(parsed_send.event_id, "$event1:example.test");
+
+        let messages = read_spec_vector("test-vectors/messaging/matrix-messages-basic.json");
+        let parsed_messages = parse_matrix_messages_response(
+            messages["expected"]["body_contains"].to_string().as_bytes(),
+        )
+        .expect("Matrix messages vector should parse");
+        assert_eq!(parsed_messages.chunk.len(), 1);
+        assert_eq!(parsed_messages.chunk[0].event_id, "$event1:example.test");
+        assert_eq!(parsed_messages.chunk[0].event_type, "m.room.message");
+        assert_eq!(parsed_messages.chunk[0].content["body"], "Hello Matrix");
+        assert_eq!(
+            parsed_messages.chunk[0]
+                .unsigned
+                .as_ref()
+                .expect("transaction metadata should parse")["transaction_id"],
+            "txn-1"
+        );
+        assert_eq!(parsed_messages.start, "t1");
+        assert_eq!(parsed_messages.end.as_deref(), Some("t0"));
+
+        let next_page = read_spec_vector("test-vectors/messaging/matrix-messages-next-page.json");
+        let parsed_next_page = parse_matrix_messages_response(
+            next_page["expected"]["body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("Matrix messages next page vector should parse");
+        assert_eq!(parsed_next_page.chunk[0].event_id, "$event0:example.test");
+        assert_eq!(parsed_next_page.start, "t0");
+        assert!(parsed_next_page.end.is_none());
+
+        for path in [
+            "test-vectors/messaging/matrix-send-event-malformed-payload.json",
+            "test-vectors/messaging/matrix-send-event-missing-token.json",
+            "test-vectors/messaging/matrix-messages-forbidden.json",
+            "test-vectors/messaging/matrix-messages-invalid-dir.json",
+        ] {
+            let vector = read_spec_vector(path);
+            parse_matrix_error_envelope(vector["expected"]["body_contains"].to_string().as_bytes())
+                .unwrap_or_else(|error| panic!("{path} should parse as Matrix error: {error:?}"));
+        }
+    }
+
+    #[test]
+    fn serializes_matrix_messaging_parse_envelopes() {
+        assert_eq!(
+            parse_matrix_event_id_response_json(br#"{"event_id":"$event1:example.test"}"#),
+            "{\"ok\":true,\"value\":{\"event_id\":\"$event1:example.test\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_messages_response_json(
+                br#"{"chunk":[{"event_id":"$event1:example.test","room_id":"!room:example.test","sender":"@alice:example.test","origin_server_ts":1710000000000,"type":"m.room.message","content":{"msgtype":"m.text","body":"Hello Matrix"},"unsigned":{"transaction_id":"txn-1"}}],"start":"t1","end":"t0"}"#,
+            ),
+            "{\"ok\":true,\"value\":{\"chunk\":[{\"content\":{\"body\":\"Hello Matrix\",\"msgtype\":\"m.text\"},\"event_id\":\"$event1:example.test\",\"origin_server_ts\":1710000000000,\"room_id\":\"!room:example.test\",\"sender\":\"@alice:example.test\",\"state_key\":null,\"type\":\"m.room.message\",\"unsigned\":{\"transaction_id\":\"txn-1\"}}],\"start\":\"t1\",\"end\":\"t0\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_messages_response_json(
+                br#"{"chunk":[{"event_id":"$event0:example.test","room_id":"!room:example.test","sender":"@bob:example.test","origin_server_ts":1709999999000,"type":"m.room.message","content":{"msgtype":"m.text","body":"Earlier message"}}],"start":"t0"}"#,
+            ),
+            "{\"ok\":true,\"value\":{\"chunk\":[{\"content\":{\"body\":\"Earlier message\",\"msgtype\":\"m.text\"},\"event_id\":\"$event0:example.test\",\"origin_server_ts\":1709999999000,\"room_id\":\"!room:example.test\",\"sender\":\"@bob:example.test\",\"state_key\":null,\"type\":\"m.room.message\"}],\"start\":\"t0\"},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_matrix_messaging_values() {
+        let envelope = parse_matrix_event_id_response_envelope(br#"{}"#);
+        assert!(!envelope.ok);
+        let error = envelope.error.expect("missing event_id should fail");
+        assert_eq!(error.code, "invalid_room_field");
+        assert_eq!(error.details.get("field"), Some(&"event_id".to_owned()));
+
+        let envelope = parse_matrix_messages_response_envelope(br#"{}"#);
+        assert!(!envelope.ok);
+        let error = envelope.error.expect("missing chunk should fail");
+        assert_eq!(error.code, "invalid_room_field");
+        assert_eq!(
+            error.details.get("field"),
+            Some(&"messages.chunk".to_owned())
+        );
+
+        let envelope = parse_matrix_messages_response_envelope(
+            br#"{"chunk":[{"event_id":"$event1:example.test","room_id":"!room:example.test","sender":"@alice:example.test","origin_server_ts":-1,"type":"m.room.message","content":{"msgtype":"m.text","body":"Hello Matrix"}}],"start":"t1"}"#,
+        );
+        assert!(!envelope.ok);
+        let error = envelope
+            .error
+            .expect("negative origin_server_ts should fail");
+        assert_eq!(error.code, "invalid_room_field");
+        assert_eq!(
+            error.details.get("field"),
+            Some(&"messages.chunk.0.origin_server_ts".to_owned())
         );
     }
 
