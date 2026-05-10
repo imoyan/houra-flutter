@@ -10,6 +10,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-035",
   "SPEC-036",
   "SPEC-037",
+  "SPEC-038",
 ] as const;
 
 export interface HouraProtocolCoreWasmBinding {
@@ -22,6 +23,8 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixErrorEnvelopeJson(responseBody: string): string;
   parseMatrixLoginFlowsJson(responseBody: string): string;
   parseMatrixLoginSessionJson(responseBody: string): string;
+  parseMatrixMediaContentUriJson(contentUri: string): string;
+  parseMatrixMediaUploadResponseJson(responseBody: string): string;
   parseMatrixMessagesResponseJson(responseBody: string): string;
   parseMatrixSyncResponseJson(responseBody: string): string;
   parseMatrixRegistrationAvailabilityJson(responseBody: string): string;
@@ -198,6 +201,15 @@ export interface MatrixSyncResponse {
   };
 }
 
+export interface MatrixMediaContentUri {
+  server_name: string;
+  media_id: string;
+}
+
+export interface MatrixMediaUploadResponse {
+  content_uri: string;
+}
+
 export interface ProtocolErrorEnvelope {
   code: string;
   message: string;
@@ -224,6 +236,12 @@ export interface HouraProtocolCoreFacade {
   parseMatrixLoginSession(
     responseBody: string,
   ): ProtocolResult<MatrixLoginSession>;
+  parseMatrixMediaContentUri(
+    contentUri: string,
+  ): ProtocolResult<MatrixMediaContentUri>;
+  parseMatrixMediaUploadResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixMediaUploadResponse>;
   parseMatrixMessagesResponse(
     responseBody: string,
   ): ProtocolResult<MatrixMessagesResponse>;
@@ -330,6 +348,20 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixLoginSessionEnvelope(envelope);
+    },
+    parseMatrixMediaContentUri(contentUri: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixMediaContentUriJson(contentUri),
+        "parse envelope",
+      );
+      return readMatrixMediaContentUriEnvelope(envelope);
+    },
+    parseMatrixMediaUploadResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixMediaUploadResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixMediaUploadResponseEnvelope(envelope);
     },
     parseMatrixMessagesResponse(responseBody: string) {
       const envelope = parseJsonObject(
@@ -693,6 +725,23 @@ function readMatrixMessagesResponseEnvelope(
     });
     return result;
   });
+}
+
+function readMatrixMediaContentUriEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixMediaContentUri> {
+  return readProtocolResult(envelope, (value) => ({
+    server_name: readString(value, "server_name", "invalid_envelope"),
+    media_id: readString(value, "media_id", "invalid_envelope"),
+  }));
+}
+
+function readMatrixMediaUploadResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixMediaUploadResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    content_uri: readString(value, "content_uri", "invalid_envelope"),
+  }));
 }
 
 function readMatrixSyncResponseEnvelope(
