@@ -92,6 +92,11 @@ pub fn parse_matrix_messages_response_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_messages_response_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixSyncResponseJson)]
+pub fn parse_matrix_sync_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_sync_response_json(response_body.as_bytes())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -102,7 +107,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\",\"SPEC-036\"],\"supported_binding_kinds\":[\"wasm\"]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\",\"SPEC-036\",\"SPEC-037\"],\"supported_binding_kinds\":[\"wasm\"]}"
         );
     }
 
@@ -229,6 +234,16 @@ mod tests {
                 "{\"chunk\":[{\"event_id\":\"$event1:example.test\",\"room_id\":\"!room:example.test\",\"sender\":\"@alice:example.test\",\"origin_server_ts\":1710000000000,\"type\":\"m.room.message\",\"content\":{\"msgtype\":\"m.text\",\"body\":\"Hello Matrix\"}}],\"start\":\"t1\"}",
             ),
             "{\"ok\":true,\"value\":{\"chunk\":[{\"content\":{\"body\":\"Hello Matrix\",\"msgtype\":\"m.text\"},\"event_id\":\"$event1:example.test\",\"origin_server_ts\":1710000000000,\"room_id\":\"!room:example.test\",\"sender\":\"@alice:example.test\",\"state_key\":null,\"type\":\"m.room.message\"}],\"start\":\"t1\"},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_sync_parser_delegates_to_core_json_envelope() {
+        assert_eq!(
+            parse_matrix_sync_response_json(
+                "{\"next_batch\":\"s1\",\"account_data\":{\"events\":[]},\"rooms\":{\"join\":{},\"invite\":{},\"leave\":{}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"next_batch\":\"s1\",\"account_data\":{\"events\":[]},\"rooms\":{\"join\":{},\"invite\":{},\"leave\":{}}},\"error\":null}"
         );
     }
 }

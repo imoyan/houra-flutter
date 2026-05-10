@@ -9,6 +9,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-034",
   "SPEC-035",
   "SPEC-036",
+  "SPEC-037",
 ] as const;
 
 export interface HouraProtocolCoreWasmBinding {
@@ -22,6 +23,7 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixLoginFlowsJson(responseBody: string): string;
   parseMatrixLoginSessionJson(responseBody: string): string;
   parseMatrixMessagesResponseJson(responseBody: string): string;
+  parseMatrixSyncResponseJson(responseBody: string): string;
   parseMatrixRegistrationAvailabilityJson(responseBody: string): string;
   parseMatrixRegistrationSessionJson(responseBody: string): string;
   parseMatrixRegistrationTokenValidityJson(responseBody: string): string;
@@ -144,6 +146,58 @@ export interface MatrixMessagesResponse {
   end?: string;
 }
 
+export interface MatrixSyncEvent {
+  content: Record<string, unknown>;
+  event_id: string;
+  origin_server_ts: number;
+  sender: string;
+  state_key?: string;
+  type: string;
+  unsigned?: Record<string, unknown>;
+}
+
+export interface MatrixSyncAccountDataEvent {
+  content: Record<string, unknown>;
+  type: string;
+}
+
+export interface MatrixSyncJoinedRoom {
+  state: {
+    events: MatrixSyncEvent[];
+  };
+  timeline: {
+    events: MatrixSyncEvent[];
+    limited: boolean;
+    prev_batch?: string;
+  };
+  account_data: {
+    events: MatrixSyncAccountDataEvent[];
+  };
+  summary?: {
+    "m.joined_member_count"?: number;
+    "m.invited_member_count"?: number;
+  };
+  unread_notifications?: {
+    notification_count?: number;
+    highlight_count?: number;
+  };
+}
+
+export interface MatrixSyncResponse {
+  next_batch: string;
+  account_data: {
+    events: MatrixSyncAccountDataEvent[];
+  };
+  presence?: {
+    events: MatrixSyncAccountDataEvent[];
+  };
+  rooms: {
+    join: Record<string, MatrixSyncJoinedRoom>;
+    invite: Record<string, unknown>;
+    leave: Record<string, unknown>;
+  };
+}
+
 export interface ProtocolErrorEnvelope {
   code: string;
   message: string;
@@ -173,6 +227,9 @@ export interface HouraProtocolCoreFacade {
   parseMatrixMessagesResponse(
     responseBody: string,
   ): ProtocolResult<MatrixMessagesResponse>;
+  parseMatrixSyncResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixSyncResponse>;
   parseMatrixRegistrationAvailability(
     responseBody: string,
   ): ProtocolResult<MatrixRegistrationAvailability>;
@@ -280,6 +337,13 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixMessagesResponseEnvelope(envelope);
+    },
+    parseMatrixSyncResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixSyncResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixSyncResponseEnvelope(envelope);
     },
     parseMatrixRegistrationAvailability(responseBody: string) {
       const envelope = parseJsonObject(
@@ -646,6 +710,141 @@ function readMatrixMessagesResponseEnvelope(
     });
     return result;
   });
+}
+
+function readMatrixSyncResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixSyncResponse> {
+  return readProtocolResult(envelope, (value) => {
+    const rooms = readRecord(value, "rooms", "sync value");
+    const result: MatrixSyncResponse = {
+      next_batch: readString(value, "next_batch", "invalid_envelope"),
+      account_data: readMatrixSyncAccountDataEvents(
+        readRecord(value, "account_data", "sync value"),
+        "account_data",
+      ),
+      rooms: {
+        join: readMatrixSyncJoinedRooms(readRecord(rooms, "join", "sync rooms")),
+        invite: readRecord(rooms, "invite", "sync rooms"),
+        leave: readRecord(rooms, "leave", "sync rooms"),
+      },
+    };
+    if (value.presence !== null && value.presence !== undefined) {
+      result.presence = readMatrixSyncAccountDataEvents(
+        readRecord(value, "presence", "sync value"),
+        "presence",
+      );
+    }
+    return result;
+  });
+}
+
+function readMatrixSyncJoinedRooms(
+  value: Record<string, unknown>,
+): Record<string, MatrixSyncJoinedRoom> {
+  const rooms: Record<string, MatrixSyncJoinedRoom> = {};
+  for (const [roomId, room] of Object.entries(value)) {
+    const roomRecord = assertRecord(room, `rooms.join.${roomId}`);
+    const timeline = readRecord(roomRecord, "timeline", `rooms.join.${roomId}`);
+    const joinedRoom: MatrixSyncJoinedRoom = {
+      state: {
+        events: readArray(
+          readRecord(roomRecord, "state", `rooms.join.${roomId}`),
+          "events",
+          "invalid_envelope",
+        ).map((entry, index) =>
+          readMatrixSyncEvent(assertRecord(entry, `state.events.${index}`)),
+        ),
+      },
+      timeline: {
+        events: readArray(timeline, "events", "invalid_envelope").map(
+          (entry, index) =>
+            readMatrixSyncEvent(assertRecord(entry, `timeline.events.${index}`)),
+        ),
+        limited: readBoolean(timeline, "limited"),
+      },
+      account_data: readMatrixSyncAccountDataEvents(
+        readRecord(roomRecord, "account_data", `rooms.join.${roomId}`),
+        `rooms.join.${roomId}.account_data`,
+      ),
+    };
+    readOptionalString(timeline, "prev_batch", (prevBatch) => {
+      joinedRoom.timeline.prev_batch = prevBatch;
+    });
+    if (roomRecord.summary !== null && roomRecord.summary !== undefined) {
+      joinedRoom.summary = readMatrixSyncSummary(
+        readRecord(roomRecord, "summary", `rooms.join.${roomId}`),
+      );
+    }
+    if (
+      roomRecord.unread_notifications !== null &&
+      roomRecord.unread_notifications !== undefined
+    ) {
+      joinedRoom.unread_notifications = readMatrixSyncUnreadNotifications(
+        readRecord(roomRecord, "unread_notifications", `rooms.join.${roomId}`),
+      );
+    }
+    rooms[roomId] = joinedRoom;
+  }
+  return rooms;
+}
+
+function readMatrixSyncEvent(value: Record<string, unknown>): MatrixSyncEvent {
+  const result: MatrixSyncEvent = {
+    content: readRecord(value, "content", "sync event"),
+    event_id: readString(value, "event_id", "invalid_envelope"),
+    origin_server_ts: readNumber(value, "origin_server_ts", "invalid_envelope"),
+    sender: readString(value, "sender", "invalid_envelope"),
+    type: readString(value, "type", "invalid_envelope"),
+  };
+  readOptionalString(value, "state_key", (stateKey) => {
+    result.state_key = stateKey;
+  });
+  if (value.unsigned !== null && value.unsigned !== undefined) {
+    result.unsigned = readRecord(value, "unsigned", "sync event");
+  }
+  return result;
+}
+
+function readMatrixSyncAccountDataEvents(
+  value: Record<string, unknown>,
+  context: string,
+): { events: MatrixSyncAccountDataEvent[] } {
+  return {
+    events: readArray(value, "events", "invalid_envelope").map((entry, index) => {
+      const record = assertRecord(entry, `${context}.events.${index}`);
+      return {
+        content: readRecord(record, "content", "account data event"),
+        type: readString(record, "type", "invalid_envelope"),
+      };
+    }),
+  };
+}
+
+function readMatrixSyncSummary(
+  value: Record<string, unknown>,
+): NonNullable<MatrixSyncJoinedRoom["summary"]> {
+  const summary: NonNullable<MatrixSyncJoinedRoom["summary"]> = {};
+  readOptionalNumber(value, "m.joined_member_count", (count) => {
+    summary["m.joined_member_count"] = count;
+  });
+  readOptionalNumber(value, "m.invited_member_count", (count) => {
+    summary["m.invited_member_count"] = count;
+  });
+  return summary;
+}
+
+function readMatrixSyncUnreadNotifications(
+  value: Record<string, unknown>,
+): NonNullable<MatrixSyncJoinedRoom["unread_notifications"]> {
+  const unread: NonNullable<MatrixSyncJoinedRoom["unread_notifications"]> = {};
+  readOptionalNumber(value, "notification_count", (count) => {
+    unread.notification_count = count;
+  });
+  readOptionalNumber(value, "highlight_count", (count) => {
+    unread.highlight_count = count;
+  });
+  return unread;
 }
 
 function readMatrixClientEvent(

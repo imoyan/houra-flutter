@@ -10,7 +10,7 @@ pub const HOURA_PROTOCOL_CORE_CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
-    "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
+    "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -149,6 +149,93 @@ pub struct MatrixMessagesResponse {
     pub end: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixSyncEvent {
+    pub content: BTreeMap<String, Value>,
+    pub event_id: String,
+    pub origin_server_ts: u64,
+    pub sender: String,
+    pub state_key: Option<String>,
+    #[serde(rename = "type")]
+    pub event_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unsigned: Option<BTreeMap<String, Value>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixSyncAccountDataEvent {
+    pub content: BTreeMap<String, Value>,
+    #[serde(rename = "type")]
+    pub event_type: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixSyncEventList {
+    pub events: Vec<MatrixSyncAccountDataEvent>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixSyncRoomEventList {
+    pub events: Vec<MatrixSyncEvent>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixSyncTimeline {
+    pub events: Vec<MatrixSyncEvent>,
+    pub limited: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prev_batch: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixSyncSummary {
+    #[serde(
+        rename = "m.joined_member_count",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub joined_member_count: Option<u64>,
+    #[serde(
+        rename = "m.invited_member_count",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub invited_member_count: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixSyncUnreadNotifications {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notification_count: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub highlight_count: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixSyncJoinedRoom {
+    pub state: MatrixSyncRoomEventList,
+    pub timeline: MatrixSyncTimeline,
+    pub account_data: MatrixSyncEventList,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub summary: Option<MatrixSyncSummary>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unread_notifications: Option<MatrixSyncUnreadNotifications>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixSyncRooms {
+    pub join: BTreeMap<String, MatrixSyncJoinedRoom>,
+    pub invite: BTreeMap<String, Value>,
+    pub leave: BTreeMap<String, Value>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixSyncResponse {
+    pub next_batch: String,
+    pub account_data: MatrixSyncEventList,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub presence: Option<MatrixSyncEventList>,
+    pub rooms: MatrixSyncRooms,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ProtocolErrorEnvelope {
     pub code: String,
@@ -272,6 +359,13 @@ pub struct MatrixRoomStateParseEnvelope {
 pub struct MatrixMessagesResponseParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixMessagesResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixSyncResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixSyncResponse>,
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
@@ -503,6 +597,80 @@ struct MatrixMessagesResponseWire {
     chunk: Option<Vec<MatrixClientEventWire>>,
     start: Option<String>,
     end: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixSyncResponseWire {
+    next_batch: Option<String>,
+    account_data: Option<MatrixSyncEventListWire>,
+    presence: Option<MatrixSyncEventListWire>,
+    rooms: Option<MatrixSyncRoomsWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixSyncRoomsWire {
+    join: Option<BTreeMap<String, MatrixSyncJoinedRoomWire>>,
+    invite: Option<BTreeMap<String, Value>>,
+    leave: Option<BTreeMap<String, Value>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixSyncJoinedRoomWire {
+    state: Option<MatrixSyncRoomEventListWire>,
+    timeline: Option<MatrixSyncTimelineWire>,
+    account_data: Option<MatrixSyncEventListWire>,
+    summary: Option<MatrixSyncSummaryWire>,
+    unread_notifications: Option<MatrixSyncUnreadNotificationsWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixSyncRoomEventListWire {
+    events: Option<Vec<MatrixSyncEventWire>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixSyncEventListWire {
+    events: Option<Vec<MatrixSyncAccountDataEventWire>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixSyncTimelineWire {
+    events: Option<Vec<MatrixSyncEventWire>>,
+    limited: Option<bool>,
+    prev_batch: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixSyncEventWire {
+    content: Option<BTreeMap<String, Value>>,
+    event_id: Option<String>,
+    origin_server_ts: Option<i64>,
+    sender: Option<String>,
+    state_key: Option<String>,
+    #[serde(rename = "type")]
+    event_type: Option<String>,
+    unsigned: Option<BTreeMap<String, Value>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixSyncAccountDataEventWire {
+    content: Option<BTreeMap<String, Value>>,
+    #[serde(rename = "type")]
+    event_type: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixSyncSummaryWire {
+    #[serde(rename = "m.joined_member_count")]
+    joined_member_count: Option<i64>,
+    #[serde(rename = "m.invited_member_count")]
+    invited_member_count: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixSyncUnreadNotificationsWire {
+    notification_count: Option<i64>,
+    highlight_count: Option<i64>,
 }
 
 pub fn abi_version() -> u32 {
@@ -1158,6 +1326,49 @@ pub fn parse_matrix_messages_response_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_sync_response(bytes: &[u8]) -> Result<MatrixSyncResponse, ProtocolError> {
+    let wire: MatrixSyncResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let rooms = matrix_sync_rooms_from_wire(
+        wire.rooms.ok_or_else(|| invalid_room_field("sync.rooms"))?,
+        "sync.rooms",
+    )?;
+
+    Ok(MatrixSyncResponse {
+        next_batch: required_room_string(wire.next_batch, "sync.next_batch")?,
+        account_data: matrix_sync_event_list_from_wire(
+            wire.account_data
+                .ok_or_else(|| invalid_room_field("sync.account_data"))?,
+            "sync.account_data",
+        )?,
+        presence: wire
+            .presence
+            .map(|presence| matrix_sync_event_list_from_wire(presence, "sync.presence"))
+            .transpose()?,
+        rooms,
+    })
+}
+
+pub fn parse_matrix_sync_response_envelope(bytes: &[u8]) -> MatrixSyncResponseParseEnvelope {
+    match parse_matrix_sync_response(bytes) {
+        Ok(value) => MatrixSyncResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixSyncResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_sync_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_sync_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 fn required_non_empty(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
     match value {
         Some(value) if !value.is_empty() => Ok(value),
@@ -1286,6 +1497,200 @@ fn matrix_client_event_from_wire(
         event_type: required_room_string(wire.event_type, &format!("{context}.type"))?,
         unsigned: wire.unsigned,
     })
+}
+
+fn matrix_sync_rooms_from_wire(
+    wire: MatrixSyncRoomsWire,
+    context: &str,
+) -> Result<MatrixSyncRooms, ProtocolError> {
+    let join = wire
+        .join
+        .ok_or_else(|| invalid_room_field(&format!("{context}.join")))?
+        .into_iter()
+        .map(|(room_id, room)| {
+            let parsed =
+                matrix_sync_joined_room_from_wire(room, &format!("{context}.join.{room_id}"))?;
+            Ok((room_id, parsed))
+        })
+        .collect::<Result<BTreeMap<_, _>, ProtocolError>>()?;
+
+    Ok(MatrixSyncRooms {
+        join,
+        invite: wire
+            .invite
+            .ok_or_else(|| invalid_room_field(&format!("{context}.invite")))?,
+        leave: wire
+            .leave
+            .ok_or_else(|| invalid_room_field(&format!("{context}.leave")))?,
+    })
+}
+
+fn matrix_sync_joined_room_from_wire(
+    wire: MatrixSyncJoinedRoomWire,
+    context: &str,
+) -> Result<MatrixSyncJoinedRoom, ProtocolError> {
+    Ok(MatrixSyncJoinedRoom {
+        state: matrix_sync_room_event_list_from_wire(
+            wire.state
+                .ok_or_else(|| invalid_room_field(&format!("{context}.state")))?,
+            &format!("{context}.state"),
+        )?,
+        timeline: matrix_sync_timeline_from_wire(
+            wire.timeline
+                .ok_or_else(|| invalid_room_field(&format!("{context}.timeline")))?,
+            &format!("{context}.timeline"),
+        )?,
+        account_data: matrix_sync_event_list_from_wire(
+            wire.account_data
+                .ok_or_else(|| invalid_room_field(&format!("{context}.account_data")))?,
+            &format!("{context}.account_data"),
+        )?,
+        summary: wire
+            .summary
+            .map(|summary| matrix_sync_summary_from_wire(summary, &format!("{context}.summary")))
+            .transpose()?,
+        unread_notifications: wire
+            .unread_notifications
+            .map(|unread| {
+                matrix_sync_unread_notifications_from_wire(
+                    unread,
+                    &format!("{context}.unread_notifications"),
+                )
+            })
+            .transpose()?,
+    })
+}
+
+fn matrix_sync_room_event_list_from_wire(
+    wire: MatrixSyncRoomEventListWire,
+    context: &str,
+) -> Result<MatrixSyncRoomEventList, ProtocolError> {
+    let events = wire
+        .events
+        .ok_or_else(|| invalid_room_field(&format!("{context}.events")))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, event)| {
+            matrix_sync_event_from_wire(event, &format!("{context}.events.{index}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(MatrixSyncRoomEventList { events })
+}
+
+fn matrix_sync_event_list_from_wire(
+    wire: MatrixSyncEventListWire,
+    context: &str,
+) -> Result<MatrixSyncEventList, ProtocolError> {
+    let events = wire
+        .events
+        .ok_or_else(|| invalid_room_field(&format!("{context}.events")))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, event)| {
+            matrix_sync_account_data_event_from_wire(event, &format!("{context}.events.{index}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(MatrixSyncEventList { events })
+}
+
+fn matrix_sync_timeline_from_wire(
+    wire: MatrixSyncTimelineWire,
+    context: &str,
+) -> Result<MatrixSyncTimeline, ProtocolError> {
+    let events = wire
+        .events
+        .ok_or_else(|| invalid_room_field(&format!("{context}.events")))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, event)| {
+            matrix_sync_event_from_wire(event, &format!("{context}.events.{index}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(MatrixSyncTimeline {
+        events,
+        limited: wire
+            .limited
+            .ok_or_else(|| invalid_room_field(&format!("{context}.limited")))?,
+        prev_batch: optional_room_string(wire.prev_batch, &format!("{context}.prev_batch"))?,
+    })
+}
+
+fn matrix_sync_event_from_wire(
+    wire: MatrixSyncEventWire,
+    context: &str,
+) -> Result<MatrixSyncEvent, ProtocolError> {
+    let origin_server_ts = match wire.origin_server_ts {
+        Some(timestamp) if timestamp >= 0 => timestamp as u64,
+        _ => return Err(invalid_room_field(&format!("{context}.origin_server_ts"))),
+    };
+
+    Ok(MatrixSyncEvent {
+        content: wire
+            .content
+            .ok_or_else(|| invalid_room_field(&format!("{context}.content")))?,
+        event_id: required_room_string(wire.event_id, &format!("{context}.event_id"))?,
+        origin_server_ts,
+        sender: required_room_string(wire.sender, &format!("{context}.sender"))?,
+        state_key: wire.state_key,
+        event_type: required_room_string(wire.event_type, &format!("{context}.type"))?,
+        unsigned: wire.unsigned,
+    })
+}
+
+fn matrix_sync_account_data_event_from_wire(
+    wire: MatrixSyncAccountDataEventWire,
+    context: &str,
+) -> Result<MatrixSyncAccountDataEvent, ProtocolError> {
+    Ok(MatrixSyncAccountDataEvent {
+        content: wire
+            .content
+            .ok_or_else(|| invalid_room_field(&format!("{context}.content")))?,
+        event_type: required_room_string(wire.event_type, &format!("{context}.type"))?,
+    })
+}
+
+fn matrix_sync_summary_from_wire(
+    wire: MatrixSyncSummaryWire,
+    context: &str,
+) -> Result<MatrixSyncSummary, ProtocolError> {
+    Ok(MatrixSyncSummary {
+        joined_member_count: optional_non_negative_i64(
+            wire.joined_member_count,
+            &format!("{context}.m.joined_member_count"),
+        )?,
+        invited_member_count: optional_non_negative_i64(
+            wire.invited_member_count,
+            &format!("{context}.m.invited_member_count"),
+        )?,
+    })
+}
+
+fn matrix_sync_unread_notifications_from_wire(
+    wire: MatrixSyncUnreadNotificationsWire,
+    context: &str,
+) -> Result<MatrixSyncUnreadNotifications, ProtocolError> {
+    Ok(MatrixSyncUnreadNotifications {
+        notification_count: optional_non_negative_i64(
+            wire.notification_count,
+            &format!("{context}.notification_count"),
+        )?,
+        highlight_count: optional_non_negative_i64(
+            wire.highlight_count,
+            &format!("{context}.highlight_count"),
+        )?,
+    })
+}
+
+fn optional_non_negative_i64(
+    value: Option<i64>,
+    field: &str,
+) -> Result<Option<u64>, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(Some(value as u64)),
+        Some(_) => Err(invalid_room_field(field)),
+        None => Ok(None),
+    }
 }
 
 fn invalid_room_field(field: &str) -> ProtocolError {
@@ -1420,7 +1825,8 @@ mod tests {
         assert_eq!(
             manifest.supported_specs,
             vec![
-                "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036"
+                "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
+                "SPEC-037"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -1432,7 +1838,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\",\"SPEC-036\"],\"supported_binding_kinds\":[]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\",\"SPEC-036\",\"SPEC-037\"],\"supported_binding_kinds\":[]}"
         );
     }
 
@@ -1442,7 +1848,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\",\"SPEC-036\"],\"supported_binding_kinds\":[\"wasm\"]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\",\"SPEC-036\",\"SPEC-037\"],\"supported_binding_kinds\":[\"wasm\"]}"
         );
     }
 
@@ -2094,6 +2500,108 @@ mod tests {
         assert_eq!(
             error.details.get("field"),
             Some(&"messages.chunk.0.origin_server_ts".to_owned())
+        );
+    }
+
+    #[test]
+    fn parses_matrix_sync_vectors() {
+        let initial = read_spec_vector("test-vectors/sync/matrix-sync-initial-basic.json");
+        let parsed_initial =
+            parse_matrix_sync_response(initial["expected"]["body_contains"].to_string().as_bytes())
+                .expect("Matrix initial sync vector should parse");
+        assert_eq!(parsed_initial.next_batch, "s1");
+        let room = parsed_initial
+            .rooms
+            .join
+            .get("!room:example.test")
+            .expect("joined room should parse");
+        assert_eq!(room.state.events.len(), 2);
+        assert_eq!(room.timeline.events[0].event_id, "$event1:example.test");
+        assert_eq!(room.timeline.events[0].event_type, "m.room.message");
+        assert_eq!(room.timeline.events[0].content["body"], "Hello Matrix");
+        assert_eq!(room.timeline.prev_batch.as_deref(), Some("t0"));
+        assert!(!room.timeline.limited);
+        assert_eq!(room.account_data.events[0].event_type, "m.tag");
+        assert_eq!(
+            room.summary
+                .as_ref()
+                .expect("summary should parse")
+                .joined_member_count,
+            Some(1)
+        );
+        assert_eq!(
+            room.unread_notifications
+                .as_ref()
+                .expect("unread notifications should parse")
+                .notification_count,
+            Some(0)
+        );
+
+        let incremental = read_spec_vector("test-vectors/sync/matrix-sync-incremental-basic.json");
+        let parsed_incremental = parse_matrix_sync_response(
+            incremental["expected"]["body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("Matrix incremental sync vector should parse");
+        let room = parsed_incremental
+            .rooms
+            .join
+            .get("!room:example.test")
+            .expect("joined room should parse");
+        assert!(room.state.events.is_empty());
+        assert_eq!(room.timeline.events[0].event_id, "$event2:example.test");
+
+        let empty = read_spec_vector("test-vectors/sync/matrix-sync-empty-incremental.json");
+        let parsed_empty =
+            parse_matrix_sync_response(empty["expected"]["body_contains"].to_string().as_bytes())
+                .expect("Matrix empty sync vector should parse");
+        assert_eq!(parsed_empty.next_batch, "s2");
+        assert!(parsed_empty.rooms.join.is_empty());
+        assert!(parsed_empty.presence.is_some());
+
+        for path in [
+            "test-vectors/sync/matrix-sync-invalid-since.json",
+            "test-vectors/sync/matrix-sync-missing-token.json",
+            "test-vectors/sync/matrix-sync-invalid-token.json",
+        ] {
+            let vector = read_spec_vector(path);
+            parse_matrix_error_envelope(vector["expected"]["body_contains"].to_string().as_bytes())
+                .unwrap_or_else(|error| panic!("{path} should parse as Matrix error: {error:?}"));
+        }
+    }
+
+    #[test]
+    fn serializes_matrix_sync_parse_envelopes() {
+        assert_eq!(
+            parse_matrix_sync_response_json(
+                br#"{"next_batch":"s1","account_data":{"events":[]},"rooms":{"join":{"!room:example.test":{"state":{"events":[]},"timeline":{"events":[{"event_id":"$event1:example.test","sender":"@alice:example.test","origin_server_ts":1710000000000,"type":"m.room.message","content":{"msgtype":"m.text","body":"Hello Matrix"}}],"limited":false,"prev_batch":"t0"},"account_data":{"events":[]}}},"invite":{},"leave":{}}}"#,
+            ),
+            "{\"ok\":true,\"value\":{\"next_batch\":\"s1\",\"account_data\":{\"events\":[]},\"rooms\":{\"join\":{\"!room:example.test\":{\"state\":{\"events\":[]},\"timeline\":{\"events\":[{\"content\":{\"body\":\"Hello Matrix\",\"msgtype\":\"m.text\"},\"event_id\":\"$event1:example.test\",\"origin_server_ts\":1710000000000,\"sender\":\"@alice:example.test\",\"state_key\":null,\"type\":\"m.room.message\"}],\"limited\":false,\"prev_batch\":\"t0\"},\"account_data\":{\"events\":[]}}},\"invite\":{},\"leave\":{}}},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_matrix_sync_values() {
+        let envelope = parse_matrix_sync_response_envelope(br#"{}"#);
+        assert!(!envelope.ok);
+        let error = envelope.error.expect("missing sync.rooms should fail");
+        assert_eq!(error.code, "invalid_room_field");
+        assert_eq!(error.details.get("field"), Some(&"sync.rooms".to_owned()));
+
+        let envelope = parse_matrix_sync_response_envelope(
+            br#"{"next_batch":"s1","account_data":{"events":[]},"rooms":{"join":{"!room:example.test":{"state":{"events":[]},"timeline":{"events":[{"event_id":"$event1:example.test","sender":"@alice:example.test","origin_server_ts":-1,"type":"m.room.message","content":{"msgtype":"m.text","body":"Hello Matrix"}}],"limited":false},"account_data":{"events":[]}}},"invite":{},"leave":{}}}"#,
+        );
+        assert!(!envelope.ok);
+        let error = envelope
+            .error
+            .expect("negative sync origin_server_ts should fail");
+        assert_eq!(error.code, "invalid_room_field");
+        assert_eq!(
+            error.details.get("field"),
+            Some(
+                &"sync.rooms.join.!room:example.test.timeline.events.0.origin_server_ts".to_owned()
+            )
         );
     }
 

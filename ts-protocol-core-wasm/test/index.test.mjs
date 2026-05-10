@@ -20,6 +20,7 @@ const manifest = {
     "SPEC-034",
     "SPEC-035",
     "SPEC-036",
+    "SPEC-037",
   ],
   supported_binding_kinds: ["wasm"],
 };
@@ -139,6 +140,57 @@ function binding(overrides = {}) {
             ],
             start: "t1",
             end: "t0",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixSyncResponseJson() {
+      return JSON.stringify(
+        overrides.syncResponseEnvelope ?? {
+          ok: true,
+          value: {
+            next_batch: "s1",
+            account_data: {
+              events: [
+                {
+                  type: "m.push_rules",
+                  content: {
+                    global: {},
+                  },
+                },
+              ],
+            },
+            rooms: {
+              join: {
+                "!room:example.test": {
+                  state: {
+                    events: [],
+                  },
+                  timeline: {
+                    events: [
+                      {
+                        content: {
+                          msgtype: "m.text",
+                          body: "Hello Matrix",
+                        },
+                        event_id: "$event1:example.test",
+                        origin_server_ts: 1710000000000,
+                        sender: "@alice:example.test",
+                        type: "m.room.message",
+                      },
+                    ],
+                    limited: false,
+                    prev_batch: "t0",
+                  },
+                  account_data: {
+                    events: [{ type: "m.tag", content: { tags: {} } }],
+                  },
+                },
+              },
+              invite: {},
+              leave: {},
+            },
           },
           error: null,
         },
@@ -685,6 +737,122 @@ test("omits absent optional SPEC-036 Matrix messages end token", () => {
     value: {
       chunk: [],
       start: "t0",
+    },
+    error: null,
+  });
+});
+
+test("maps SPEC-037 Matrix sync envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+
+  assert.deepEqual(core.parseMatrixSyncResponse("{}"), {
+    ok: true,
+    value: {
+      next_batch: "s1",
+      account_data: {
+        events: [
+          {
+            type: "m.push_rules",
+            content: {
+              global: {},
+            },
+          },
+        ],
+      },
+      rooms: {
+        join: {
+          "!room:example.test": {
+            state: {
+              events: [],
+            },
+            timeline: {
+              events: [
+                {
+                  content: {
+                    msgtype: "m.text",
+                    body: "Hello Matrix",
+                  },
+                  event_id: "$event1:example.test",
+                  origin_server_ts: 1710000000000,
+                  sender: "@alice:example.test",
+                  type: "m.room.message",
+                },
+              ],
+              limited: false,
+              prev_batch: "t0",
+            },
+            account_data: {
+              events: [{ type: "m.tag", content: { tags: {} } }],
+            },
+          },
+        },
+        invite: {},
+        leave: {},
+      },
+    },
+    error: null,
+  });
+});
+
+test("maps optional SPEC-037 Matrix sync presence and summary envelopes", () => {
+  const core = createHouraProtocolCore(
+    binding({
+      syncResponseEnvelope: {
+        ok: true,
+        value: {
+          next_batch: "s2",
+          account_data: { events: [] },
+          presence: { events: [] },
+          rooms: {
+            join: {
+              "!room:example.test": {
+                state: { events: [] },
+                timeline: { events: [], limited: false },
+                account_data: { events: [] },
+                summary: {
+                  "m.joined_member_count": 1,
+                  "m.invited_member_count": 0,
+                },
+                unread_notifications: {
+                  notification_count: 0,
+                  highlight_count: 0,
+                },
+              },
+            },
+            invite: {},
+            leave: {},
+          },
+        },
+        error: null,
+      },
+    }),
+  );
+
+  assert.deepEqual(core.parseMatrixSyncResponse("{}"), {
+    ok: true,
+    value: {
+      next_batch: "s2",
+      account_data: { events: [] },
+      presence: { events: [] },
+      rooms: {
+        join: {
+          "!room:example.test": {
+            state: { events: [] },
+            timeline: { events: [], limited: false },
+            account_data: { events: [] },
+            summary: {
+              "m.joined_member_count": 1,
+              "m.invited_member_count": 0,
+            },
+            unread_notifications: {
+              notification_count: 0,
+              highlight_count: 0,
+            },
+          },
+        },
+        invite: {},
+        leave: {},
+      },
     },
     error: null,
   });
