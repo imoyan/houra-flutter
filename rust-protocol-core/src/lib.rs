@@ -701,13 +701,14 @@ pub fn artifact_manifest_json() -> String {
 }
 
 pub fn artifact_manifest_json_for_binding_kinds(binding_kinds: &[&str]) -> String {
-    serde_json::to_string(&artifact_manifest_for_binding_kinds(binding_kinds))
-        .unwrap_or_else(|error| {
+    serde_json::to_string(&artifact_manifest_for_binding_kinds(binding_kinds)).unwrap_or_else(
+        |error| {
             format!(
                 r#"{{"error":"artifact manifest serialization failed","message":"{}"}}"#,
                 error
             )
-        })
+        },
+    )
 }
 
 pub fn parse_matrix_client_versions_response(
