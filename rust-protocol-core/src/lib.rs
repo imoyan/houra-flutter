@@ -9,7 +9,9 @@ pub const HOURA_PROTOCOL_CORE_CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 pub const HOURA_PROTOCOL_CORE_CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
-const SUPPORTED_SPECS: &[&str] = &["SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034"];
+const SUPPORTED_SPECS: &[&str] = &[
+    "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035",
+];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ArtifactManifest {
@@ -111,6 +113,30 @@ pub struct MatrixDevices {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRoomIdResponse {
+    pub room_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixClientEvent {
+    pub content: BTreeMap<String, Value>,
+    pub event_id: String,
+    pub origin_server_ts: u64,
+    pub room_id: String,
+    pub sender: String,
+    pub state_key: Option<String>,
+    #[serde(rename = "type")]
+    pub event_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unsigned: Option<BTreeMap<String, Value>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixRoomState {
+    pub events: Vec<MatrixClientEvent>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ProtocolErrorEnvelope {
     pub code: String,
     pub message: String,
@@ -201,6 +227,27 @@ pub struct MatrixDevicesParseEnvelope {
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRoomIdResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRoomIdResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixClientEventParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixClientEvent>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixRoomStateParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRoomState>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProtocolError {
     Json(String),
@@ -214,6 +261,7 @@ pub enum ProtocolError {
     InvalidRegistrationField { field: String },
     InvalidUserInteractiveAuthField { field: String },
     InvalidDeviceField { field: String },
+    InvalidRoomField { field: String },
 }
 
 impl ProtocolError {
@@ -232,6 +280,7 @@ impl ProtocolError {
                 "invalid_user_interactive_auth_field"
             }
             ProtocolError::InvalidDeviceField { .. } => "invalid_device_field",
+            ProtocolError::InvalidRoomField { .. } => "invalid_room_field",
         }
     }
 
@@ -257,6 +306,9 @@ impl ProtocolError {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidDeviceField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidRoomField { field } => {
                 details.insert("field".to_owned(), field.clone());
             }
             _ => {}
@@ -308,6 +360,9 @@ impl std::fmt::Display for ProtocolError {
             }
             ProtocolError::InvalidDeviceField { field } => {
                 write!(formatter, "{field} is not a valid Matrix device value")
+            }
+            ProtocolError::InvalidRoomField { field } => {
+                write!(formatter, "{field} is not a valid Matrix room value")
             }
         }
     }
@@ -391,6 +446,24 @@ struct MatrixDeviceWire {
 #[derive(Debug, Deserialize)]
 struct MatrixDevicesWire {
     devices: Option<Vec<MatrixDeviceWire>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRoomIdResponseWire {
+    room_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixClientEventWire {
+    content: Option<BTreeMap<String, Value>>,
+    event_id: Option<String>,
+    origin_server_ts: Option<i64>,
+    room_id: Option<String>,
+    sender: Option<String>,
+    state_key: Option<String>,
+    #[serde(rename = "type")]
+    event_type: Option<String>,
+    unsigned: Option<BTreeMap<String, Value>>,
 }
 
 pub fn abi_version() -> u32 {
@@ -884,6 +957,93 @@ pub fn parse_matrix_devices_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_room_id_response(bytes: &[u8]) -> Result<MatrixRoomIdResponse, ProtocolError> {
+    let wire: MatrixRoomIdResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+
+    Ok(MatrixRoomIdResponse {
+        room_id: required_room_string(wire.room_id, "room_id")?,
+    })
+}
+
+pub fn parse_matrix_room_id_response_envelope(bytes: &[u8]) -> MatrixRoomIdResponseParseEnvelope {
+    match parse_matrix_room_id_response(bytes) {
+        Ok(value) => MatrixRoomIdResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRoomIdResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_room_id_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_room_id_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_client_event(bytes: &[u8]) -> Result<MatrixClientEvent, ProtocolError> {
+    let wire: MatrixClientEventWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    matrix_client_event_from_wire(wire, "event")
+}
+
+pub fn parse_matrix_client_event_envelope(bytes: &[u8]) -> MatrixClientEventParseEnvelope {
+    match parse_matrix_client_event(bytes) {
+        Ok(value) => MatrixClientEventParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixClientEventParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_client_event_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_client_event_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_room_state(bytes: &[u8]) -> Result<MatrixRoomState, ProtocolError> {
+    let wires: Vec<MatrixClientEventWire> =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let events = wires
+        .into_iter()
+        .enumerate()
+        .map(|(index, event)| matrix_client_event_from_wire(event, &format!("events.{index}")))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(MatrixRoomState { events })
+}
+
+pub fn parse_matrix_room_state_envelope(bytes: &[u8]) -> MatrixRoomStateParseEnvelope {
+    match parse_matrix_room_state(bytes) {
+        Ok(value) => MatrixRoomStateParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRoomStateParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_room_state_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_room_state_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 fn required_non_empty(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
     match value {
         Some(value) if !value.is_empty() => Ok(value),
@@ -970,6 +1130,42 @@ fn matrix_device_from_wire(
 
 fn invalid_device_field(field: &str) -> ProtocolError {
     ProtocolError::InvalidDeviceField {
+        field: field.to_owned(),
+    }
+}
+
+fn required_room_string(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_room_field(field)),
+    }
+}
+
+fn matrix_client_event_from_wire(
+    wire: MatrixClientEventWire,
+    context: &str,
+) -> Result<MatrixClientEvent, ProtocolError> {
+    let origin_server_ts = match wire.origin_server_ts {
+        Some(timestamp) if timestamp >= 0 => timestamp as u64,
+        _ => return Err(invalid_room_field(&format!("{context}.origin_server_ts"))),
+    };
+
+    Ok(MatrixClientEvent {
+        content: wire
+            .content
+            .ok_or_else(|| invalid_room_field(&format!("{context}.content")))?,
+        event_id: required_room_string(wire.event_id, &format!("{context}.event_id"))?,
+        origin_server_ts,
+        room_id: required_room_string(wire.room_id, &format!("{context}.room_id"))?,
+        sender: required_room_string(wire.sender, &format!("{context}.sender"))?,
+        state_key: wire.state_key,
+        event_type: required_room_string(wire.event_type, &format!("{context}.type"))?,
+        unsigned: wire.unsigned,
+    })
+}
+
+fn invalid_room_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidRoomField {
         field: field.to_owned(),
     }
 }
@@ -1099,7 +1295,7 @@ mod tests {
         assert_eq!(manifest.protocol_boundary, "pure-protocol-core");
         assert_eq!(
             manifest.supported_specs,
-            vec!["SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034"]
+            vec!["SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035"]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
     }
@@ -1110,7 +1306,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\"],\"supported_binding_kinds\":[]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\"],\"supported_binding_kinds\":[]}"
         );
     }
 
@@ -1120,7 +1316,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\"],\"supported_binding_kinds\":[\"wasm\"]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\"],\"supported_binding_kinds\":[\"wasm\"]}"
         );
     }
 
@@ -1578,6 +1774,98 @@ mod tests {
         assert_eq!(
             error.details.get("field"),
             Some(&"device.last_seen_ts".to_owned())
+        );
+    }
+
+    #[test]
+    fn parses_matrix_room_vectors() {
+        let create = read_spec_vector("test-vectors/rooms/matrix-create-room-basic.json");
+        let parsed_create = parse_matrix_room_id_response(
+            create["expected"]["body_contains"].to_string().as_bytes(),
+        )
+        .expect("Matrix create room vector should parse");
+        assert_eq!(parsed_create.room_id, "!room:example.test");
+
+        let join = read_spec_vector("test-vectors/rooms/matrix-join-room-basic.json");
+        let parsed_join =
+            parse_matrix_room_id_response(join["expected"]["body_contains"].to_string().as_bytes())
+                .expect("Matrix join room vector should parse");
+        assert_eq!(parsed_join.room_id, "!room:example.test");
+
+        let state = read_spec_vector("test-vectors/rooms/matrix-room-state-basic.json");
+        let parsed_state =
+            parse_matrix_room_state(state["expected"]["body_contains"].to_string().as_bytes())
+                .expect("Matrix room state vector should parse");
+        assert_eq!(parsed_state.events.len(), 2);
+        assert_eq!(parsed_state.events[0].event_id, "$name:example.test");
+        assert_eq!(parsed_state.events[0].event_type, "m.room.name");
+        assert_eq!(parsed_state.events[0].state_key.as_deref(), Some(""));
+        assert_eq!(parsed_state.events[0].content["name"], "General");
+        assert_eq!(parsed_state.events[1].event_type, "m.room.member");
+        assert_eq!(
+            parsed_state.events[1].state_key.as_deref(),
+            Some("@alice:example.test")
+        );
+
+        let forbidden = read_spec_vector("test-vectors/rooms/matrix-room-state-forbidden.json");
+        parse_matrix_error_envelope(
+            forbidden["expected"]["body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("Matrix room state forbidden error should parse");
+    }
+
+    #[test]
+    fn serializes_matrix_room_parse_envelopes() {
+        assert_eq!(
+            parse_matrix_room_id_response_json(br#"{"room_id":"!room:example.test"}"#),
+            "{\"ok\":true,\"value\":{\"room_id\":\"!room:example.test\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_client_event_json(
+                br#"{"event_id":"$name:example.test","room_id":"!room:example.test","sender":"@alice:example.test","origin_server_ts":1710000000000,"type":"m.room.name","state_key":"","content":{"name":"General"}}"#,
+            ),
+            "{\"ok\":true,\"value\":{\"content\":{\"name\":\"General\"},\"event_id\":\"$name:example.test\",\"origin_server_ts\":1710000000000,\"room_id\":\"!room:example.test\",\"sender\":\"@alice:example.test\",\"state_key\":\"\",\"type\":\"m.room.name\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_room_state_json(
+                br#"[{"event_id":"$name:example.test","room_id":"!room:example.test","sender":"@alice:example.test","origin_server_ts":1710000000000,"type":"m.room.name","state_key":"","content":{"name":"General"}}]"#,
+            ),
+            "{\"ok\":true,\"value\":{\"events\":[{\"content\":{\"name\":\"General\"},\"event_id\":\"$name:example.test\",\"origin_server_ts\":1710000000000,\"room_id\":\"!room:example.test\",\"sender\":\"@alice:example.test\",\"state_key\":\"\",\"type\":\"m.room.name\"}]},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_matrix_room_values() {
+        let envelope = parse_matrix_room_id_response_envelope(br#"{}"#);
+        assert!(!envelope.ok);
+        let error = envelope.error.expect("missing room_id should fail");
+        assert_eq!(error.code, "invalid_room_field");
+        assert_eq!(error.details.get("field"), Some(&"room_id".to_owned()));
+
+        let envelope = parse_matrix_client_event_envelope(
+            br#"{"event_id":"$name:example.test","room_id":"!room:example.test","sender":"@alice:example.test","origin_server_ts":1710000000000,"type":"m.room.name"}"#,
+        );
+        assert!(!envelope.ok);
+        let error = envelope.error.expect("missing event content should fail");
+        assert_eq!(error.code, "invalid_room_field");
+        assert_eq!(
+            error.details.get("field"),
+            Some(&"event.content".to_owned())
+        );
+
+        let envelope = parse_matrix_room_state_envelope(
+            br#"[{"event_id":"$name:example.test","room_id":"!room:example.test","sender":"@alice:example.test","origin_server_ts":-1,"type":"m.room.name","state_key":"","content":{"name":"General"}}]"#,
+        );
+        assert!(!envelope.ok);
+        let error = envelope
+            .error
+            .expect("negative origin_server_ts should fail");
+        assert_eq!(error.code, "invalid_room_field");
+        assert_eq!(
+            error.details.get("field"),
+            Some(&"events.0.origin_server_ts".to_owned())
         );
     }
 
