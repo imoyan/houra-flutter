@@ -12,7 +12,7 @@ const manifest = {
   crate_version: "0.1.0",
   abi_version: 1,
   protocol_boundary: "pure-protocol-core",
-  supported_specs: ["SPEC-030", "SPEC-031"],
+  supported_specs: ["SPEC-030", "SPEC-031", "SPEC-032"],
   supported_binding_kinds: ["wasm"],
 };
 
@@ -41,6 +41,44 @@ function binding(overrides = {}) {
             errcode: "M_BAD_JSON",
             error: "Malformed JSON payload.",
             retry_after_ms: null,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixLoginFlowsJson() {
+      return JSON.stringify(
+        overrides.loginFlowsEnvelope ?? {
+          ok: true,
+          value: {
+            flows: [{ type: "m.login.password" }],
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixLoginSessionJson() {
+      return JSON.stringify(
+        overrides.loginSessionEnvelope ?? {
+          ok: true,
+          value: {
+            user_id: "@alice:example.test",
+            access_token: "token-1",
+            device_id: "DEVICE1",
+            home_server: "example.test",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixWhoamiJson() {
+      return JSON.stringify(
+        overrides.whoamiEnvelope ?? {
+          ok: true,
+          value: {
+            user_id: "@alice:example.test",
+            device_id: "DEVICE1",
+            is_guest: false,
           },
           error: null,
         },
@@ -89,6 +127,95 @@ test("maps SPEC-031 Matrix error and foundation validation envelopes", () => {
     ok: true,
     value: {
       valid: true,
+    },
+    error: null,
+  });
+});
+
+test("maps SPEC-032 Matrix auth/session envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+
+  assert.deepEqual(
+    core.parseMatrixLoginFlows('{"flows":[{"type":"m.login.password"}]}'),
+    {
+      ok: true,
+      value: {
+        flows: [{ type: "m.login.password" }],
+      },
+      error: null,
+    },
+  );
+  assert.deepEqual(
+    core.parseMatrixLoginSession(
+      '{"user_id":"@alice:example.test","access_token":"token-1"}',
+    ),
+    {
+      ok: true,
+      value: {
+        user_id: "@alice:example.test",
+        access_token: "token-1",
+        device_id: "DEVICE1",
+        home_server: "example.test",
+      },
+      error: null,
+    },
+  );
+  assert.deepEqual(
+    core.parseMatrixWhoami('{"user_id":"@alice:example.test"}'),
+    {
+      ok: true,
+      value: {
+        user_id: "@alice:example.test",
+        device_id: "DEVICE1",
+        is_guest: false,
+      },
+      error: null,
+    },
+  );
+});
+
+test("omits null optional SPEC-032 Matrix auth/session fields", () => {
+  const core = createHouraProtocolCore(
+    binding({
+      loginSessionEnvelope: {
+        ok: true,
+        value: {
+          user_id: "@alice:example.test",
+          access_token: "token-1",
+          device_id: null,
+          home_server: null,
+        },
+        error: null,
+      },
+      whoamiEnvelope: {
+        ok: true,
+        value: {
+          user_id: "@alice:example.test",
+          device_id: null,
+          is_guest: null,
+        },
+        error: null,
+      },
+    }),
+  );
+
+  assert.deepEqual(
+    core.parseMatrixLoginSession(
+      '{"user_id":"@alice:example.test","access_token":"token-1"}',
+    ),
+    {
+      ok: true,
+      value: {
+        user_id: "@alice:example.test",
+        access_token: "token-1",
+      },
+      error: null,
+    },
+  );
+  assert.deepEqual(core.parseMatrixWhoami('{"user_id":"@alice:example.test"}'), {
+    ok: true,
+    value: {
+      user_id: "@alice:example.test",
     },
     error: null,
   });

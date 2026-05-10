@@ -22,6 +22,21 @@ pub fn validate_matrix_foundation_identifiers_json(value: &str) -> String {
     houra_protocol_core::validate_matrix_foundation_identifiers_json(value.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixLoginFlowsJson)]
+pub fn parse_matrix_login_flows_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_login_flows_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixLoginSessionJson)]
+pub fn parse_matrix_login_session_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_login_session_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixWhoamiJson)]
+pub fn parse_matrix_whoami_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_whoami_json(response_body.as_bytes())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -32,7 +47,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\"],\"supported_binding_kinds\":[\"wasm\"]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\"],\"supported_binding_kinds\":[\"wasm\"]}"
         );
     }
 
@@ -65,6 +80,26 @@ mod tests {
         assert_eq!(
             json,
             "{\"ok\":true,\"value\":{\"valid\":true},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_auth_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_login_flows_json("{\"flows\":[{\"type\":\"m.login.password\"}]}"),
+            "{\"ok\":true,\"value\":{\"flows\":[{\"type\":\"m.login.password\"}]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_login_session_json(
+                "{\"user_id\":\"@alice:example.test\",\"access_token\":\"token-1\",\"device_id\":\"DEVICE1\",\"home_server\":\"example.test\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"user_id\":\"@alice:example.test\",\"access_token\":\"token-1\",\"device_id\":\"DEVICE1\",\"home_server\":\"example.test\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_whoami_json(
+                "{\"user_id\":\"@alice:example.test\",\"device_id\":\"DEVICE1\",\"is_guest\":false}",
+            ),
+            "{\"ok\":true,\"value\":{\"user_id\":\"@alice:example.test\",\"device_id\":\"DEVICE1\",\"is_guest\":false},\"error\":null}"
         );
     }
 }
