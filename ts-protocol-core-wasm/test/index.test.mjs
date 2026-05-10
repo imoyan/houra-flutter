@@ -21,6 +21,7 @@ const manifest = {
     "SPEC-035",
     "SPEC-036",
     "SPEC-037",
+    "SPEC-038",
   ],
   supported_binding_kinds: ["wasm"],
 };
@@ -216,6 +217,29 @@ function binding(overrides = {}) {
             access_token: "token-1",
             device_id: "DEVICE1",
             home_server: "example.test",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixMediaContentUriJson() {
+      return JSON.stringify(
+        overrides.mediaContentUriEnvelope ?? {
+          ok: true,
+          value: {
+            server_name: "example.test",
+            media_id: "media1",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixMediaUploadResponseJson() {
+      return JSON.stringify(
+        overrides.mediaUploadResponseEnvelope ?? {
+          ok: true,
+          value: {
+            content_uri: "mxc://example.test/media1",
           },
           error: null,
         },
@@ -855,6 +879,52 @@ test("maps optional SPEC-037 Matrix sync presence and summary envelopes", () => 
       },
     },
     error: null,
+  });
+});
+
+test("maps SPEC-038 Matrix media envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+
+  assert.deepEqual(core.parseMatrixMediaContentUri("mxc://example.test/media1"), {
+    ok: true,
+    value: {
+      server_name: "example.test",
+      media_id: "media1",
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixMediaUploadResponse("{}"), {
+    ok: true,
+    value: {
+      content_uri: "mxc://example.test/media1",
+    },
+    error: null,
+  });
+});
+
+test("maps SPEC-038 Matrix media parser failures", () => {
+  const core = createHouraProtocolCore(
+    binding({
+      mediaUploadResponseEnvelope: {
+        ok: false,
+        value: null,
+        error: {
+          code: "invalid_media_field",
+          message: "content_uri is not a valid Matrix media value",
+          details: { field: "content_uri" },
+        },
+      },
+    }),
+  );
+
+  assert.deepEqual(core.parseMatrixMediaUploadResponse("{}"), {
+    ok: false,
+    value: null,
+    error: {
+      code: "invalid_media_field",
+      message: "content_uri is not a valid Matrix media value",
+      details: { field: "content_uri" },
+    },
   });
 });
 

@@ -15,8 +15,9 @@ currently validates the `SPEC-030` Matrix client versions vector and the
 `SPEC-031` Matrix foundation vectors. It parses the `SPEC-032` Matrix auth /
 session vectors, `SPEC-033` Matrix registration vectors, `SPEC-034` Matrix
 device/session vectors, `SPEC-035` Matrix room membership/state MVP vectors,
-`SPEC-036` Matrix event/messages vectors, and `SPEC-037` Matrix sync response
-vectors. It is not published, canonical, or required by the Flutter SDK.
+`SPEC-036` Matrix event/messages vectors, `SPEC-037` Matrix sync response
+vectors, and `SPEC-038` Matrix media parser vectors. It is not published,
+canonical, or required by the Flutter SDK.
 
 The Rust prototype exposes `abi_version()` and `artifact_manifest()` as
 implementation metadata for future TS / Dart bindings. Bindings can use that
@@ -29,7 +30,7 @@ a focused follow-up.
 
 The prototype also exposes binding-safe JSON envelopes for `SPEC-030`,
 `SPEC-031`, `SPEC-032`, `SPEC-033`, `SPEC-034`, `SPEC-035`, `SPEC-036`, and
-`SPEC-037`.
+`SPEC-037` / `SPEC-038`.
 Those APIs return a single `ok` / `value` / `error` object so WASM, N-API, FFI,
 and JS interop adapters can cross the language boundary once per parse or
 validation call instead of bouncing through many small calls. The envelope
@@ -40,8 +41,9 @@ contracts and test vectors.
 `rust-protocol-core-wasm/` is the first thin binding prototype for browser,
 Vue, and Next client experiments. It uses `wasm-bindgen` to export the manifest
 and `SPEC-030` / `SPEC-031` / `SPEC-032` / `SPEC-033` / `SPEC-034` /
-`SPEC-035` / `SPEC-036` / `SPEC-037` JSON envelopes, but it does not own HTTP,
-retries, cancellation, token storage, UI state, or framework lifecycle.
+`SPEC-035` / `SPEC-036` / `SPEC-037` / `SPEC-038` JSON envelopes, but it does
+not own HTTP, retries, cancellation, token storage, UI state, or framework
+lifecycle.
 Generated JS, `.wasm` files, npm packaging, and Next server / Node bindings are
 intentionally left out until a focused package issue exists.
 
@@ -98,6 +100,13 @@ incremental, empty incremental, room state/timeline, account data, summary,
 unread notification, presence envelope, and Matrix error envelope parsing only.
 The WASM wrapper and TypeScript facade expose those envelopes without taking
 ownership of crypto, transport, storage, retries, sync token persistence, or UI
+behavior.
+
+SPEC-038 adoption record for issue #47: the Rust prototype now consumes the
+`houra-spec` `v0.2.0-pre.30` Matrix media vectors for Matrix Content URI
+validation and media upload response parsing only. The WASM wrapper and
+TypeScript facade expose those envelopes without taking ownership of media
+transport, media storage, persistence, crypto, retries, secure storage, or UI
 behavior.
 
 Out of scope for this package version:

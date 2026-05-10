@@ -11,6 +11,7 @@ pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
+    "SPEC-038",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -237,6 +238,17 @@ pub struct MatrixSyncResponse {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixMediaContentUri {
+    pub server_name: String,
+    pub media_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixMediaUploadResponse {
+    pub content_uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ProtocolErrorEnvelope {
     pub code: String,
     pub message: String,
@@ -369,6 +381,20 @@ pub struct MatrixSyncResponseParseEnvelope {
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixMediaContentUriParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixMediaContentUri>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixMediaUploadResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixMediaUploadResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProtocolError {
     Json(String),
@@ -383,6 +409,7 @@ pub enum ProtocolError {
     InvalidUserInteractiveAuthField { field: String },
     InvalidDeviceField { field: String },
     InvalidRoomField { field: String },
+    InvalidMediaField { field: String },
 }
 
 impl ProtocolError {
@@ -402,6 +429,7 @@ impl ProtocolError {
             }
             ProtocolError::InvalidDeviceField { .. } => "invalid_device_field",
             ProtocolError::InvalidRoomField { .. } => "invalid_room_field",
+            ProtocolError::InvalidMediaField { .. } => "invalid_media_field",
         }
     }
 
@@ -430,6 +458,9 @@ impl ProtocolError {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidRoomField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidMediaField { field } => {
                 details.insert("field".to_owned(), field.clone());
             }
             _ => {}
@@ -484,6 +515,9 @@ impl std::fmt::Display for ProtocolError {
             }
             ProtocolError::InvalidRoomField { field } => {
                 write!(formatter, "{field} is not a valid Matrix room value")
+            }
+            ProtocolError::InvalidMediaField { field } => {
+                write!(formatter, "{field} is not a valid Matrix media value")
             }
         }
     }
@@ -671,6 +705,11 @@ struct MatrixSyncSummaryWire {
 struct MatrixSyncUnreadNotificationsWire {
     notification_count: Option<i64>,
     highlight_count: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixMediaUploadResponseWire {
+    content_uri: Option<String>,
 }
 
 pub fn abi_version() -> u32 {
@@ -1378,6 +1417,75 @@ pub fn parse_matrix_sync_response_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_media_content_uri(value: &str) -> Result<MatrixMediaContentUri, ProtocolError> {
+    let Some(rest) = value.strip_prefix("mxc://") else {
+        return Err(invalid_media_field("content_uri"));
+    };
+    let Some((server_name, media_id)) = rest.split_once('/') else {
+        return Err(invalid_media_field("content_uri"));
+    };
+    if !is_matrix_server_name(server_name) || !is_opaque_part(media_id) {
+        return Err(invalid_media_field("content_uri"));
+    }
+
+    Ok(MatrixMediaContentUri {
+        server_name: server_name.to_owned(),
+        media_id: media_id.to_owned(),
+    })
+}
+
+pub fn parse_matrix_media_content_uri_envelope(value: &str) -> MatrixMediaContentUriParseEnvelope {
+    match parse_matrix_media_content_uri(value) {
+        Ok(value) => MatrixMediaContentUriParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixMediaContentUriParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_media_content_uri_json(value: &str) -> String {
+    serde_json::to_string(&parse_matrix_media_content_uri_envelope(value))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_media_upload_response(
+    bytes: &[u8],
+) -> Result<MatrixMediaUploadResponse, ProtocolError> {
+    let wire: MatrixMediaUploadResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let content_uri = required_media_content_uri(wire.content_uri, "content_uri")?;
+
+    Ok(MatrixMediaUploadResponse { content_uri })
+}
+
+pub fn parse_matrix_media_upload_response_envelope(
+    bytes: &[u8],
+) -> MatrixMediaUploadResponseParseEnvelope {
+    match parse_matrix_media_upload_response(bytes) {
+        Ok(value) => MatrixMediaUploadResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixMediaUploadResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_media_upload_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_media_upload_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 fn required_non_empty(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
     match value {
         Some(value) if !value.is_empty() => Ok(value),
@@ -1708,6 +1816,19 @@ fn invalid_room_field(field: &str) -> ProtocolError {
     }
 }
 
+fn invalid_media_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidMediaField {
+        field: field.to_owned(),
+    }
+}
+
+fn required_media_content_uri(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if parse_matrix_media_content_uri(&value).is_ok() => Ok(value),
+        _ => Err(invalid_media_field(field)),
+    }
+}
+
 fn validate_field(
     value: &Value,
     field: &str,
@@ -1835,7 +1956,7 @@ mod tests {
             manifest.supported_specs,
             vec![
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
-                "SPEC-037"
+                "SPEC-037", "SPEC-038"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -1847,7 +1968,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\",\"SPEC-036\",\"SPEC-037\"],\"supported_binding_kinds\":[]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\",\"SPEC-036\",\"SPEC-037\",\"SPEC-038\"],\"supported_binding_kinds\":[]}"
         );
     }
 
@@ -1857,7 +1978,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\",\"SPEC-036\",\"SPEC-037\"],\"supported_binding_kinds\":[\"wasm\"]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\",\"SPEC-036\",\"SPEC-037\",\"SPEC-038\"],\"supported_binding_kinds\":[\"wasm\"]}"
         );
     }
 
@@ -2035,18 +2156,41 @@ mod tests {
         let parsed_login =
             parse_matrix_login_session(login["expected"]["body_contains"].to_string().as_bytes())
                 .expect("Matrix login session vector should parse");
-        assert_eq!(parsed_login.user_id, "@alice:example.test");
-        assert_eq!(parsed_login.access_token, "token-1");
-        assert_eq!(parsed_login.device_id.as_deref(), Some("DEVICE1"));
-        assert_eq!(parsed_login.home_server.as_deref(), Some("example.test"));
+        let expected_login = &login["expected"]["body_contains"];
+        assert_eq!(
+            Some(parsed_login.user_id.as_str()),
+            expected_login.get("user_id").and_then(Value::as_str)
+        );
+        assert_eq!(
+            Some(parsed_login.access_token.as_str()),
+            expected_login.get("access_token").and_then(Value::as_str)
+        );
+        assert_eq!(
+            parsed_login.device_id.as_deref(),
+            expected_login.get("device_id").and_then(Value::as_str)
+        );
+        assert_eq!(
+            parsed_login.home_server.as_deref(),
+            expected_login.get("home_server").and_then(Value::as_str)
+        );
 
         let whoami = read_spec_vector("test-vectors/auth/matrix-whoami-basic.json");
         let parsed_whoami =
             parse_matrix_whoami(whoami["expected"]["body_contains"].to_string().as_bytes())
                 .expect("Matrix whoami vector should parse");
-        assert_eq!(parsed_whoami.user_id, "@alice:example.test");
-        assert_eq!(parsed_whoami.device_id.as_deref(), Some("DEVICE1"));
-        assert_eq!(parsed_whoami.is_guest, Some(false));
+        let expected_whoami = &whoami["expected"]["body_contains"];
+        assert_eq!(
+            Some(parsed_whoami.user_id.as_str()),
+            expected_whoami.get("user_id").and_then(Value::as_str)
+        );
+        assert_eq!(
+            parsed_whoami.device_id.as_deref(),
+            expected_whoami.get("device_id").and_then(Value::as_str)
+        );
+        assert_eq!(
+            parsed_whoami.is_guest,
+            expected_whoami.get("is_guest").and_then(Value::as_bool)
+        );
     }
 
     #[test]
@@ -2612,6 +2756,64 @@ mod tests {
                 &"sync.rooms.join.!room:example.test.timeline.events.0.origin_server_ts".to_owned()
             )
         );
+    }
+
+    #[test]
+    fn parses_matrix_media_vectors() {
+        let upload = read_spec_vector("test-vectors/media/matrix-media-upload-basic.json");
+        let parsed_upload = parse_matrix_media_upload_response(
+            upload["expected"]["body_contains"].to_string().as_bytes(),
+        )
+        .expect("Matrix media upload vector should parse");
+        assert_eq!(parsed_upload.content_uri, "mxc://example.test/media1");
+
+        let parsed_uri = parse_matrix_media_content_uri(&parsed_upload.content_uri)
+            .expect("Matrix media content URI should parse");
+        assert_eq!(parsed_uri.server_name, "example.test");
+        assert_eq!(parsed_uri.media_id, "media1");
+
+        for path in [
+            "test-vectors/media/matrix-media-upload-missing-token.json",
+            "test-vectors/media/matrix-media-upload-too-large.json",
+            "test-vectors/media/matrix-media-download-missing-token.json",
+            "test-vectors/media/matrix-media-download-not-found.json",
+        ] {
+            let vector = read_spec_vector(path);
+            parse_matrix_error_envelope(vector["expected"]["body_contains"].to_string().as_bytes())
+                .unwrap_or_else(|error| panic!("{path} should parse as Matrix error: {error:?}"));
+        }
+    }
+
+    #[test]
+    fn serializes_matrix_media_parse_envelopes() {
+        assert_eq!(
+            parse_matrix_media_content_uri_json("mxc://example.test/media1"),
+            "{\"ok\":true,\"value\":{\"server_name\":\"example.test\",\"media_id\":\"media1\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_media_upload_response_json(
+                br#"{"content_uri":"mxc://example.test/media1"}"#
+            ),
+            "{\"ok\":true,\"value\":{\"content_uri\":\"mxc://example.test/media1\"},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_matrix_media_values() {
+        let envelope = parse_matrix_media_content_uri_envelope("https://example.test/media1");
+        assert!(!envelope.ok);
+        let error = envelope.error.expect("invalid content URI should fail");
+        assert_eq!(error.code, "invalid_media_field");
+        assert_eq!(error.details.get("field"), Some(&"content_uri".to_owned()));
+
+        let envelope =
+            parse_matrix_media_upload_response_envelope(br#"{"content_uri":"mxc://example.test"}"#);
+        assert!(!envelope.ok);
+        let error = envelope
+            .error
+            .expect("missing media id in upload content_uri should fail");
+        assert_eq!(error.code, "invalid_media_field");
+        assert_eq!(error.details.get("field"), Some(&"content_uri".to_owned()));
     }
 
     fn read_spec_vector(relative_path: &str) -> Value {
