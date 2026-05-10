@@ -1,5 +1,5 @@
 name: houra
-description: Flutter SDK candidate for the Houra client API subset.
+description: Flutter SDK prototype for the Houra client API subset.
 version: 0.1.0
 publish_to: none
 repository: https://github.com/imoyan/houra-labs

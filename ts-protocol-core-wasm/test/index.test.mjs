@@ -28,7 +28,7 @@ const manifest = {
 function binding(overrides = {}) {
   return {
     houraArtifactManifestJson() {
-      return JSON.stringify(overrides.manifest ?? manifest);
+      return overrides.manifestJson ?? JSON.stringify(overrides.manifest ?? manifest);
     },
     parseMatrixClientVersionsResponseJson() {
       return JSON.stringify(
@@ -918,5 +918,63 @@ test("rejects malformed parse envelopes", () => {
     (error) =>
       error instanceof HouraProtocolCoreFacadeError &&
       error.code === "invalid_envelope",
+  );
+});
+
+test("rejects parse envelopes with contradictory value and error fields", () => {
+  const successWithError = createHouraProtocolCore(
+    binding({
+      parseEnvelope: {
+        ok: true,
+        value: {
+          versions: ["v1.18"],
+          unstable_features: {},
+        },
+        error: {
+          code: "empty_versions",
+          message: "versions must not be empty",
+          details: {},
+        },
+      },
+    }),
+  );
+  assert.throws(
+    () => successWithError.parseMatrixClientVersionsResponse("{}"),
+    (error) =>
+      error instanceof HouraProtocolCoreFacadeError &&
+      error.code === "invalid_envelope",
+  );
+
+  const failureWithValue = createHouraProtocolCore(
+    binding({
+      parseEnvelope: {
+        ok: false,
+        value: {
+          versions: ["v1.18"],
+          unstable_features: {},
+        },
+        error: {
+          code: "empty_versions",
+          message: "versions must not be empty",
+          details: {},
+        },
+      },
+    }),
+  );
+  assert.throws(
+    () => failureWithValue.parseMatrixClientVersionsResponse("{}"),
+    (error) =>
+      error instanceof HouraProtocolCoreFacadeError &&
+      error.code === "invalid_envelope",
+  );
+});
+
+test("reports invalid manifest JSON as manifest validation failure", () => {
+  assert.throws(
+    () => createHouraProtocolCore(binding({ manifestJson: "not json" })),
+    (error) =>
+      error instanceof HouraProtocolCoreFacadeError &&
+      error.code === "invalid_manifest" &&
+      error.message.includes("artifact manifest"),
   );
 });

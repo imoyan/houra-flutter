@@ -464,24 +464,7 @@ function assertManifestCompatible(manifest: ArtifactManifest): void {
 function readMatrixClientVersionsEnvelope(
   envelope: Record<string, unknown>,
 ): ProtocolResult<MatrixClientVersions> {
-  const ok = readBoolean(envelope, "ok");
-  if (ok) {
-    return {
-      ok: true,
-      value: readMatrixClientVersions(
-        readRecord(envelope, "value", "parse envelope"),
-      ),
-      error: null,
-    };
-  }
-
-  return {
-    ok: false,
-    value: null,
-    error: readProtocolErrorEnvelope(
-      readRecord(envelope, "error", "parse envelope"),
-    ),
-  };
+  return readProtocolResult(envelope, readMatrixClientVersions);
 }
 
 function readMatrixClientVersions(
@@ -894,6 +877,12 @@ function readProtocolResult<T>(
 ): ProtocolResult<T> {
   const ok = readBoolean(envelope, "ok");
   if (ok) {
+    if (envelope.error !== null) {
+      throw new HouraProtocolCoreFacadeError(
+        "invalid_envelope",
+        "successful parse envelope must include error: null",
+      );
+    }
     return {
       ok: true,
       value: readValue(readRecord(envelope, "value", "parse envelope")),
@@ -901,6 +890,12 @@ function readProtocolResult<T>(
     };
   }
 
+  if (envelope.value !== null) {
+    throw new HouraProtocolCoreFacadeError(
+      "invalid_envelope",
+      "failed parse envelope must include value: null",
+    );
+  }
   return {
     ok: false,
     value: null,
@@ -929,7 +924,7 @@ function parseJsonObject(
     parsed = JSON.parse(source);
   } catch (error) {
     throw new HouraProtocolCoreFacadeError(
-      "invalid_json",
+      context === "artifact manifest" ? "invalid_manifest" : "invalid_json",
       `${context} is not valid JSON: ${String(error)}`,
     );
   }

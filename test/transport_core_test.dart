@@ -45,7 +45,7 @@ void main() {
       httpClient: MockClient(
         (_) async => http.Response(
           jsonEncode({
-            'code': 'CHAWAN_UNAVAILABLE',
+            'code': 'HOURA_UNAVAILABLE',
             'message': 'Service unavailable.',
           }),
           503,
@@ -63,7 +63,7 @@ void main() {
       throwsA(
         isA<HouraHttpException>()
             .having((error) => error.statusCode, 'statusCode', 503)
-            .having((error) => error.code, 'code', 'CHAWAN_UNAVAILABLE')
+            .having((error) => error.code, 'code', 'HOURA_UNAVAILABLE')
             .having(
               (error) => error.serverMessage,
               'serverMessage',
@@ -73,24 +73,26 @@ void main() {
     );
   });
 
-  test('transport reports timeout before response as typed transport error',
-      () {
-    final transport = HouraTransport(
-      serverBaseUri: Uri.parse('https://example.test'),
-      requestTimeout: const Duration(milliseconds: 1),
-      httpClient: MockClient((_) => Completer<http.Response>().future),
-    );
+  test(
+    'transport reports timeout before response as typed transport error',
+    () {
+      final transport = HouraTransport(
+        serverBaseUri: Uri.parse('https://example.test'),
+        requestTimeout: const Duration(milliseconds: 1),
+        httpClient: MockClient((_) => Completer<http.Response>().future),
+      );
 
-    expect(
-      transport.send(
-        HouraRequest(
-          method: 'GET',
-          pathSegments: const ['_houra', 'client', 'versions'],
+      expect(
+        transport.send(
+          HouraRequest(
+            method: 'GET',
+            pathSegments: const ['_houra', 'client', 'versions'],
+          ),
         ),
-      ),
-      throwsA(isA<HouraTransportException>()),
-    );
-  });
+        throwsA(isA<HouraTransportException>()),
+      );
+    },
+  );
 
   test('transport preserves typed transport errors before response', () {
     final transport = HouraTransport(
