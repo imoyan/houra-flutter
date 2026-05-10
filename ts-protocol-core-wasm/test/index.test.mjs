@@ -12,7 +12,7 @@ const manifest = {
   crate_version: "0.1.0",
   abi_version: 1,
   protocol_boundary: "pure-protocol-core",
-  supported_specs: ["SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033"],
+  supported_specs: ["SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034"],
   supported_binding_kinds: ["wasm"],
 };
 
@@ -28,6 +28,38 @@ function binding(overrides = {}) {
           value: {
             versions: ["v1.18"],
             unstable_features: {},
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixDeviceJson() {
+      return JSON.stringify(
+        overrides.deviceEnvelope ?? {
+          ok: true,
+          value: {
+            device_id: "DEVICE1",
+            display_name: "Alice phone",
+            last_seen_ip: "203.0.113.10",
+            last_seen_ts: 1710000000000,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixDevicesJson() {
+      return JSON.stringify(
+        overrides.devicesEnvelope ?? {
+          ok: true,
+          value: {
+            devices: [
+              {
+                device_id: "DEVICE1",
+                display_name: "Alice phone",
+                last_seen_ip: "203.0.113.10",
+                last_seen_ts: 1710000000000,
+              },
+            ],
           },
           error: null,
         },
@@ -318,6 +350,92 @@ test("maps SPEC-033 Matrix registration envelopes", () => {
     ok: true,
     value: {
       valid: false,
+    },
+    error: null,
+  });
+});
+
+test("maps optional Matrix user-interactive auth session", () => {
+  const core = createHouraProtocolCore(
+    binding({
+      userInteractiveAuthRequiredEnvelope: {
+        ok: true,
+        value: {
+          completed: [],
+          flows: [{ stages: ["m.login.dummy"] }],
+          params: {},
+          session: null,
+        },
+        error: null,
+      },
+    }),
+  );
+
+  assert.deepEqual(
+    core.parseMatrixUserInteractiveAuthRequired(
+      '{"completed":[],"flows":[{"stages":["m.login.dummy"]}],"params":{}}',
+    ),
+    {
+      ok: true,
+      value: {
+        completed: [],
+        flows: [{ stages: ["m.login.dummy"] }],
+        params: {},
+      },
+      error: null,
+    },
+  );
+});
+
+test("maps SPEC-034 Matrix device envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+
+  assert.deepEqual(core.parseMatrixDevice('{"device_id":"DEVICE1"}'), {
+    ok: true,
+    value: {
+      device_id: "DEVICE1",
+      display_name: "Alice phone",
+      last_seen_ip: "203.0.113.10",
+      last_seen_ts: 1710000000000,
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixDevices('{"devices":[]}'), {
+    ok: true,
+    value: {
+      devices: [
+        {
+          device_id: "DEVICE1",
+          display_name: "Alice phone",
+          last_seen_ip: "203.0.113.10",
+          last_seen_ts: 1710000000000,
+        },
+      ],
+    },
+    error: null,
+  });
+});
+
+test("omits null optional SPEC-034 Matrix device fields", () => {
+  const core = createHouraProtocolCore(
+    binding({
+      deviceEnvelope: {
+        ok: true,
+        value: {
+          device_id: "DEVICE1",
+          display_name: null,
+          last_seen_ip: null,
+          last_seen_ts: null,
+        },
+        error: null,
+      },
+    }),
+  );
+
+  assert.deepEqual(core.parseMatrixDevice('{"device_id":"DEVICE1"}'), {
+    ok: true,
+    value: {
+      device_id: "DEVICE1",
     },
     error: null,
   });

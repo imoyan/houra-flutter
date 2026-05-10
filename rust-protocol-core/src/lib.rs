@@ -9,7 +9,7 @@ pub const HOURA_PROTOCOL_CORE_CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 pub const HOURA_PROTOCOL_CORE_CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
-const SUPPORTED_SPECS: &[&str] = &["SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033"];
+const SUPPORTED_SPECS: &[&str] = &["SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034"];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ArtifactManifest {
@@ -60,6 +60,14 @@ pub struct MatrixLoginSession {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRegistrationSession {
+    pub user_id: String,
+    pub access_token: String,
+    pub device_id: String,
+    pub home_server: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixWhoami {
     pub user_id: String,
     pub device_id: Option<String>,
@@ -86,7 +94,20 @@ pub struct MatrixUserInteractiveAuthRequired {
     pub completed: Vec<String>,
     pub flows: Vec<MatrixUserInteractiveAuthFlow>,
     pub params: BTreeMap<String, Value>,
-    pub session: String,
+    pub session: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDevice {
+    pub device_id: String,
+    pub display_name: Option<String>,
+    pub last_seen_ip: Option<String>,
+    pub last_seen_ts: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDevices {
+    pub devices: Vec<MatrixDevice>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -132,6 +153,13 @@ pub struct MatrixLoginSessionParseEnvelope {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRegistrationSessionParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRegistrationSession>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixWhoamiParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixWhoami>,
@@ -159,6 +187,20 @@ pub struct MatrixUserInteractiveAuthRequiredParseEnvelope {
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDeviceParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixDevice>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDevicesParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixDevices>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProtocolError {
     Json(String),
@@ -170,6 +212,8 @@ pub enum ProtocolError {
     EmptyFlowType { index: usize },
     InvalidAuthField { field: String },
     InvalidRegistrationField { field: String },
+    InvalidUserInteractiveAuthField { field: String },
+    InvalidDeviceField { field: String },
 }
 
 impl ProtocolError {
@@ -184,6 +228,10 @@ impl ProtocolError {
             ProtocolError::EmptyFlowType { .. } => "empty_flow_type",
             ProtocolError::InvalidAuthField { .. } => "invalid_auth_field",
             ProtocolError::InvalidRegistrationField { .. } => "invalid_registration_field",
+            ProtocolError::InvalidUserInteractiveAuthField { .. } => {
+                "invalid_user_interactive_auth_field"
+            }
+            ProtocolError::InvalidDeviceField { .. } => "invalid_device_field",
         }
     }
 
@@ -203,6 +251,12 @@ impl ProtocolError {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidRegistrationField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidUserInteractiveAuthField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidDeviceField { field } => {
                 details.insert("field".to_owned(), field.clone());
             }
             _ => {}
@@ -245,6 +299,15 @@ impl std::fmt::Display for ProtocolError {
                     formatter,
                     "{field} is not a valid Matrix registration value"
                 )
+            }
+            ProtocolError::InvalidUserInteractiveAuthField { field } => {
+                write!(
+                    formatter,
+                    "{field} is not a valid Matrix user-interactive authentication value"
+                )
+            }
+            ProtocolError::InvalidDeviceField { field } => {
+                write!(formatter, "{field} is not a valid Matrix device value")
             }
         }
     }
@@ -315,6 +378,19 @@ struct MatrixUserInteractiveAuthRequiredWire {
     #[serde(default)]
     params: BTreeMap<String, Value>,
     session: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixDeviceWire {
+    device_id: Option<String>,
+    display_name: Option<String>,
+    last_seen_ip: Option<String>,
+    last_seen_ts: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixDevicesWire {
+    devices: Option<Vec<MatrixDeviceWire>>,
 }
 
 pub fn abi_version() -> u32 {
@@ -615,16 +691,38 @@ pub fn parse_matrix_registration_availability_json(bytes: &[u8]) -> String {
 
 pub fn parse_matrix_registration_session(
     bytes: &[u8],
-) -> Result<MatrixLoginSession, ProtocolError> {
-    parse_matrix_login_session(bytes)
+) -> Result<MatrixRegistrationSession, ProtocolError> {
+    let wire: MatrixLoginSessionWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+
+    Ok(MatrixRegistrationSession {
+        user_id: required_registration_string(wire.user_id, "user_id")?,
+        access_token: required_registration_string(wire.access_token, "access_token")?,
+        device_id: required_registration_string(wire.device_id, "device_id")?,
+        home_server: optional_registration_string(wire.home_server, "home_server")?,
+    })
 }
 
-pub fn parse_matrix_registration_session_envelope(bytes: &[u8]) -> MatrixLoginSessionParseEnvelope {
-    parse_matrix_login_session_envelope(bytes)
+pub fn parse_matrix_registration_session_envelope(
+    bytes: &[u8],
+) -> MatrixRegistrationSessionParseEnvelope {
+    match parse_matrix_registration_session(bytes) {
+        Ok(value) => MatrixRegistrationSessionParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRegistrationSessionParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
 }
 
 pub fn parse_matrix_registration_session_json(bytes: &[u8]) -> String {
-    parse_matrix_login_session_json(bytes)
+    serde_json::to_string(&parse_matrix_registration_session_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
 }
 
 pub fn parse_matrix_registration_token_validity(
@@ -667,17 +765,19 @@ pub fn parse_matrix_user_interactive_auth_required(
     let wire: MatrixUserInteractiveAuthRequiredWire =
         serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
     if wire.flows.is_empty() {
-        return Err(invalid_registration_field("flows"));
+        return Err(invalid_user_interactive_auth_field("flows"));
     }
 
     let mut flows = Vec::with_capacity(wire.flows.len());
     for (index, flow) in wire.flows.into_iter().enumerate() {
         if flow.stages.is_empty() {
-            return Err(invalid_registration_field(&format!("flows.{index}.stages")));
+            return Err(invalid_user_interactive_auth_field(&format!(
+                "flows.{index}.stages"
+            )));
         }
         for (stage_index, stage) in flow.stages.iter().enumerate() {
             if stage.is_empty() {
-                return Err(invalid_registration_field(&format!(
+                return Err(invalid_user_interactive_auth_field(&format!(
                     "flows.{index}.stages.{stage_index}"
                 )));
             }
@@ -688,7 +788,9 @@ pub fn parse_matrix_user_interactive_auth_required(
     }
     for (index, completed) in wire.completed.iter().enumerate() {
         if completed.is_empty() {
-            return Err(invalid_registration_field(&format!("completed.{index}")));
+            return Err(invalid_user_interactive_auth_field(&format!(
+                "completed.{index}"
+            )));
         }
     }
 
@@ -696,7 +798,7 @@ pub fn parse_matrix_user_interactive_auth_required(
         completed: wire.completed,
         flows,
         params: wire.params,
-        session: required_registration_string(wire.session, "session")?,
+        session: optional_user_interactive_auth_string(wire.session, "session")?,
     })
 }
 
@@ -719,6 +821,66 @@ pub fn parse_matrix_user_interactive_auth_required_envelope(
 
 pub fn parse_matrix_user_interactive_auth_required_json(bytes: &[u8]) -> String {
     serde_json::to_string(&parse_matrix_user_interactive_auth_required_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_device(bytes: &[u8]) -> Result<MatrixDevice, ProtocolError> {
+    let wire: MatrixDeviceWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    matrix_device_from_wire(wire, "device")
+}
+
+pub fn parse_matrix_device_envelope(bytes: &[u8]) -> MatrixDeviceParseEnvelope {
+    match parse_matrix_device(bytes) {
+        Ok(value) => MatrixDeviceParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixDeviceParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_device_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_device_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_devices(bytes: &[u8]) -> Result<MatrixDevices, ProtocolError> {
+    let wire: MatrixDevicesWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let devices = wire
+        .devices
+        .ok_or_else(|| invalid_device_field("devices"))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, device)| matrix_device_from_wire(device, &format!("devices.{index}")))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(MatrixDevices { devices })
+}
+
+pub fn parse_matrix_devices_envelope(bytes: &[u8]) -> MatrixDevicesParseEnvelope {
+    match parse_matrix_devices(bytes) {
+        Ok(value) => MatrixDevicesParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixDevicesParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_devices_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_devices_envelope(bytes))
         .expect("parse envelope serialization should be infallible")
 }
 
@@ -750,8 +912,64 @@ fn required_registration_string(
     }
 }
 
+fn optional_registration_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<Option<String>, ProtocolError> {
+    match value {
+        Some(value) if value.is_empty() => Err(invalid_registration_field(field)),
+        value => Ok(value),
+    }
+}
+
 fn invalid_registration_field(field: &str) -> ProtocolError {
     ProtocolError::InvalidRegistrationField {
+        field: field.to_owned(),
+    }
+}
+
+fn optional_user_interactive_auth_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<Option<String>, ProtocolError> {
+    match value {
+        Some(value) if value.is_empty() => Err(invalid_user_interactive_auth_field(field)),
+        value => Ok(value),
+    }
+}
+
+fn invalid_user_interactive_auth_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidUserInteractiveAuthField {
+        field: field.to_owned(),
+    }
+}
+
+fn matrix_device_from_wire(
+    wire: MatrixDeviceWire,
+    context: &str,
+) -> Result<MatrixDevice, ProtocolError> {
+    let device_id = wire
+        .device_id
+        .filter(|device_id| !device_id.is_empty())
+        .ok_or_else(|| invalid_device_field(&format!("{context}.device_id")))?;
+    let last_seen_ts = match wire.last_seen_ts {
+        Some(timestamp) if timestamp < 0 => {
+            return Err(invalid_device_field(&format!("{context}.last_seen_ts")));
+        }
+        Some(timestamp) => Some(timestamp as u64),
+        None => None,
+    };
+
+    Ok(MatrixDevice {
+        device_id,
+        display_name: wire.display_name,
+        last_seen_ip: wire.last_seen_ip,
+        last_seen_ts,
+    })
+}
+
+fn invalid_device_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidDeviceField {
         field: field.to_owned(),
     }
 }
@@ -881,7 +1099,7 @@ mod tests {
         assert_eq!(manifest.protocol_boundary, "pure-protocol-core");
         assert_eq!(
             manifest.supported_specs,
-            vec!["SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033"]
+            vec!["SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034"]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
     }
@@ -892,7 +1110,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\"],\"supported_binding_kinds\":[]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\"],\"supported_binding_kinds\":[]}"
         );
     }
 
@@ -902,7 +1120,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\"],\"supported_binding_kinds\":[\"wasm\"]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\"],\"supported_binding_kinds\":[\"wasm\"]}"
         );
     }
 
@@ -1153,7 +1371,7 @@ mod tests {
         .expect("Matrix registration session vector should parse");
         assert_eq!(parsed_session.user_id, "@charlie:example.test");
         assert_eq!(parsed_session.access_token, "token-register");
-        assert_eq!(parsed_session.device_id.as_deref(), Some("DEVICE2"));
+        assert_eq!(parsed_session.device_id, "DEVICE2");
         assert_eq!(parsed_session.home_server.as_deref(), Some("example.test"));
 
         let uia = read_spec_vector("test-vectors/auth/matrix-registration-uia-required.json");
@@ -1164,7 +1382,7 @@ mod tests {
         assert!(parsed_uia.completed.is_empty());
         assert_eq!(parsed_uia.flows[0].stages, vec!["m.login.dummy"]);
         assert!(parsed_uia.params.is_empty());
-        assert_eq!(parsed_uia.session, "reg-session-1");
+        assert_eq!(parsed_uia.session.as_deref(), Some("reg-session-1"));
 
         let token =
             read_spec_vector("test-vectors/auth/matrix-registration-token-validity-basic.json");
@@ -1194,6 +1412,12 @@ mod tests {
             "{\"ok\":true,\"value\":{\"completed\":[],\"flows\":[{\"stages\":[\"m.login.dummy\"]}],\"params\":{},\"session\":\"reg-session-1\"},\"error\":null}"
         );
         assert_eq!(
+            parse_matrix_user_interactive_auth_required_json(
+                br#"{"completed":[],"flows":[{"stages":["m.login.dummy"]}],"params":{}}"#,
+            ),
+            "{\"ok\":true,\"value\":{\"completed\":[],\"flows\":[{\"stages\":[\"m.login.dummy\"]}],\"params\":{},\"session\":null},\"error\":null}"
+        );
+        assert_eq!(
             parse_matrix_registration_token_validity_json(br#"{"valid":false}"#),
             "{\"ok\":true,\"value\":{\"valid\":false},\"error\":null}"
         );
@@ -1218,8 +1442,28 @@ mod tests {
         let error = envelope
             .error
             .expect("empty UIA flows should return an error");
-        assert_eq!(error.code, "invalid_registration_field");
+        assert_eq!(error.code, "invalid_user_interactive_auth_field");
         assert_eq!(error.details.get("field"), Some(&"flows".to_owned()));
+
+        let envelope = parse_matrix_user_interactive_auth_required_envelope(
+            br#"{"completed":[],"flows":[{"stages":["m.login.dummy"]}],"params":{},"session":""}"#,
+        );
+        assert!(!envelope.ok);
+        let error = envelope
+            .error
+            .expect("empty UIA session should return an error");
+        assert_eq!(error.code, "invalid_user_interactive_auth_field");
+        assert_eq!(error.details.get("field"), Some(&"session".to_owned()));
+
+        let envelope = parse_matrix_registration_session_envelope(
+            br#"{"user_id":"@charlie:example.test","access_token":"token-register"}"#,
+        );
+        assert!(!envelope.ok);
+        let error = envelope
+            .error
+            .expect("missing registration device_id should return an error");
+        assert_eq!(error.code, "invalid_registration_field");
+        assert_eq!(error.details.get("field"), Some(&"device_id".to_owned()));
 
         let envelope = parse_matrix_registration_token_validity_envelope(br#"{}"#);
         assert!(!envelope.ok);
@@ -1229,6 +1473,111 @@ mod tests {
                 .expect("missing token validity should fail")
                 .code,
             "invalid_registration_field"
+        );
+    }
+
+    #[test]
+    fn parses_matrix_device_vectors() {
+        let detail = read_spec_vector("test-vectors/auth/matrix-device-detail-basic.json");
+        let parsed_device =
+            parse_matrix_device(detail["expected"]["body_contains"].to_string().as_bytes())
+                .expect("Matrix device detail vector should parse");
+        assert_eq!(parsed_device.device_id, "DEVICE1");
+        assert_eq!(parsed_device.display_name.as_deref(), Some("Alice phone"));
+        assert_eq!(parsed_device.last_seen_ip.as_deref(), Some("203.0.113.10"));
+        assert_eq!(parsed_device.last_seen_ts, Some(1_710_000_000_000));
+
+        let list = read_spec_vector("test-vectors/auth/matrix-devices-list-basic.json");
+        let parsed_devices =
+            parse_matrix_devices(list["expected"]["body_contains"].to_string().as_bytes())
+                .expect("Matrix devices list vector should parse");
+        assert_eq!(parsed_devices.devices.len(), 1);
+        assert_eq!(parsed_devices.devices[0].device_id, "DEVICE1");
+
+        let delete_uia =
+            read_spec_vector("test-vectors/auth/matrix-device-delete-uia-required.json");
+        let parsed_delete_uia = parse_matrix_user_interactive_auth_required(
+            delete_uia["expected"]["body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("Matrix device delete UIA vector should parse");
+        assert_eq!(parsed_delete_uia.flows[0].stages, vec!["m.login.password"]);
+        assert_eq!(
+            parsed_delete_uia.session.as_deref(),
+            Some("device-del-session-1")
+        );
+
+        let bulk_delete_uia =
+            read_spec_vector("test-vectors/auth/matrix-devices-delete-bulk-uia-required.json");
+        let parsed_bulk_delete_uia = parse_matrix_user_interactive_auth_required(
+            bulk_delete_uia["expected"]["body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("Matrix bulk device delete UIA vector should parse");
+        assert_eq!(
+            parsed_bulk_delete_uia.session.as_deref(),
+            Some("device-del-session-1")
+        );
+
+        for relative_path in [
+            "test-vectors/auth/matrix-devices-missing-token.json",
+            "test-vectors/auth/matrix-device-token-invalid-after-delete.json",
+            "test-vectors/auth/matrix-device-detail-not-found.json",
+            "test-vectors/auth/matrix-device-update-not-found.json",
+        ] {
+            let vector = read_spec_vector(relative_path);
+            parse_matrix_error_envelope(vector["expected"]["body_contains"].to_string().as_bytes())
+                .unwrap_or_else(|error| panic!("{relative_path} should parse: {error}"));
+        }
+    }
+
+    #[test]
+    fn serializes_matrix_device_parse_envelopes() {
+        assert_eq!(
+            parse_matrix_device_json(
+                br#"{"device_id":"DEVICE1","display_name":"Alice phone","last_seen_ip":"203.0.113.10","last_seen_ts":1710000000000}"#,
+            ),
+            "{\"ok\":true,\"value\":{\"device_id\":\"DEVICE1\",\"display_name\":\"Alice phone\",\"last_seen_ip\":\"203.0.113.10\",\"last_seen_ts\":1710000000000},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_devices_json(
+                br#"{"devices":[{"device_id":"DEVICE1","display_name":"Alice phone","last_seen_ip":"203.0.113.10","last_seen_ts":1710000000000}]}"#,
+            ),
+            "{\"ok\":true,\"value\":{\"devices\":[{\"device_id\":\"DEVICE1\",\"display_name\":\"Alice phone\",\"last_seen_ip\":\"203.0.113.10\",\"last_seen_ts\":1710000000000}]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_devices_json(br#"{"devices":[]}"#),
+            "{\"ok\":true,\"value\":{\"devices\":[]},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_matrix_device_values() {
+        let envelope = parse_matrix_device_envelope(br#"{}"#);
+        assert!(!envelope.ok);
+        let error = envelope.error.expect("missing device_id should fail");
+        assert_eq!(error.code, "invalid_device_field");
+        assert_eq!(
+            error.details.get("field"),
+            Some(&"device.device_id".to_owned())
+        );
+
+        let envelope = parse_matrix_devices_envelope(br#"{}"#);
+        assert!(!envelope.ok);
+        let error = envelope.error.expect("missing devices should fail");
+        assert_eq!(error.code, "invalid_device_field");
+        assert_eq!(error.details.get("field"), Some(&"devices".to_owned()));
+
+        let envelope =
+            parse_matrix_device_envelope(br#"{"device_id":"DEVICE1","last_seen_ts":-1}"#);
+        assert!(!envelope.ok);
+        let error = envelope.error.expect("negative last_seen_ts should fail");
+        assert_eq!(error.code, "invalid_device_field");
+        assert_eq!(
+            error.details.get("field"),
+            Some(&"device.last_seen_ts".to_owned())
         );
     }
 
