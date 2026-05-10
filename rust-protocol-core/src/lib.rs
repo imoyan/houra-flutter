@@ -507,13 +507,13 @@ struct MatrixErrorWire {
 
 #[derive(Debug, Deserialize)]
 struct MatrixLoginFlowsWire {
-    flows: Vec<MatrixLoginFlowWire>,
+    flows: Option<Vec<MatrixLoginFlowWire>>,
 }
 
 #[derive(Debug, Deserialize)]
 struct MatrixLoginFlowWire {
     #[serde(rename = "type")]
-    flow_type: String,
+    flow_type: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -701,8 +701,15 @@ pub fn artifact_manifest_json() -> String {
 }
 
 pub fn artifact_manifest_json_for_binding_kinds(binding_kinds: &[&str]) -> String {
-    serde_json::to_string(&artifact_manifest_for_binding_kinds(binding_kinds))
-        .expect("artifact manifest serialization should be infallible")
+    serde_json::to_string(&artifact_manifest_for_binding_kinds(binding_kinds)).unwrap_or_else(
+        |error| {
+            serde_json::json!({
+                "error": "artifact manifest serialization failed",
+                "message": error.to_string(),
+            })
+            .to_string()
+        },
+    )
 }
 
 pub fn parse_matrix_client_versions_response(
@@ -836,17 +843,19 @@ pub fn parse_matrix_login_flows(bytes: &[u8]) -> Result<MatrixLoginFlows, Protoc
     let wire: MatrixLoginFlowsWire =
         serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
 
-    if wire.flows.is_empty() {
+    let flows_wire = wire.flows.ok_or(ProtocolError::EmptyFlows)?;
+    if flows_wire.is_empty() {
         return Err(ProtocolError::EmptyFlows);
     }
-    let mut flows = Vec::with_capacity(wire.flows.len());
-    for (index, flow) in wire.flows.into_iter().enumerate() {
-        if flow.flow_type.is_empty() {
+    let mut flows = Vec::with_capacity(flows_wire.len());
+    for (index, flow) in flows_wire.into_iter().enumerate() {
+        let flow_type = flow
+            .flow_type
+            .ok_or(ProtocolError::EmptyFlowType { index })?;
+        if flow_type.is_empty() {
             return Err(ProtocolError::EmptyFlowType { index });
         }
-        flows.push(MatrixLoginFlow {
-            flow_type: flow.flow_type,
-        });
+        flows.push(MatrixLoginFlow { flow_type });
     }
 
     Ok(MatrixLoginFlows { flows })
