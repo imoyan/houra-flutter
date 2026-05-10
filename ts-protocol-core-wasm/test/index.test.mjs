@@ -19,6 +19,7 @@ const manifest = {
     "SPEC-033",
     "SPEC-034",
     "SPEC-035",
+    "SPEC-036",
   ],
   supported_binding_kinds: ["wasm"],
 };
@@ -91,6 +92,17 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixEventIdResponseJson() {
+      return JSON.stringify(
+        overrides.eventIdResponseEnvelope ?? {
+          ok: true,
+          value: {
+            event_id: "$event1:example.test",
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixErrorEnvelopeJson() {
       return JSON.stringify(
         overrides.matrixErrorEnvelope ?? {
@@ -99,6 +111,34 @@ function binding(overrides = {}) {
             errcode: "M_BAD_JSON",
             error: "Malformed JSON payload.",
             retry_after_ms: null,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixMessagesResponseJson() {
+      return JSON.stringify(
+        overrides.messagesResponseEnvelope ?? {
+          ok: true,
+          value: {
+            chunk: [
+              {
+                content: {
+                  msgtype: "m.text",
+                  body: "Hello Matrix",
+                },
+                event_id: "$event1:example.test",
+                origin_server_ts: 1710000000000,
+                room_id: "!room:example.test",
+                sender: "@alice:example.test",
+                type: "m.room.message",
+                unsigned: {
+                  transaction_id: "txn-1",
+                },
+              },
+            ],
+            start: "t1",
+            end: "t0",
           },
           error: null,
         },
@@ -584,6 +624,67 @@ test("omits null optional SPEC-035 Matrix room event fields", () => {
       room_id: "!room:example.test",
       sender: "@alice:example.test",
       type: "m.room.message",
+    },
+    error: null,
+  });
+});
+
+test("maps SPEC-036 Matrix event and messages envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+
+  assert.deepEqual(core.parseMatrixEventIdResponse('{"event_id":"$event1:example.test"}'), {
+    ok: true,
+    value: {
+      event_id: "$event1:example.test",
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixMessagesResponse('{"chunk":[],"start":"t1"}'), {
+    ok: true,
+    value: {
+      chunk: [
+        {
+          content: {
+            msgtype: "m.text",
+            body: "Hello Matrix",
+          },
+          event_id: "$event1:example.test",
+          origin_server_ts: 1710000000000,
+          room_id: "!room:example.test",
+          sender: "@alice:example.test",
+          type: "m.room.message",
+          unsigned: {
+            transaction_id: "txn-1",
+          },
+        },
+      ],
+      start: "t1",
+      end: "t0",
+    },
+    error: null,
+  });
+});
+
+test("omits absent optional SPEC-036 Matrix messages end token", () => {
+  const core = createHouraProtocolCore(
+    binding({
+      messagesResponseEnvelope: {
+        ok: true,
+        value: {
+          chunk: [],
+          start: "t0",
+          end: null,
+        },
+        error: null,
+      },
+    }),
+  );
+
+  assert.deepEqual(core.parseMatrixMessagesResponse("{}"), {
+    ok: true,
+    value: {
+      chunk: [],
+      start: "t0",
     },
     error: null,
   });

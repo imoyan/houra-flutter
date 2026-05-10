@@ -8,6 +8,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-033",
   "SPEC-034",
   "SPEC-035",
+  "SPEC-036",
 ] as const;
 
 export interface HouraProtocolCoreWasmBinding {
@@ -16,9 +17,11 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixClientVersionsResponseJson(responseBody: string): string;
   parseMatrixDeviceJson(responseBody: string): string;
   parseMatrixDevicesJson(responseBody: string): string;
+  parseMatrixEventIdResponseJson(responseBody: string): string;
   parseMatrixErrorEnvelopeJson(responseBody: string): string;
   parseMatrixLoginFlowsJson(responseBody: string): string;
   parseMatrixLoginSessionJson(responseBody: string): string;
+  parseMatrixMessagesResponseJson(responseBody: string): string;
   parseMatrixRegistrationAvailabilityJson(responseBody: string): string;
   parseMatrixRegistrationSessionJson(responseBody: string): string;
   parseMatrixRegistrationTokenValidityJson(responseBody: string): string;
@@ -116,6 +119,10 @@ export interface MatrixRoomIdResponse {
   room_id: string;
 }
 
+export interface MatrixEventIdResponse {
+  event_id: string;
+}
+
 export interface MatrixClientEvent {
   content: Record<string, unknown>;
   event_id: string;
@@ -129,6 +136,12 @@ export interface MatrixClientEvent {
 
 export interface MatrixRoomState {
   events: MatrixClientEvent[];
+}
+
+export interface MatrixMessagesResponse {
+  chunk: MatrixClientEvent[];
+  start: string;
+  end?: string;
 }
 
 export interface ProtocolErrorEnvelope {
@@ -149,11 +162,17 @@ export interface HouraProtocolCoreFacade {
   ): ProtocolResult<MatrixClientVersions>;
   parseMatrixDevice(responseBody: string): ProtocolResult<MatrixDevice>;
   parseMatrixDevices(responseBody: string): ProtocolResult<MatrixDevices>;
+  parseMatrixEventIdResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixEventIdResponse>;
   parseMatrixErrorEnvelope(responseBody: string): ProtocolResult<MatrixErrorEnvelope>;
   parseMatrixLoginFlows(responseBody: string): ProtocolResult<MatrixLoginFlows>;
   parseMatrixLoginSession(
     responseBody: string,
   ): ProtocolResult<MatrixLoginSession>;
+  parseMatrixMessagesResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixMessagesResponse>;
   parseMatrixRegistrationAvailability(
     responseBody: string,
   ): ProtocolResult<MatrixRegistrationAvailability>;
@@ -227,6 +246,13 @@ export function createHouraProtocolCore(
       );
       return readMatrixDevicesEnvelope(envelope);
     },
+    parseMatrixEventIdResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixEventIdResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixEventIdResponseEnvelope(envelope);
+    },
     parseMatrixErrorEnvelope(responseBody: string) {
       const envelope = parseJsonObject(
         binding.parseMatrixErrorEnvelopeJson(responseBody),
@@ -247,6 +273,13 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixLoginSessionEnvelope(envelope);
+    },
+    parseMatrixMessagesResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixMessagesResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixMessagesResponseEnvelope(envelope);
     },
     parseMatrixRegistrationAvailability(responseBody: string) {
       const envelope = parseJsonObject(
@@ -570,6 +603,14 @@ function readMatrixRoomIdResponseEnvelope(
   }));
 }
 
+function readMatrixEventIdResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixEventIdResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    event_id: readString(value, "event_id", "invalid_envelope"),
+  }));
+}
+
 function readMatrixClientEventEnvelope(
   envelope: Record<string, unknown>,
 ): ProtocolResult<MatrixClientEvent> {
@@ -586,6 +627,24 @@ function readMatrixRoomStateEnvelope(
     );
 
     return { events };
+  });
+}
+
+function readMatrixMessagesResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixMessagesResponse> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixMessagesResponse = {
+      chunk: readArray(value, "chunk", "invalid_envelope").map(
+        (entry, index) =>
+          readMatrixClientEvent(assertRecord(entry, `chunk.${index}`)),
+      ),
+      start: readString(value, "start", "invalid_envelope"),
+    };
+    readOptionalString(value, "end", (end) => {
+      result.end = end;
+    });
+    return result;
   });
 }
 
