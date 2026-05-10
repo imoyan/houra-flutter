@@ -37,6 +37,26 @@ pub fn parse_matrix_whoami_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_whoami_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixRegistrationAvailabilityJson)]
+pub fn parse_matrix_registration_availability_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_registration_availability_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixRegistrationSessionJson)]
+pub fn parse_matrix_registration_session_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_registration_session_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixUserInteractiveAuthRequiredJson)]
+pub fn parse_matrix_user_interactive_auth_required_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_user_interactive_auth_required_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixRegistrationTokenValidityJson)]
+pub fn parse_matrix_registration_token_validity_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_registration_token_validity_json(response_body.as_bytes())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -47,7 +67,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\"],\"supported_binding_kinds\":[\"wasm\"]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\"],\"supported_binding_kinds\":[\"wasm\"]}"
         );
     }
 
@@ -100,6 +120,30 @@ mod tests {
                 "{\"user_id\":\"@alice:example.test\",\"device_id\":\"DEVICE1\",\"is_guest\":false}",
             ),
             "{\"ok\":true,\"value\":{\"user_id\":\"@alice:example.test\",\"device_id\":\"DEVICE1\",\"is_guest\":false},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_registration_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_registration_availability_json("{\"available\":true}"),
+            "{\"ok\":true,\"value\":{\"available\":true},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_registration_session_json(
+                "{\"user_id\":\"@charlie:example.test\",\"access_token\":\"token-register\",\"device_id\":\"DEVICE2\",\"home_server\":\"example.test\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"user_id\":\"@charlie:example.test\",\"access_token\":\"token-register\",\"device_id\":\"DEVICE2\",\"home_server\":\"example.test\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_user_interactive_auth_required_json(
+                "{\"completed\":[],\"flows\":[{\"stages\":[\"m.login.dummy\"]}],\"params\":{},\"session\":\"reg-session-1\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"completed\":[],\"flows\":[{\"stages\":[\"m.login.dummy\"]}],\"params\":{},\"session\":\"reg-session-1\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_registration_token_validity_json("{\"valid\":false}"),
+            "{\"ok\":true,\"value\":{\"valid\":false},\"error\":null}"
         );
     }
 }

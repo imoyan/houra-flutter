@@ -12,7 +12,7 @@ const manifest = {
   crate_version: "0.1.0",
   abi_version: 1,
   protocol_boundary: "pure-protocol-core",
-  supported_specs: ["SPEC-030", "SPEC-031", "SPEC-032"],
+  supported_specs: ["SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033"],
   supported_binding_kinds: ["wasm"],
 };
 
@@ -66,6 +66,56 @@ function binding(overrides = {}) {
             access_token: "token-1",
             device_id: "DEVICE1",
             home_server: "example.test",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRegistrationAvailabilityJson() {
+      return JSON.stringify(
+        overrides.registrationAvailabilityEnvelope ?? {
+          ok: true,
+          value: {
+            available: true,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRegistrationSessionJson() {
+      return JSON.stringify(
+        overrides.registrationSessionEnvelope ?? {
+          ok: true,
+          value: {
+            user_id: "@charlie:example.test",
+            access_token: "token-register",
+            device_id: "DEVICE2",
+            home_server: "example.test",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRegistrationTokenValidityJson() {
+      return JSON.stringify(
+        overrides.registrationTokenValidityEnvelope ?? {
+          ok: true,
+          value: {
+            valid: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixUserInteractiveAuthRequiredJson() {
+      return JSON.stringify(
+        overrides.userInteractiveAuthRequiredEnvelope ?? {
+          ok: true,
+          value: {
+            completed: [],
+            flows: [{ stages: ["m.login.dummy"] }],
+            params: {},
+            session: "reg-session-1",
           },
           error: null,
         },
@@ -216,6 +266,58 @@ test("omits null optional SPEC-032 Matrix auth/session fields", () => {
     ok: true,
     value: {
       user_id: "@alice:example.test",
+    },
+    error: null,
+  });
+});
+
+test("maps SPEC-033 Matrix registration envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+
+  assert.deepEqual(
+    core.parseMatrixRegistrationAvailability('{"available":true}'),
+    {
+      ok: true,
+      value: {
+        available: true,
+      },
+      error: null,
+    },
+  );
+  assert.deepEqual(
+    core.parseMatrixRegistrationSession(
+      '{"user_id":"@charlie:example.test","access_token":"token-register"}',
+    ),
+    {
+      ok: true,
+      value: {
+        user_id: "@charlie:example.test",
+        access_token: "token-register",
+        device_id: "DEVICE2",
+        home_server: "example.test",
+      },
+      error: null,
+    },
+  );
+  assert.deepEqual(
+    core.parseMatrixUserInteractiveAuthRequired(
+      '{"completed":[],"flows":[{"stages":["m.login.dummy"]}],"params":{},"session":"reg-session-1"}',
+    ),
+    {
+      ok: true,
+      value: {
+        completed: [],
+        flows: [{ stages: ["m.login.dummy"] }],
+        params: {},
+        session: "reg-session-1",
+      },
+      error: null,
+    },
+  );
+  assert.deepEqual(core.parseMatrixRegistrationTokenValidity('{"valid":false}'), {
+    ok: true,
+    value: {
+      valid: false,
     },
     error: null,
   });

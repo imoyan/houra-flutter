@@ -13,7 +13,8 @@ This repository also contains lab-only shared implementation experiments. The
 `rust-protocol-core/` crate is the first Rust shared protocol core prototype. It
 currently validates the `SPEC-030` Matrix client versions vector and the
 `SPEC-031` Matrix foundation vectors, and parses the `SPEC-032` Matrix auth /
-session vectors. It is not published, canonical, or required by the Flutter SDK.
+session vectors and `SPEC-033` Matrix registration vectors. It is not
+published, canonical, or required by the Flutter SDK.
 
 The Rust prototype exposes `abi_version()` and `artifact_manifest()` as
 implementation metadata for future TS / Dart bindings. Bindings can use that
@@ -25,17 +26,18 @@ kinds remain empty until a WASM, N-API, Dart FFI, or Dart web adapter is added i
 a focused follow-up.
 
 The prototype also exposes binding-safe JSON envelopes for `SPEC-030`,
-`SPEC-031`, and `SPEC-032`. Those APIs return a single `ok` / `value` /
-`error` object so WASM, N-API, FFI, and JS interop adapters can cross the
-language boundary once per parse or validation call instead of bouncing through
-many small calls. The envelope carries stable Rust-side error codes for adapter
-mapping, but it remains implementation metadata; public behavior still comes
-from `houra-spec` contracts and test vectors.
+`SPEC-031`, `SPEC-032`, and `SPEC-033`. Those APIs return a single `ok` /
+`value` / `error` object so WASM, N-API, FFI, and JS interop adapters can cross
+the language boundary once per parse or validation call instead of bouncing
+through many small calls. The envelope carries stable Rust-side error codes for
+adapter mapping, but it remains implementation metadata; public behavior still
+comes from `houra-spec` contracts and test vectors.
 
 `rust-protocol-core-wasm/` is the first thin binding prototype for browser,
 Vue, and Next client experiments. It uses `wasm-bindgen` to export the manifest
-and `SPEC-030` / `SPEC-031` / `SPEC-032` JSON envelopes, but it does not own
-HTTP, retries, cancellation, token storage, UI state, or framework lifecycle.
+and `SPEC-030` / `SPEC-031` / `SPEC-032` / `SPEC-033` JSON envelopes, but it
+does not own HTTP, retries, cancellation, token storage, UI state, or framework
+lifecycle.
 Generated JS, `.wasm` files, npm packaging, and Next server / Node bindings are
 intentionally left out until a focused package issue exists.
 
@@ -56,6 +58,13 @@ transport, storage, retries, or UI behavior.
 SPEC-032 adoption record for issue #33: the Rust prototype now consumes the
 `houra-spec` `v0.2.0-pre.24` Matrix auth/session vectors for login-flow,
 password-login session, and whoami response parsing only. The WASM wrapper and
+TypeScript facade expose those envelopes without taking ownership of crypto,
+transport, storage, retries, or UI behavior.
+
+SPEC-033 adoption record for issue #35: the Rust prototype now consumes the
+`houra-spec` `v0.2.0-pre.25` Matrix registration vectors for username
+availability, registration success session, user-interactive auth required
+response, and registration-token validity parsing only. The WASM wrapper and
 TypeScript facade expose those envelopes without taking ownership of crypto,
 transport, storage, retries, or UI behavior.
 
