@@ -9,7 +9,7 @@ pub const HOURA_PROTOCOL_CORE_CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 pub const HOURA_PROTOCOL_CORE_CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
-const SUPPORTED_SPECS: &[&str] = &["SPEC-030", "SPEC-031"];
+const SUPPORTED_SPECS: &[&str] = &["SPEC-030", "SPEC-031", "SPEC-032"];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ArtifactManifest {
@@ -41,6 +41,32 @@ pub struct MatrixFoundationValidation {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixLoginFlow {
+    #[serde(rename = "type")]
+    pub flow_type: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixLoginFlows {
+    pub flows: Vec<MatrixLoginFlow>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixLoginSession {
+    pub user_id: String,
+    pub access_token: String,
+    pub device_id: Option<String>,
+    pub home_server: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixWhoami {
+    pub user_id: String,
+    pub device_id: Option<String>,
+    pub is_guest: Option<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ProtocolErrorEnvelope {
     pub code: String,
     pub message: String,
@@ -68,6 +94,27 @@ pub struct MatrixFoundationValidationEnvelope {
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixLoginFlowsParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixLoginFlows>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixLoginSessionParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixLoginSession>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixWhoamiParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixWhoami>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProtocolError {
     Json(String),
@@ -75,6 +122,9 @@ pub enum ProtocolError {
     EmptyVersion { index: usize },
     MissingErrcode,
     InvalidFoundationField { field: String },
+    EmptyFlows,
+    EmptyFlowType { index: usize },
+    InvalidAuthField { field: String },
 }
 
 impl ProtocolError {
@@ -85,6 +135,9 @@ impl ProtocolError {
             ProtocolError::EmptyVersion { .. } => "empty_version",
             ProtocolError::MissingErrcode => "missing_errcode",
             ProtocolError::InvalidFoundationField { .. } => "invalid_foundation_field",
+            ProtocolError::EmptyFlows => "empty_flows",
+            ProtocolError::EmptyFlowType { .. } => "empty_flow_type",
+            ProtocolError::InvalidAuthField { .. } => "invalid_auth_field",
         }
     }
 
@@ -95,6 +148,12 @@ impl ProtocolError {
                 details.insert("index".to_owned(), index.to_string());
             }
             ProtocolError::InvalidFoundationField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::EmptyFlowType { index } => {
+                details.insert("index".to_owned(), index.to_string());
+            }
+            ProtocolError::InvalidAuthField { field } => {
                 details.insert("field".to_owned(), field.clone());
             }
             _ => {}
@@ -122,6 +181,16 @@ impl std::fmt::Display for ProtocolError {
             ProtocolError::InvalidFoundationField { field } => {
                 write!(formatter, "{field} is not a valid Matrix foundation value")
             }
+            ProtocolError::EmptyFlows => write!(formatter, "flows must not be empty"),
+            ProtocolError::EmptyFlowType { index } => {
+                write!(formatter, "flows[{index}].type must not be empty")
+            }
+            ProtocolError::InvalidAuthField { field } => {
+                write!(
+                    formatter,
+                    "{field} is not a valid Matrix auth/session value"
+                )
+            }
         }
     }
 }
@@ -140,6 +209,32 @@ struct MatrixErrorWire {
     errcode: Option<String>,
     error: Option<String>,
     retry_after_ms: Option<u64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixLoginFlowsWire {
+    flows: Vec<MatrixLoginFlowWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixLoginFlowWire {
+    #[serde(rename = "type")]
+    flow_type: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixLoginSessionWire {
+    user_id: Option<String>,
+    access_token: Option<String>,
+    device_id: Option<String>,
+    home_server: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixWhoamiWire {
+    user_id: Option<String>,
+    device_id: Option<String>,
+    is_guest: Option<bool>,
 }
 
 pub fn abi_version() -> u32 {
@@ -301,6 +396,127 @@ pub fn validate_matrix_foundation_identifiers_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_login_flows(bytes: &[u8]) -> Result<MatrixLoginFlows, ProtocolError> {
+    let wire: MatrixLoginFlowsWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+
+    if wire.flows.is_empty() {
+        return Err(ProtocolError::EmptyFlows);
+    }
+    let mut flows = Vec::with_capacity(wire.flows.len());
+    for (index, flow) in wire.flows.into_iter().enumerate() {
+        if flow.flow_type.is_empty() {
+            return Err(ProtocolError::EmptyFlowType { index });
+        }
+        flows.push(MatrixLoginFlow {
+            flow_type: flow.flow_type,
+        });
+    }
+
+    Ok(MatrixLoginFlows { flows })
+}
+
+pub fn parse_matrix_login_flows_envelope(bytes: &[u8]) -> MatrixLoginFlowsParseEnvelope {
+    match parse_matrix_login_flows(bytes) {
+        Ok(value) => MatrixLoginFlowsParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixLoginFlowsParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_login_flows_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_login_flows_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_login_session(bytes: &[u8]) -> Result<MatrixLoginSession, ProtocolError> {
+    let wire: MatrixLoginSessionWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+
+    Ok(MatrixLoginSession {
+        user_id: required_non_empty(wire.user_id, "user_id")?,
+        access_token: required_non_empty(wire.access_token, "access_token")?,
+        device_id: optional_non_empty(wire.device_id, "device_id")?,
+        home_server: optional_non_empty(wire.home_server, "home_server")?,
+    })
+}
+
+pub fn parse_matrix_login_session_envelope(bytes: &[u8]) -> MatrixLoginSessionParseEnvelope {
+    match parse_matrix_login_session(bytes) {
+        Ok(value) => MatrixLoginSessionParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixLoginSessionParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_login_session_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_login_session_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_whoami(bytes: &[u8]) -> Result<MatrixWhoami, ProtocolError> {
+    let wire: MatrixWhoamiWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+
+    Ok(MatrixWhoami {
+        user_id: required_non_empty(wire.user_id, "user_id")?,
+        device_id: optional_non_empty(wire.device_id, "device_id")?,
+        is_guest: wire.is_guest,
+    })
+}
+
+pub fn parse_matrix_whoami_envelope(bytes: &[u8]) -> MatrixWhoamiParseEnvelope {
+    match parse_matrix_whoami(bytes) {
+        Ok(value) => MatrixWhoamiParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixWhoamiParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_whoami_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_whoami_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+fn required_non_empty(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(ProtocolError::InvalidAuthField {
+            field: field.to_owned(),
+        }),
+    }
+}
+
+fn optional_non_empty(value: Option<String>, field: &str) -> Result<Option<String>, ProtocolError> {
+    match value {
+        Some(value) if value.is_empty() => Err(ProtocolError::InvalidAuthField {
+            field: field.to_owned(),
+        }),
+        value => Ok(value),
+    }
+}
+
 fn validate_field(
     value: &Value,
     field: &str,
@@ -424,7 +640,10 @@ mod tests {
         assert_eq!(manifest.crate_version, "0.1.0");
         assert_eq!(manifest.abi_version, abi_version());
         assert_eq!(manifest.protocol_boundary, "pure-protocol-core");
-        assert_eq!(manifest.supported_specs, vec!["SPEC-030", "SPEC-031"]);
+        assert_eq!(
+            manifest.supported_specs,
+            vec!["SPEC-030", "SPEC-031", "SPEC-032"]
+        );
         assert!(manifest.supported_binding_kinds.is_empty());
     }
 
@@ -434,7 +653,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\"],\"supported_binding_kinds\":[]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\"],\"supported_binding_kinds\":[]}"
         );
     }
 
@@ -444,7 +663,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\"],\"supported_binding_kinds\":[\"wasm\"]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\"],\"supported_binding_kinds\":[\"wasm\"]}"
         );
     }
 
@@ -606,6 +825,71 @@ mod tests {
             .error
             .expect("invalid user id should return an error");
         assert_eq!(error.code, "invalid_foundation_field");
+        assert_eq!(error.details.get("field"), Some(&"user_id".to_owned()));
+    }
+
+    #[test]
+    fn parses_matrix_auth_session_vectors() {
+        let flows = read_spec_vector("test-vectors/auth/matrix-login-flows-basic.json");
+        let parsed_flows =
+            parse_matrix_login_flows(flows["expected"]["body_contains"].to_string().as_bytes())
+                .expect("Matrix login flows vector should parse");
+        assert_eq!(parsed_flows.flows.len(), 1);
+        assert_eq!(parsed_flows.flows[0].flow_type, "m.login.password");
+
+        let login = read_spec_vector("test-vectors/auth/matrix-password-login-basic.json");
+        let parsed_login =
+            parse_matrix_login_session(login["expected"]["body_contains"].to_string().as_bytes())
+                .expect("Matrix login session vector should parse");
+        assert_eq!(parsed_login.user_id, "@alice:example.test");
+        assert_eq!(parsed_login.access_token, "token-1");
+        assert_eq!(parsed_login.device_id.as_deref(), Some("DEVICE1"));
+        assert_eq!(parsed_login.home_server.as_deref(), Some("example.test"));
+
+        let whoami = read_spec_vector("test-vectors/auth/matrix-whoami-basic.json");
+        let parsed_whoami =
+            parse_matrix_whoami(whoami["expected"]["body_contains"].to_string().as_bytes())
+                .expect("Matrix whoami vector should parse");
+        assert_eq!(parsed_whoami.user_id, "@alice:example.test");
+        assert_eq!(parsed_whoami.device_id.as_deref(), Some("DEVICE1"));
+        assert_eq!(parsed_whoami.is_guest, Some(false));
+    }
+
+    #[test]
+    fn serializes_matrix_auth_parse_envelopes() {
+        assert_eq!(
+            parse_matrix_login_flows_json(br#"{"flows":[{"type":"m.login.password"}]}"#),
+            "{\"ok\":true,\"value\":{\"flows\":[{\"type\":\"m.login.password\"}]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_login_session_json(
+                br#"{"user_id":"@alice:example.test","access_token":"token-1","device_id":"DEVICE1","home_server":"example.test"}"#,
+            ),
+            "{\"ok\":true,\"value\":{\"user_id\":\"@alice:example.test\",\"access_token\":\"token-1\",\"device_id\":\"DEVICE1\",\"home_server\":\"example.test\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_whoami_json(
+                br#"{"user_id":"@alice:example.test","device_id":"DEVICE1","is_guest":false}"#,
+            ),
+            "{\"ok\":true,\"value\":{\"user_id\":\"@alice:example.test\",\"device_id\":\"DEVICE1\",\"is_guest\":false},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_matrix_auth_values() {
+        let envelope = parse_matrix_login_flows_envelope(br#"{"flows":[]}"#);
+        assert!(!envelope.ok);
+        assert_eq!(
+            envelope.error.expect("empty flows should fail").code,
+            "empty_flows"
+        );
+
+        let envelope = parse_matrix_login_session_envelope(br#"{"access_token":"token-1"}"#);
+        assert!(!envelope.ok);
+        let error = envelope
+            .error
+            .expect("missing user_id should return an error");
+        assert_eq!(error.code, "invalid_auth_field");
         assert_eq!(error.details.get("field"), Some(&"user_id".to_owned()));
     }
 

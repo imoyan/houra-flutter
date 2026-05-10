@@ -1,12 +1,19 @@
 export const HOURA_PROTOCOL_CORE_ABI_VERSION = 1;
 export const HOURA_PROTOCOL_CORE_MANIFEST_SCHEMA_VERSION = 1;
 export const HOURA_PROTOCOL_CORE_WASM_BINDING_KIND = "wasm";
-export const HOURA_PROTOCOL_CORE_SPEC_IDS = ["SPEC-030", "SPEC-031"] as const;
+export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
+  "SPEC-030",
+  "SPEC-031",
+  "SPEC-032",
+] as const;
 
 export interface HouraProtocolCoreWasmBinding {
   houraArtifactManifestJson(): string;
   parseMatrixClientVersionsResponseJson(responseBody: string): string;
   parseMatrixErrorEnvelopeJson(responseBody: string): string;
+  parseMatrixLoginFlowsJson(responseBody: string): string;
+  parseMatrixLoginSessionJson(responseBody: string): string;
+  parseMatrixWhoamiJson(responseBody: string): string;
   validateMatrixFoundationIdentifiersJson(value: string): string;
 }
 
@@ -35,6 +42,27 @@ export interface MatrixFoundationValidation {
   valid: boolean;
 }
 
+export interface MatrixLoginFlow {
+  type: string;
+}
+
+export interface MatrixLoginFlows {
+  flows: MatrixLoginFlow[];
+}
+
+export interface MatrixLoginSession {
+  user_id: string;
+  access_token: string;
+  device_id?: string;
+  home_server?: string;
+}
+
+export interface MatrixWhoami {
+  user_id: string;
+  device_id?: string;
+  is_guest?: boolean;
+}
+
 export interface ProtocolErrorEnvelope {
   code: string;
   message: string;
@@ -51,6 +79,11 @@ export interface HouraProtocolCoreFacade {
     responseBody: string,
   ): ProtocolResult<MatrixClientVersions>;
   parseMatrixErrorEnvelope(responseBody: string): ProtocolResult<MatrixErrorEnvelope>;
+  parseMatrixLoginFlows(responseBody: string): ProtocolResult<MatrixLoginFlows>;
+  parseMatrixLoginSession(
+    responseBody: string,
+  ): ProtocolResult<MatrixLoginSession>;
+  parseMatrixWhoami(responseBody: string): ProtocolResult<MatrixWhoami>;
   validateMatrixFoundationIdentifiers(
     value: string,
   ): ProtocolResult<MatrixFoundationValidation>;
@@ -92,6 +125,27 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixErrorEnvelope(envelope);
+    },
+    parseMatrixLoginFlows(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixLoginFlowsJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixLoginFlowsEnvelope(envelope);
+    },
+    parseMatrixLoginSession(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixLoginSessionJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixLoginSessionEnvelope(envelope);
+    },
+    parseMatrixWhoami(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixWhoamiJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixWhoamiEnvelope(envelope);
     },
     validateMatrixFoundationIdentifiers(value: string) {
       const envelope = parseJsonObject(
@@ -222,6 +276,63 @@ function readMatrixFoundationValidationEnvelope(
   }));
 }
 
+function readMatrixLoginFlowsEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixLoginFlows> {
+  return readProtocolResult(envelope, (value) => {
+    const flows = readArray(value, "flows", "invalid_envelope").map(
+      (entry, index) => ({
+        type: readString(
+          assertRecord(entry, `flows.${index}`),
+          "type",
+          "invalid_envelope",
+        ),
+      }),
+    );
+
+    return { flows };
+  });
+}
+
+function readMatrixLoginSessionEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixLoginSession> {
+  return readProtocolResult(envelope, readMatrixLoginSession);
+}
+
+function readMatrixLoginSession(
+  value: Record<string, unknown>,
+): MatrixLoginSession {
+  const result: MatrixLoginSession = {
+    user_id: readString(value, "user_id", "invalid_envelope"),
+    access_token: readString(value, "access_token", "invalid_envelope"),
+  };
+  readOptionalString(value, "device_id", (deviceId) => {
+    result.device_id = deviceId;
+  });
+  readOptionalString(value, "home_server", (homeServer) => {
+    result.home_server = homeServer;
+  });
+  return result;
+}
+
+function readMatrixWhoamiEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixWhoami> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixWhoami = {
+      user_id: readString(value, "user_id", "invalid_envelope"),
+    };
+    readOptionalString(value, "device_id", (deviceId) => {
+      result.device_id = deviceId;
+    });
+    readOptionalBoolean(value, "is_guest", (isGuest) => {
+      result.is_guest = isGuest;
+    });
+    return result;
+  });
+}
+
 function readProtocolResult<T>(
   envelope: Record<string, unknown>,
   readValue: (value: Record<string, unknown>) => T,
@@ -291,6 +402,20 @@ function readRecord(
   return value;
 }
 
+function assertRecord(
+  value: unknown,
+  context: string,
+  errorCode: FacadeErrorCode = "invalid_envelope",
+): Record<string, unknown> {
+  if (!isRecord(value)) {
+    throw new HouraProtocolCoreFacadeError(
+      errorCode,
+      `${context} must be a JSON object`,
+    );
+  }
+  return value;
+}
+
 function readString(
   source: Record<string, unknown>,
   field: string,
@@ -304,6 +429,24 @@ function readString(
     );
   }
   return value;
+}
+
+function readOptionalString(
+  source: Record<string, unknown>,
+  field: string,
+  apply: (value: string) => void,
+): void {
+  const value = source[field];
+  if (value === null || value === undefined) {
+    return;
+  }
+  if (typeof value !== "string") {
+    throw new HouraProtocolCoreFacadeError(
+      "invalid_envelope",
+      `${field} must be a string`,
+    );
+  }
+  apply(value);
 }
 
 function readNumber(
@@ -327,6 +470,39 @@ function readBoolean(source: Record<string, unknown>, field: string): boolean {
     throw new HouraProtocolCoreFacadeError(
       "invalid_envelope",
       `${field} must be a boolean`,
+    );
+  }
+  return value;
+}
+
+function readOptionalBoolean(
+  source: Record<string, unknown>,
+  field: string,
+  apply: (value: boolean) => void,
+): void {
+  const value = source[field];
+  if (value === null || value === undefined) {
+    return;
+  }
+  if (typeof value !== "boolean") {
+    throw new HouraProtocolCoreFacadeError(
+      "invalid_envelope",
+      `${field} must be a boolean`,
+    );
+  }
+  apply(value);
+}
+
+function readArray(
+  source: Record<string, unknown>,
+  field: string,
+  errorCode: FacadeErrorCode = "invalid_manifest",
+): unknown[] {
+  const value = source[field];
+  if (!Array.isArray(value)) {
+    throw new HouraProtocolCoreFacadeError(
+      errorCode,
+      `${field} must be an array`,
     );
   }
   return value;
