@@ -5,6 +5,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-030",
   "SPEC-031",
   "SPEC-032",
+  "SPEC-033",
 ] as const;
 
 export interface HouraProtocolCoreWasmBinding {
@@ -13,6 +14,10 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixErrorEnvelopeJson(responseBody: string): string;
   parseMatrixLoginFlowsJson(responseBody: string): string;
   parseMatrixLoginSessionJson(responseBody: string): string;
+  parseMatrixRegistrationAvailabilityJson(responseBody: string): string;
+  parseMatrixRegistrationSessionJson(responseBody: string): string;
+  parseMatrixRegistrationTokenValidityJson(responseBody: string): string;
+  parseMatrixUserInteractiveAuthRequiredJson(responseBody: string): string;
   parseMatrixWhoamiJson(responseBody: string): string;
   validateMatrixFoundationIdentifiersJson(value: string): string;
 }
@@ -63,6 +68,25 @@ export interface MatrixWhoami {
   is_guest?: boolean;
 }
 
+export interface MatrixRegistrationAvailability {
+  available: boolean;
+}
+
+export interface MatrixRegistrationTokenValidity {
+  valid: boolean;
+}
+
+export interface MatrixUserInteractiveAuthFlow {
+  stages: string[];
+}
+
+export interface MatrixUserInteractiveAuthRequired {
+  completed: string[];
+  flows: MatrixUserInteractiveAuthFlow[];
+  params: Record<string, unknown>;
+  session: string;
+}
+
 export interface ProtocolErrorEnvelope {
   code: string;
   message: string;
@@ -83,6 +107,18 @@ export interface HouraProtocolCoreFacade {
   parseMatrixLoginSession(
     responseBody: string,
   ): ProtocolResult<MatrixLoginSession>;
+  parseMatrixRegistrationAvailability(
+    responseBody: string,
+  ): ProtocolResult<MatrixRegistrationAvailability>;
+  parseMatrixRegistrationSession(
+    responseBody: string,
+  ): ProtocolResult<MatrixLoginSession>;
+  parseMatrixRegistrationTokenValidity(
+    responseBody: string,
+  ): ProtocolResult<MatrixRegistrationTokenValidity>;
+  parseMatrixUserInteractiveAuthRequired(
+    responseBody: string,
+  ): ProtocolResult<MatrixUserInteractiveAuthRequired>;
   parseMatrixWhoami(responseBody: string): ProtocolResult<MatrixWhoami>;
   validateMatrixFoundationIdentifiers(
     value: string,
@@ -139,6 +175,34 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixLoginSessionEnvelope(envelope);
+    },
+    parseMatrixRegistrationAvailability(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRegistrationAvailabilityJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRegistrationAvailabilityEnvelope(envelope);
+    },
+    parseMatrixRegistrationSession(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRegistrationSessionJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixLoginSessionEnvelope(envelope);
+    },
+    parseMatrixRegistrationTokenValidity(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRegistrationTokenValidityJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRegistrationTokenValidityEnvelope(envelope);
+    },
+    parseMatrixUserInteractiveAuthRequired(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixUserInteractiveAuthRequiredJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixUserInteractiveAuthRequiredEnvelope(envelope);
     },
     parseMatrixWhoami(responseBody: string) {
       const envelope = parseJsonObject(
@@ -314,6 +378,45 @@ function readMatrixLoginSession(
     result.home_server = homeServer;
   });
   return result;
+}
+
+function readMatrixRegistrationAvailabilityEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRegistrationAvailability> {
+  return readProtocolResult(envelope, (value) => ({
+    available: readBoolean(value, "available"),
+  }));
+}
+
+function readMatrixRegistrationTokenValidityEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRegistrationTokenValidity> {
+  return readProtocolResult(envelope, (value) => ({
+    valid: readBoolean(value, "valid"),
+  }));
+}
+
+function readMatrixUserInteractiveAuthRequiredEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixUserInteractiveAuthRequired> {
+  return readProtocolResult(envelope, (value) => {
+    const flows = readArray(value, "flows", "invalid_envelope").map(
+      (entry, index) => ({
+        stages: readStringArray(
+          assertRecord(entry, `flows.${index}`),
+          "stages",
+          "invalid_envelope",
+        ),
+      }),
+    );
+
+    return {
+      completed: readStringArray(value, "completed", "invalid_envelope"),
+      flows,
+      params: readRecord(value, "params", "uia value"),
+      session: readString(value, "session", "invalid_envelope"),
+    };
+  });
 }
 
 function readMatrixWhoamiEnvelope(

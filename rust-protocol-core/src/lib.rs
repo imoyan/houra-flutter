@@ -9,7 +9,7 @@ pub const HOURA_PROTOCOL_CORE_CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 pub const HOURA_PROTOCOL_CORE_CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
-const SUPPORTED_SPECS: &[&str] = &["SPEC-030", "SPEC-031", "SPEC-032"];
+const SUPPORTED_SPECS: &[&str] = &["SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033"];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ArtifactManifest {
@@ -67,6 +67,29 @@ pub struct MatrixWhoami {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRegistrationAvailability {
+    pub available: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRegistrationTokenValidity {
+    pub valid: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixUserInteractiveAuthFlow {
+    pub stages: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixUserInteractiveAuthRequired {
+    pub completed: Vec<String>,
+    pub flows: Vec<MatrixUserInteractiveAuthFlow>,
+    pub params: BTreeMap<String, Value>,
+    pub session: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ProtocolErrorEnvelope {
     pub code: String,
     pub message: String,
@@ -115,6 +138,27 @@ pub struct MatrixWhoamiParseEnvelope {
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRegistrationAvailabilityParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRegistrationAvailability>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRegistrationTokenValidityParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRegistrationTokenValidity>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixUserInteractiveAuthRequiredParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixUserInteractiveAuthRequired>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProtocolError {
     Json(String),
@@ -125,6 +169,7 @@ pub enum ProtocolError {
     EmptyFlows,
     EmptyFlowType { index: usize },
     InvalidAuthField { field: String },
+    InvalidRegistrationField { field: String },
 }
 
 impl ProtocolError {
@@ -138,6 +183,7 @@ impl ProtocolError {
             ProtocolError::EmptyFlows => "empty_flows",
             ProtocolError::EmptyFlowType { .. } => "empty_flow_type",
             ProtocolError::InvalidAuthField { .. } => "invalid_auth_field",
+            ProtocolError::InvalidRegistrationField { .. } => "invalid_registration_field",
         }
     }
 
@@ -154,6 +200,9 @@ impl ProtocolError {
                 details.insert("index".to_owned(), index.to_string());
             }
             ProtocolError::InvalidAuthField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidRegistrationField { field } => {
                 details.insert("field".to_owned(), field.clone());
             }
             _ => {}
@@ -189,6 +238,12 @@ impl std::fmt::Display for ProtocolError {
                 write!(
                     formatter,
                     "{field} is not a valid Matrix auth/session value"
+                )
+            }
+            ProtocolError::InvalidRegistrationField { field } => {
+                write!(
+                    formatter,
+                    "{field} is not a valid Matrix registration value"
                 )
             }
         }
@@ -235,6 +290,31 @@ struct MatrixWhoamiWire {
     user_id: Option<String>,
     device_id: Option<String>,
     is_guest: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRegistrationAvailabilityWire {
+    available: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRegistrationTokenValidityWire {
+    valid: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixUserInteractiveAuthFlowWire {
+    stages: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixUserInteractiveAuthRequiredWire {
+    #[serde(default)]
+    completed: Vec<String>,
+    flows: Vec<MatrixUserInteractiveAuthFlowWire>,
+    #[serde(default)]
+    params: BTreeMap<String, Value>,
+    session: Option<String>,
 }
 
 pub fn abi_version() -> u32 {
@@ -499,6 +579,149 @@ pub fn parse_matrix_whoami_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_registration_availability(
+    bytes: &[u8],
+) -> Result<MatrixRegistrationAvailability, ProtocolError> {
+    let wire: MatrixRegistrationAvailabilityWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixRegistrationAvailability {
+        available: wire
+            .available
+            .ok_or_else(|| invalid_registration_field("available"))?,
+    })
+}
+
+pub fn parse_matrix_registration_availability_envelope(
+    bytes: &[u8],
+) -> MatrixRegistrationAvailabilityParseEnvelope {
+    match parse_matrix_registration_availability(bytes) {
+        Ok(value) => MatrixRegistrationAvailabilityParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRegistrationAvailabilityParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_registration_availability_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_registration_availability_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_registration_session(
+    bytes: &[u8],
+) -> Result<MatrixLoginSession, ProtocolError> {
+    parse_matrix_login_session(bytes)
+}
+
+pub fn parse_matrix_registration_session_envelope(bytes: &[u8]) -> MatrixLoginSessionParseEnvelope {
+    parse_matrix_login_session_envelope(bytes)
+}
+
+pub fn parse_matrix_registration_session_json(bytes: &[u8]) -> String {
+    parse_matrix_login_session_json(bytes)
+}
+
+pub fn parse_matrix_registration_token_validity(
+    bytes: &[u8],
+) -> Result<MatrixRegistrationTokenValidity, ProtocolError> {
+    let wire: MatrixRegistrationTokenValidityWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixRegistrationTokenValidity {
+        valid: wire
+            .valid
+            .ok_or_else(|| invalid_registration_field("valid"))?,
+    })
+}
+
+pub fn parse_matrix_registration_token_validity_envelope(
+    bytes: &[u8],
+) -> MatrixRegistrationTokenValidityParseEnvelope {
+    match parse_matrix_registration_token_validity(bytes) {
+        Ok(value) => MatrixRegistrationTokenValidityParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRegistrationTokenValidityParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_registration_token_validity_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_registration_token_validity_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_user_interactive_auth_required(
+    bytes: &[u8],
+) -> Result<MatrixUserInteractiveAuthRequired, ProtocolError> {
+    let wire: MatrixUserInteractiveAuthRequiredWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    if wire.flows.is_empty() {
+        return Err(invalid_registration_field("flows"));
+    }
+
+    let mut flows = Vec::with_capacity(wire.flows.len());
+    for (index, flow) in wire.flows.into_iter().enumerate() {
+        if flow.stages.is_empty() {
+            return Err(invalid_registration_field(&format!("flows.{index}.stages")));
+        }
+        for (stage_index, stage) in flow.stages.iter().enumerate() {
+            if stage.is_empty() {
+                return Err(invalid_registration_field(&format!(
+                    "flows.{index}.stages.{stage_index}"
+                )));
+            }
+        }
+        flows.push(MatrixUserInteractiveAuthFlow {
+            stages: flow.stages,
+        });
+    }
+    for (index, completed) in wire.completed.iter().enumerate() {
+        if completed.is_empty() {
+            return Err(invalid_registration_field(&format!("completed.{index}")));
+        }
+    }
+
+    Ok(MatrixUserInteractiveAuthRequired {
+        completed: wire.completed,
+        flows,
+        params: wire.params,
+        session: required_registration_string(wire.session, "session")?,
+    })
+}
+
+pub fn parse_matrix_user_interactive_auth_required_envelope(
+    bytes: &[u8],
+) -> MatrixUserInteractiveAuthRequiredParseEnvelope {
+    match parse_matrix_user_interactive_auth_required(bytes) {
+        Ok(value) => MatrixUserInteractiveAuthRequiredParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixUserInteractiveAuthRequiredParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_user_interactive_auth_required_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_user_interactive_auth_required_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 fn required_non_empty(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
     match value {
         Some(value) if !value.is_empty() => Ok(value),
@@ -514,6 +737,22 @@ fn optional_non_empty(value: Option<String>, field: &str) -> Result<Option<Strin
             field: field.to_owned(),
         }),
         value => Ok(value),
+    }
+}
+
+fn required_registration_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_registration_field(field)),
+    }
+}
+
+fn invalid_registration_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidRegistrationField {
+        field: field.to_owned(),
     }
 }
 
@@ -642,7 +881,7 @@ mod tests {
         assert_eq!(manifest.protocol_boundary, "pure-protocol-core");
         assert_eq!(
             manifest.supported_specs,
-            vec!["SPEC-030", "SPEC-031", "SPEC-032"]
+            vec!["SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033"]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
     }
@@ -653,7 +892,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\"],\"supported_binding_kinds\":[]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\"],\"supported_binding_kinds\":[]}"
         );
     }
 
@@ -663,7 +902,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\"],\"supported_binding_kinds\":[\"wasm\"]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\"],\"supported_binding_kinds\":[\"wasm\"]}"
         );
     }
 
@@ -891,6 +1130,106 @@ mod tests {
             .expect("missing user_id should return an error");
         assert_eq!(error.code, "invalid_auth_field");
         assert_eq!(error.details.get("field"), Some(&"user_id".to_owned()));
+    }
+
+    #[test]
+    fn parses_matrix_registration_vectors() {
+        let availability =
+            read_spec_vector("test-vectors/auth/matrix-registration-available-basic.json");
+        let parsed_availability = parse_matrix_registration_availability(
+            availability["expected"]["body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("Matrix registration availability vector should parse");
+        assert!(parsed_availability.available);
+
+        let registration = read_spec_vector("test-vectors/auth/matrix-registration-basic.json");
+        let parsed_session = parse_matrix_registration_session(
+            registration["expected"]["body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("Matrix registration session vector should parse");
+        assert_eq!(parsed_session.user_id, "@charlie:example.test");
+        assert_eq!(parsed_session.access_token, "token-register");
+        assert_eq!(parsed_session.device_id.as_deref(), Some("DEVICE2"));
+        assert_eq!(parsed_session.home_server.as_deref(), Some("example.test"));
+
+        let uia = read_spec_vector("test-vectors/auth/matrix-registration-uia-required.json");
+        let parsed_uia = parse_matrix_user_interactive_auth_required(
+            uia["expected"]["body_contains"].to_string().as_bytes(),
+        )
+        .expect("Matrix UIA required vector should parse");
+        assert!(parsed_uia.completed.is_empty());
+        assert_eq!(parsed_uia.flows[0].stages, vec!["m.login.dummy"]);
+        assert!(parsed_uia.params.is_empty());
+        assert_eq!(parsed_uia.session, "reg-session-1");
+
+        let token =
+            read_spec_vector("test-vectors/auth/matrix-registration-token-validity-basic.json");
+        let parsed_token = parse_matrix_registration_token_validity(
+            token["expected"]["body_contains"].to_string().as_bytes(),
+        )
+        .expect("Matrix registration token validity vector should parse");
+        assert!(parsed_token.valid);
+    }
+
+    #[test]
+    fn serializes_matrix_registration_parse_envelopes() {
+        assert_eq!(
+            parse_matrix_registration_availability_json(br#"{"available":true}"#),
+            "{\"ok\":true,\"value\":{\"available\":true},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_registration_session_json(
+                br#"{"user_id":"@charlie:example.test","access_token":"token-register","device_id":"DEVICE2","home_server":"example.test"}"#,
+            ),
+            "{\"ok\":true,\"value\":{\"user_id\":\"@charlie:example.test\",\"access_token\":\"token-register\",\"device_id\":\"DEVICE2\",\"home_server\":\"example.test\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_user_interactive_auth_required_json(
+                br#"{"completed":[],"flows":[{"stages":["m.login.dummy"]}],"params":{},"session":"reg-session-1"}"#,
+            ),
+            "{\"ok\":true,\"value\":{\"completed\":[],\"flows\":[{\"stages\":[\"m.login.dummy\"]}],\"params\":{},\"session\":\"reg-session-1\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_registration_token_validity_json(br#"{"valid":false}"#),
+            "{\"ok\":true,\"value\":{\"valid\":false},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn rejects_invalid_matrix_registration_values() {
+        let envelope = parse_matrix_registration_availability_envelope(br#"{}"#);
+        assert!(!envelope.ok);
+        assert_eq!(
+            envelope
+                .error
+                .expect("missing availability should fail")
+                .code,
+            "invalid_registration_field"
+        );
+
+        let envelope = parse_matrix_user_interactive_auth_required_envelope(
+            br#"{"completed":[],"flows":[],"params":{},"session":"reg-session-1"}"#,
+        );
+        assert!(!envelope.ok);
+        let error = envelope
+            .error
+            .expect("empty UIA flows should return an error");
+        assert_eq!(error.code, "invalid_registration_field");
+        assert_eq!(error.details.get("field"), Some(&"flows".to_owned()));
+
+        let envelope = parse_matrix_registration_token_validity_envelope(br#"{}"#);
+        assert!(!envelope.ok);
+        assert_eq!(
+            envelope
+                .error
+                .expect("missing token validity should fail")
+                .code,
+            "invalid_registration_field"
+        );
     }
 
     fn read_spec_vector(relative_path: &str) -> Value {
