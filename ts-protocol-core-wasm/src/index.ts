@@ -7,10 +7,12 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-032",
   "SPEC-033",
   "SPEC-034",
+  "SPEC-035",
 ] as const;
 
 export interface HouraProtocolCoreWasmBinding {
   houraArtifactManifestJson(): string;
+  parseMatrixClientEventJson(responseBody: string): string;
   parseMatrixClientVersionsResponseJson(responseBody: string): string;
   parseMatrixDeviceJson(responseBody: string): string;
   parseMatrixDevicesJson(responseBody: string): string;
@@ -20,6 +22,8 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixRegistrationAvailabilityJson(responseBody: string): string;
   parseMatrixRegistrationSessionJson(responseBody: string): string;
   parseMatrixRegistrationTokenValidityJson(responseBody: string): string;
+  parseMatrixRoomIdResponseJson(responseBody: string): string;
+  parseMatrixRoomStateJson(responseBody: string): string;
   parseMatrixUserInteractiveAuthRequiredJson(responseBody: string): string;
   parseMatrixWhoamiJson(responseBody: string): string;
   validateMatrixFoundationIdentifiersJson(value: string): string;
@@ -108,6 +112,25 @@ export interface MatrixDevices {
   devices: MatrixDevice[];
 }
 
+export interface MatrixRoomIdResponse {
+  room_id: string;
+}
+
+export interface MatrixClientEvent {
+  content: Record<string, unknown>;
+  event_id: string;
+  origin_server_ts: number;
+  room_id: string;
+  sender: string;
+  state_key?: string;
+  type: string;
+  unsigned?: Record<string, unknown>;
+}
+
+export interface MatrixRoomState {
+  events: MatrixClientEvent[];
+}
+
 export interface ProtocolErrorEnvelope {
   code: string;
   message: string;
@@ -120,6 +143,7 @@ export type ProtocolResult<T> =
 
 export interface HouraProtocolCoreFacade {
   manifest: ArtifactManifest;
+  parseMatrixClientEvent(responseBody: string): ProtocolResult<MatrixClientEvent>;
   parseMatrixClientVersionsResponse(
     responseBody: string,
   ): ProtocolResult<MatrixClientVersions>;
@@ -139,6 +163,10 @@ export interface HouraProtocolCoreFacade {
   parseMatrixRegistrationTokenValidity(
     responseBody: string,
   ): ProtocolResult<MatrixRegistrationTokenValidity>;
+  parseMatrixRoomIdResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixRoomIdResponse>;
+  parseMatrixRoomState(responseBody: string): ProtocolResult<MatrixRoomState>;
   parseMatrixUserInteractiveAuthRequired(
     responseBody: string,
   ): ProtocolResult<MatrixUserInteractiveAuthRequired>;
@@ -171,6 +199,13 @@ export function createHouraProtocolCore(
 
   return {
     manifest,
+    parseMatrixClientEvent(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixClientEventJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixClientEventEnvelope(envelope);
+    },
     parseMatrixClientVersionsResponse(responseBody: string) {
       const envelope = parseJsonObject(
         binding.parseMatrixClientVersionsResponseJson(responseBody),
@@ -233,6 +268,20 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixRegistrationTokenValidityEnvelope(envelope);
+    },
+    parseMatrixRoomIdResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRoomIdResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRoomIdResponseEnvelope(envelope);
+    },
+    parseMatrixRoomState(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRoomStateJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRoomStateEnvelope(envelope);
     },
     parseMatrixUserInteractiveAuthRequired(responseBody: string) {
       const envelope = parseJsonObject(
@@ -510,6 +559,57 @@ function readMatrixDevice(value: Record<string, unknown>): MatrixDevice {
   readOptionalNumber(value, "last_seen_ts", (lastSeenTs) => {
     result.last_seen_ts = lastSeenTs;
   });
+  return result;
+}
+
+function readMatrixRoomIdResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRoomIdResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    room_id: readString(value, "room_id", "invalid_envelope"),
+  }));
+}
+
+function readMatrixClientEventEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixClientEvent> {
+  return readProtocolResult(envelope, readMatrixClientEvent);
+}
+
+function readMatrixRoomStateEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRoomState> {
+  return readProtocolResult(envelope, (value) => {
+    const events = readArray(value, "events", "invalid_envelope").map(
+      (entry, index) =>
+        readMatrixClientEvent(assertRecord(entry, `events.${index}`)),
+    );
+
+    return { events };
+  });
+}
+
+function readMatrixClientEvent(
+  value: Record<string, unknown>,
+): MatrixClientEvent {
+  const result: MatrixClientEvent = {
+    content: readRecord(value, "content", "client event"),
+    event_id: readString(value, "event_id", "invalid_envelope"),
+    origin_server_ts: readNumber(
+      value,
+      "origin_server_ts",
+      "invalid_envelope",
+    ),
+    room_id: readString(value, "room_id", "invalid_envelope"),
+    sender: readString(value, "sender", "invalid_envelope"),
+    type: readString(value, "type", "invalid_envelope"),
+  };
+  readOptionalString(value, "state_key", (stateKey) => {
+    result.state_key = stateKey;
+  });
+  if (value.unsigned !== null && value.unsigned !== undefined) {
+    result.unsigned = readRecord(value, "unsigned", "client event");
+  }
   return result;
 }
 

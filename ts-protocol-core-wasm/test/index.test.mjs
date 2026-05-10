@@ -12,7 +12,14 @@ const manifest = {
   crate_version: "0.1.0",
   abi_version: 1,
   protocol_boundary: "pure-protocol-core",
-  supported_specs: ["SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034"],
+  supported_specs: [
+    "SPEC-030",
+    "SPEC-031",
+    "SPEC-032",
+    "SPEC-033",
+    "SPEC-034",
+    "SPEC-035",
+  ],
   supported_binding_kinds: ["wasm"],
 };
 
@@ -28,6 +35,25 @@ function binding(overrides = {}) {
           value: {
             versions: ["v1.18"],
             unstable_features: {},
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixClientEventJson() {
+      return JSON.stringify(
+        overrides.clientEventEnvelope ?? {
+          ok: true,
+          value: {
+            content: {
+              name: "General",
+            },
+            event_id: "$name:example.test",
+            origin_server_ts: 1710000000000,
+            room_id: "!room:example.test",
+            sender: "@alice:example.test",
+            state_key: "",
+            type: "m.room.name",
           },
           error: null,
         },
@@ -134,6 +160,40 @@ function binding(overrides = {}) {
           ok: true,
           value: {
             valid: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRoomIdResponseJson() {
+      return JSON.stringify(
+        overrides.roomIdResponseEnvelope ?? {
+          ok: true,
+          value: {
+            room_id: "!room:example.test",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRoomStateJson() {
+      return JSON.stringify(
+        overrides.roomStateEnvelope ?? {
+          ok: true,
+          value: {
+            events: [
+              {
+                content: {
+                  name: "General",
+                },
+                event_id: "$name:example.test",
+                origin_server_ts: 1710000000000,
+                room_id: "!room:example.test",
+                sender: "@alice:example.test",
+                state_key: "",
+                type: "m.room.name",
+              },
+            ],
           },
           error: null,
         },
@@ -436,6 +496,94 @@ test("omits null optional SPEC-034 Matrix device fields", () => {
     ok: true,
     value: {
       device_id: "DEVICE1",
+    },
+    error: null,
+  });
+});
+
+test("maps SPEC-035 Matrix room envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+
+  assert.deepEqual(
+    core.parseMatrixRoomIdResponse('{"room_id":"!room:example.test"}'),
+    {
+      ok: true,
+      value: {
+        room_id: "!room:example.test",
+      },
+      error: null,
+    },
+  );
+  assert.deepEqual(
+    core.parseMatrixClientEvent(
+      '{"event_id":"$name:example.test","room_id":"!room:example.test"}',
+    ),
+    {
+      ok: true,
+      value: {
+        content: {
+          name: "General",
+        },
+        event_id: "$name:example.test",
+        origin_server_ts: 1710000000000,
+        room_id: "!room:example.test",
+        sender: "@alice:example.test",
+        state_key: "",
+        type: "m.room.name",
+      },
+      error: null,
+    },
+  );
+  assert.deepEqual(core.parseMatrixRoomState("[]"), {
+    ok: true,
+    value: {
+      events: [
+        {
+          content: {
+            name: "General",
+          },
+          event_id: "$name:example.test",
+          origin_server_ts: 1710000000000,
+          room_id: "!room:example.test",
+          sender: "@alice:example.test",
+          state_key: "",
+          type: "m.room.name",
+        },
+      ],
+    },
+    error: null,
+  });
+});
+
+test("omits null optional SPEC-035 Matrix room event fields", () => {
+  const core = createHouraProtocolCore(
+    binding({
+      clientEventEnvelope: {
+        ok: true,
+        value: {
+          content: {},
+          event_id: "$message:example.test",
+          origin_server_ts: 1710000000000,
+          room_id: "!room:example.test",
+          sender: "@alice:example.test",
+          state_key: null,
+          type: "m.room.message",
+          unsigned: null,
+        },
+        error: null,
+      },
+    }),
+  );
+
+  assert.deepEqual(core.parseMatrixClientEvent("{}"), {
+    ok: true,
+    value: {
+      content: {},
+      event_id: "$message:example.test",
+      origin_server_ts: 1710000000000,
+      room_id: "!room:example.test",
+      sender: "@alice:example.test",
+      type: "m.room.message",
     },
     error: null,
   });

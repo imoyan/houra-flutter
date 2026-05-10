@@ -67,6 +67,21 @@ pub fn parse_matrix_devices_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_devices_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixRoomIdResponseJson)]
+pub fn parse_matrix_room_id_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_room_id_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixClientEventJson)]
+pub fn parse_matrix_client_event_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_client_event_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixRoomStateJson)]
+pub fn parse_matrix_room_state_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_room_state_json(response_body.as_bytes())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -77,7 +92,7 @@ mod tests {
 
         assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\"],\"supported_binding_kinds\":[\"wasm\"]}"
+            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\"],\"supported_binding_kinds\":[\"wasm\"]}"
         );
     }
 
@@ -170,6 +185,26 @@ mod tests {
                 "{\"devices\":[{\"device_id\":\"DEVICE1\",\"display_name\":\"Alice phone\",\"last_seen_ip\":\"203.0.113.10\",\"last_seen_ts\":1710000000000}]}",
             ),
             "{\"ok\":true,\"value\":{\"devices\":[{\"device_id\":\"DEVICE1\",\"display_name\":\"Alice phone\",\"last_seen_ip\":\"203.0.113.10\",\"last_seen_ts\":1710000000000}]},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_room_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_room_id_response_json("{\"room_id\":\"!room:example.test\"}"),
+            "{\"ok\":true,\"value\":{\"room_id\":\"!room:example.test\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_client_event_json(
+                "{\"event_id\":\"$name:example.test\",\"room_id\":\"!room:example.test\",\"sender\":\"@alice:example.test\",\"origin_server_ts\":1710000000000,\"type\":\"m.room.name\",\"state_key\":\"\",\"content\":{\"name\":\"General\"}}",
+            ),
+            "{\"ok\":true,\"value\":{\"content\":{\"name\":\"General\"},\"event_id\":\"$name:example.test\",\"origin_server_ts\":1710000000000,\"room_id\":\"!room:example.test\",\"sender\":\"@alice:example.test\",\"state_key\":\"\",\"type\":\"m.room.name\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_room_state_json(
+                "[{\"event_id\":\"$name:example.test\",\"room_id\":\"!room:example.test\",\"sender\":\"@alice:example.test\",\"origin_server_ts\":1710000000000,\"type\":\"m.room.name\",\"state_key\":\"\",\"content\":{\"name\":\"General\"}}]",
+            ),
+            "{\"ok\":true,\"value\":{\"events\":[{\"content\":{\"name\":\"General\"},\"event_id\":\"$name:example.test\",\"origin_server_ts\":1710000000000,\"room_id\":\"!room:example.test\",\"sender\":\"@alice:example.test\",\"state_key\":\"\",\"type\":\"m.room.name\"}]},\"error\":null}"
         );
     }
 }
