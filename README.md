@@ -103,11 +103,12 @@ ownership of crypto, transport, storage, retries, sync token persistence, or UI
 behavior.
 
 SPEC-038 adoption record for issue #47: the Rust prototype now consumes the
-`houra-spec` `v0.2.0-pre.30` Matrix media vectors for Matrix Content URI
-validation and media upload response parsing only. The WASM wrapper and
-TypeScript facade expose those envelopes without taking ownership of media
-transport, media storage, persistence, crypto, retries, secure storage, or UI
-behavior.
+`houra-spec` snapshot `d05eca9afebf9d166a7a8a7def326ddc616a0190`
+(`v0.2.0-pre.58-2-gd05eca9`) Matrix media vectors for Matrix Content URI
+validation and media upload response parsing only. CI pins the Flutter, Rust,
+and TypeScript jobs to that same snapshot. The WASM wrapper and TypeScript
+facade expose those envelopes without taking ownership of media transport,
+media storage, persistence, crypto, retries, secure storage, or UI behavior.
 
 Out of scope for this package version:
 

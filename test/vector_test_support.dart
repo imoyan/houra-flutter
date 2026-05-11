@@ -28,7 +28,8 @@ final class ContractVector {
 }
 
 ContractVector readVector(String path) {
-  return ContractVector(readJsonObject('${_specRoot().path}/$path'));
+  final root = requireCanonicalSpecRoot();
+  return ContractVector(readJsonObject('${root.path}/$path'));
 }
 
 Map<String, Object?> readJsonObject(String path) {
@@ -39,12 +40,40 @@ Map<String, Object?> readJsonObject(String path) {
   fail('$path must contain a JSON object.');
 }
 
-Directory _specRoot() {
-  final fromEnv = Platform.environment['HOURA_SPEC_ROOT'];
+Directory canonicalSpecRoot({
+  Map<String, String>? environment,
+  String defaultPath = '../houra-spec',
+}) {
+  final fromEnv = (environment ?? Platform.environment)['HOURA_SPEC_ROOT'];
   if (fromEnv != null && fromEnv.isNotEmpty) {
     return Directory(fromEnv);
   }
-  return Directory('../houra-spec');
+  return Directory(defaultPath);
+}
+
+Directory requireCanonicalSpecRoot({
+  Map<String, String>? environment,
+  String defaultPath = '../houra-spec',
+}) {
+  final root = canonicalSpecRoot(
+    environment: environment,
+    defaultPath: defaultPath,
+  );
+  if (!root.existsSync()) {
+    fail(
+      'Canonical houra-spec checkout not found at ${root.path}. '
+      'Set HOURA_SPEC_ROOT to the canonical houra-spec checkout before '
+      'running spec-dependent tests.',
+    );
+  }
+  if (!Directory('${root.path}/test-vectors').existsSync()) {
+    fail(
+      'Canonical houra-spec checkout at ${root.path} is missing '
+      'test-vectors/. Set HOURA_SPEC_ROOT to the canonical houra-spec '
+      'checkout before running spec-dependent tests.',
+    );
+  }
+  return root;
 }
 
 Map<String, Object?> objectFrom(Map<String, Object?> json, String key) {

@@ -2816,8 +2816,36 @@ mod tests {
         assert_eq!(error.details.get("field"), Some(&"content_uri".to_owned()));
     }
 
+    #[test]
+    fn reports_descriptive_error_when_spec_root_is_missing() {
+        let error = spec_root_from_sources(None, &[]).expect_err("missing spec root should fail");
+
+        assert!(error.contains("canonical houra-spec checkout not found"));
+        assert!(error.contains("HOURA_SPEC_ROOT"));
+        assert!(!error.contains("Checked:"));
+        assert!(!error.contains("No such file"));
+    }
+
+    #[test]
+    fn reports_descriptive_error_when_spec_vectors_are_missing() {
+        let root =
+            std::env::temp_dir().join(format!("houra_wrong_spec_root_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir(&root).expect("temporary spec root should be created");
+
+        let error = spec_root_from_sources(Some(root.to_string_lossy().as_ref()), &[])
+            .expect_err("spec root without test-vectors should fail");
+
+        assert!(error.contains("missing test-vectors/"));
+        assert!(error.contains("HOURA_SPEC_ROOT"));
+        assert!(!error.contains("No such file"));
+
+        std::fs::remove_dir_all(&root).expect("temporary spec root should be removed");
+    }
+
     fn read_spec_vector(relative_path: &str) -> Value {
-        let spec_root = spec_root();
+        let spec_root = spec_root()
+            .expect("canonical houra-spec checkout is required for spec-dependent Rust tests");
         let path = spec_root.join(relative_path);
         let source = std::fs::read_to_string(&path)
             .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
@@ -2825,18 +2853,55 @@ mod tests {
             .unwrap_or_else(|error| panic!("failed to parse {}: {error}", path.display()))
     }
 
-    fn spec_root() -> PathBuf {
-        if let Ok(path) = std::env::var("HOURA_SPEC_ROOT") {
-            return PathBuf::from(path);
+    fn spec_root() -> Result<PathBuf, String> {
+        let env_path = std::env::var("HOURA_SPEC_ROOT").ok();
+        spec_root_from_sources(env_path.as_deref(), &["../../houra-spec", "../houra-spec"])
+    }
+
+    fn spec_root_from_sources(
+        houra_spec_root: Option<&str>,
+        default_candidates: &[&str],
+    ) -> Result<PathBuf, String> {
+        if let Some(path) = houra_spec_root.filter(|path| !path.is_empty()) {
+            return validate_spec_root(PathBuf::from(path));
         }
 
-        for candidate in ["../../houra-spec", "../houra-spec"] {
+        for candidate in default_candidates {
             let path = Path::new(candidate);
             if path.join("test-vectors").exists() {
-                return path.to_path_buf();
+                return Ok(path.to_path_buf());
             }
         }
 
-        panic!("set HOURA_SPEC_ROOT to the canonical houra-spec checkout");
+        let mut message = "canonical houra-spec checkout not found. Set HOURA_SPEC_ROOT to \
+             the canonical houra-spec checkout before running spec-dependent \
+             tests."
+            .to_owned();
+        if !default_candidates.is_empty() {
+            message.push_str(&format!(" Checked: {}", default_candidates.join(", ")));
+        }
+        Err(message)
+    }
+
+    fn validate_spec_root(path: PathBuf) -> Result<PathBuf, String> {
+        if path.join("test-vectors").exists() {
+            return Ok(path);
+        }
+
+        if path.exists() {
+            return Err(format!(
+                "canonical houra-spec checkout at {} is missing test-vectors/. Set \
+                 HOURA_SPEC_ROOT to the canonical houra-spec checkout before \
+                 running spec-dependent tests.",
+                path.display()
+            ));
+        }
+
+        Err(format!(
+            "canonical houra-spec checkout not found at {}. Set \
+             HOURA_SPEC_ROOT to the canonical houra-spec checkout before \
+             running spec-dependent tests.",
+            path.display()
+        ))
     }
 }

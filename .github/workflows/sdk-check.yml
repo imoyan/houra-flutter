@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  HOURA_SPEC_REF: d05eca9afebf9d166a7a8a7def326ddc616a0190
+
 jobs:
   sdk-check:
     name: Flutter SDK checks
@@ -23,6 +26,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository_owner }}/houra-spec
+          ref: ${{ env.HOURA_SPEC_REF }}
           path: houra-spec
 
       - name: Setup Flutter
@@ -67,6 +71,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ github.repository_owner }}/houra-spec
+          ref: ${{ env.HOURA_SPEC_REF }}
           path: houra-spec
 
       - name: Setup Rust
@@ -105,6 +110,13 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: houra-labs
+
+      - name: Checkout houra-spec
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/houra-spec
+          ref: ${{ env.HOURA_SPEC_REF }}
+          path: houra-spec
 
       - name: Setup Node
         uses: actions/setup-node@v4
