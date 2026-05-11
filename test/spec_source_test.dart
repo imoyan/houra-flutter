@@ -2,9 +2,58 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'vector_test_support.dart';
+
 void main() {
+  test('reports a descriptive failure when canonical spec root is missing', () {
+    final missingRoot = Directory.systemTemp.createTempSync(
+      'houra_missing_spec_root_',
+    );
+    missingRoot.deleteSync();
+
+    expect(
+      () => requireCanonicalSpecRoot(
+        environment: const {},
+        defaultPath: missingRoot.path,
+      ),
+      throwsA(
+        isA<TestFailure>().having(
+          (failure) => failure.message,
+          'message',
+          allOf(
+            contains('Canonical houra-spec checkout not found'),
+            contains('HOURA_SPEC_ROOT'),
+          ),
+        ),
+      ),
+    );
+  });
+
+  test('reports a descriptive failure when canonical vectors are missing', () {
+    final root = Directory.systemTemp.createTempSync('houra_wrong_spec_root_');
+    addTearDown(() {
+      if (root.existsSync()) {
+        root.deleteSync(recursive: true);
+      }
+    });
+
+    expect(
+      () => requireCanonicalSpecRoot(
+        environment: const {},
+        defaultPath: root.path,
+      ),
+      throwsA(
+        isA<TestFailure>().having(
+          (failure) => failure.message,
+          'message',
+          allOf(contains('missing test-vectors/'), contains('HOURA_SPEC_ROOT')),
+        ),
+      ),
+    );
+  });
+
   test('required canonical spec files exist next to houra', () {
-    final root = _specRoot();
+    final root = requireCanonicalSpecRoot();
     expect(root.existsSync(), isTrue);
     final requiredFiles = [
       'contracts/SPEC-001-discovery-versions.md',
@@ -44,7 +93,7 @@ void main() {
   });
 
   test('bundled theme files match canonical spec design files', () {
-    final root = _specRoot();
+    final root = requireCanonicalSpecRoot();
     final pairs = {
       'design/theme.schema.json': '${root.path}/design/theme.schema.json',
       'design/themes/smoke.json': '${root.path}/design/themes/smoke.json',
@@ -58,12 +107,4 @@ void main() {
       );
     }
   });
-}
-
-Directory _specRoot() {
-  final fromEnv = Platform.environment['HOURA_SPEC_ROOT'];
-  if (fromEnv != null && fromEnv.isNotEmpty) {
-    return Directory(fromEnv);
-  }
-  return Directory('../houra-spec');
 }
