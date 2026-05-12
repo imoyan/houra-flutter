@@ -160,7 +160,7 @@ export interface MatrixSyncEvent {
   unsigned?: Record<string, unknown>;
 }
 
-export interface MatrixSyncAccountDataEvent {
+export interface MatrixSyncBasicEvent {
   content: Record<string, unknown>;
   type: string;
 }
@@ -175,7 +175,7 @@ export interface MatrixSyncJoinedRoom {
     prev_batch?: string;
   };
   account_data: {
-    events: MatrixSyncAccountDataEvent[];
+    events: MatrixSyncBasicEvent[];
   };
   summary?: {
     "m.joined_member_count"?: number;
@@ -190,10 +190,10 @@ export interface MatrixSyncJoinedRoom {
 export interface MatrixSyncResponse {
   next_batch: string;
   account_data: {
-    events: MatrixSyncAccountDataEvent[];
+    events: MatrixSyncBasicEvent[];
   };
   presence?: {
-    events: MatrixSyncAccountDataEvent[];
+    events: MatrixSyncBasicEvent[];
   };
   rooms: {
     join: Record<string, MatrixSyncJoinedRoom>;
@@ -752,7 +752,7 @@ function readMatrixSyncResponseEnvelope(
     const rooms = readRecord(value, "rooms", "sync value");
     const result: MatrixSyncResponse = {
       next_batch: readString(value, "next_batch", "invalid_envelope"),
-      account_data: readMatrixSyncAccountDataEvents(
+      account_data: readMatrixSyncBasicEvents(
         readRecord(value, "account_data", "sync value"),
         "account_data",
       ),
@@ -763,7 +763,7 @@ function readMatrixSyncResponseEnvelope(
       },
     };
     if (value.presence !== null && value.presence !== undefined) {
-      result.presence = readMatrixSyncAccountDataEvents(
+      result.presence = readMatrixSyncBasicEvents(
         readRecord(value, "presence", "sync value"),
         "presence",
       );
@@ -786,17 +786,24 @@ function readMatrixSyncJoinedRooms(
           "events",
           "invalid_envelope",
         ).map((entry, index) =>
-          readMatrixSyncEvent(assertRecord(entry, `state.events.${index}`)),
+          readMatrixSyncEvent(
+            assertRecord(entry, `rooms.join.${roomId}.state.events.${index}`),
+          ),
         ),
       },
       timeline: {
         events: readArray(timeline, "events", "invalid_envelope").map(
           (entry, index) =>
-            readMatrixSyncEvent(assertRecord(entry, `timeline.events.${index}`)),
+            readMatrixSyncEvent(
+              assertRecord(
+                entry,
+                `rooms.join.${roomId}.timeline.events.${index}`,
+              ),
+            ),
         ),
         limited: readBoolean(timeline, "limited"),
       },
-      account_data: readMatrixSyncAccountDataEvents(
+      account_data: readMatrixSyncBasicEvents(
         readRecord(roomRecord, "account_data", `rooms.join.${roomId}`),
         `rooms.join.${roomId}.account_data`,
       ),
@@ -839,15 +846,15 @@ function readMatrixSyncEvent(value: Record<string, unknown>): MatrixSyncEvent {
   return result;
 }
 
-function readMatrixSyncAccountDataEvents(
+function readMatrixSyncBasicEvents(
   value: Record<string, unknown>,
   context: string,
-): { events: MatrixSyncAccountDataEvent[] } {
+): { events: MatrixSyncBasicEvent[] } {
   return {
     events: readArray(value, "events", "invalid_envelope").map((entry, index) => {
       const record = assertRecord(entry, `${context}.events.${index}`);
       return {
-        content: readRecord(record, "content", "account data event"),
+        content: readRecord(record, "content", "sync basic event"),
         type: readString(record, "type", "invalid_envelope"),
       };
     }),
