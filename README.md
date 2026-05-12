@@ -37,7 +37,7 @@ The expected long-term shape is:
 - Other language bindings: thin adapters added by demand after the Rust core
   and TypeScript representative path are stable.
 - Private integration sample repositories: Gennai OSS, Java MVC, SPA, Local
-  LLM, Gemini, and business workflow integration demos.
+  LLM, Gemini, and business process integration demos.
 
 This repository also contains lab-only shared implementation experiments. The
 `rust-protocol-core/` crate is the first Rust shared protocol core prototype. It
