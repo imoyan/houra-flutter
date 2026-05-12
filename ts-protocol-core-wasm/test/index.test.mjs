@@ -969,6 +969,67 @@ test("reports joined room context for malformed SPEC-037 sync event lists", () =
       error.code === "invalid_envelope" &&
       error.message.includes("rooms.join.!room:example.test.timeline.events.0"),
   );
+
+  const malformedStateCore = createHouraProtocolCore(
+    binding({
+      syncResponseEnvelope: syncEnvelopeWithRoom({
+        state: {
+          events: [
+            {
+              content: {},
+              event_id: null,
+              origin_server_ts: 1,
+              sender: "@alice:example.test",
+              type: "m.room.message",
+            },
+          ],
+        },
+        timeline: { events: [], limited: false },
+        account_data: { events: [] },
+      }),
+    }),
+  );
+
+  assert.throws(
+    () => malformedStateCore.parseMatrixSyncResponse("{}"),
+    (error) =>
+      error instanceof HouraProtocolCoreFacadeError &&
+      error.code === "invalid_envelope" &&
+      error.message.includes(
+        "rooms.join.!room:example.test.state.events.0.event_id",
+      ),
+  );
+
+  const malformedTimelineCore = createHouraProtocolCore(
+    binding({
+      syncResponseEnvelope: syncEnvelopeWithRoom({
+        state: { events: [] },
+        timeline: {
+          events: [
+            {
+              content: {},
+              event_id: "$event1:example.test",
+              origin_server_ts: "1",
+              sender: "@alice:example.test",
+              type: "m.room.message",
+            },
+          ],
+          limited: false,
+        },
+        account_data: { events: [] },
+      }),
+    }),
+  );
+
+  assert.throws(
+    () => malformedTimelineCore.parseMatrixSyncResponse("{}"),
+    (error) =>
+      error instanceof HouraProtocolCoreFacadeError &&
+      error.code === "invalid_envelope" &&
+      error.message.includes(
+        "rooms.join.!room:example.test.timeline.events.0.origin_server_ts",
+      ),
+  );
 });
 
 test("maps SPEC-038 Matrix media envelopes", () => {
