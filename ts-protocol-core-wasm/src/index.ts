@@ -788,6 +788,7 @@ function readMatrixSyncJoinedRooms(
         ).map((entry, index) =>
           readMatrixSyncEvent(
             assertRecord(entry, `rooms.join.${roomId}.state.events.${index}`),
+            `rooms.join.${roomId}.state.events.${index}`,
           ),
         ),
       },
@@ -799,6 +800,7 @@ function readMatrixSyncJoinedRooms(
                 entry,
                 `rooms.join.${roomId}.timeline.events.${index}`,
               ),
+              `rooms.join.${roomId}.timeline.events.${index}`,
             ),
         ),
         limited: readBoolean(timeline, "limited"),
@@ -829,19 +831,22 @@ function readMatrixSyncJoinedRooms(
   return rooms;
 }
 
-function readMatrixSyncEvent(value: Record<string, unknown>): MatrixSyncEvent {
+function readMatrixSyncEvent(
+  value: Record<string, unknown>,
+  context: string,
+): MatrixSyncEvent {
   const result: MatrixSyncEvent = {
-    content: readRecord(value, "content", "sync event"),
-    event_id: readString(value, "event_id", "invalid_envelope"),
-    origin_server_ts: readNumber(value, "origin_server_ts", "invalid_envelope"),
-    sender: readString(value, "sender", "invalid_envelope"),
-    type: readString(value, "type", "invalid_envelope"),
+    content: readRecord(value, "content", context),
+    event_id: readContextString(value, "event_id", context),
+    origin_server_ts: readContextNumber(value, "origin_server_ts", context),
+    sender: readContextString(value, "sender", context),
+    type: readContextString(value, "type", context),
   };
   readOptionalString(value, "state_key", (stateKey) => {
     result.state_key = stateKey;
-  });
+  }, context);
   if (value.unsigned !== null && value.unsigned !== undefined) {
-    result.unsigned = readRecord(value, "unsigned", "sync event");
+    result.unsigned = readRecord(value, "unsigned", context);
   }
   return result;
 }
@@ -1042,6 +1047,7 @@ function readOptionalString(
   source: Record<string, unknown>,
   field: string,
   apply: (value: string) => void,
+  context?: string,
 ): void {
   const value = source[field];
   if (value === null || value === undefined) {
@@ -1050,10 +1056,27 @@ function readOptionalString(
   if (typeof value !== "string") {
     throw new HouraProtocolCoreFacadeError(
       "invalid_envelope",
-      `${field} must be a string`,
+      context
+        ? `${context}.${field} must be a string`
+        : `${field} must be a string`,
     );
   }
   apply(value);
+}
+
+function readContextString(
+  source: Record<string, unknown>,
+  field: string,
+  context: string,
+): string {
+  const value = source[field];
+  if (typeof value !== "string") {
+    throw new HouraProtocolCoreFacadeError(
+      "invalid_envelope",
+      `${context}.${field} must be a string`,
+    );
+  }
+  return value;
 }
 
 function readNumber(
@@ -1066,6 +1089,21 @@ function readNumber(
     throw new HouraProtocolCoreFacadeError(
       errorCode,
       `${field} must be an integer`,
+    );
+  }
+  return value;
+}
+
+function readContextNumber(
+  source: Record<string, unknown>,
+  field: string,
+  context: string,
+): number {
+  const value = source[field];
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    throw new HouraProtocolCoreFacadeError(
+      "invalid_envelope",
+      `${context}.${field} must be an integer`,
     );
   }
   return value;
