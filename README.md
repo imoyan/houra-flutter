@@ -14,8 +14,8 @@ SPEC-010, SPEC-011, and SPEC-020.
 This public repository is for Houra implementation experiments:
 
 - Flutter SDK prototype code.
-- Shared protocol-core experiments.
-- WASM, TypeScript, Dart FFI, or other binding prototypes.
+- Rust-first shared protocol-core experiments.
+- WASM, TypeScript, Dart FFI, or other thin binding prototypes.
 - Minimal SDK usage examples that exercise the public API surface.
 
 It is not the place for business adoption demos, customer proposal material,
@@ -26,6 +26,18 @@ sanitized for publication.
 
 `example/` is a package usage example for this SDK prototype, not a business
 application replacement or integration demo.
+
+The expected long-term shape is:
+
+- `houra-spec`: canonical contracts, vectors, and design.
+- `houra-core`: a thin Rust protocol / parser / state core promoted from
+  `rust-protocol-core/` when it is ready.
+- `houra-ts`: the representative TypeScript SDK or binding promoted from the
+  TypeScript facade work when it is ready.
+- Other language bindings: thin adapters added by demand after the Rust core
+  and TypeScript representative path are stable.
+- Private integration sample repositories: Gennai OSS, Java MVC, SPA, Local
+  LLM, Gemini, and business workflow integration demos.
 
 This repository also contains lab-only shared implementation experiments. The
 `rust-protocol-core/` crate is the first Rust shared protocol core prototype. It
