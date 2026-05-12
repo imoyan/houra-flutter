@@ -114,10 +114,16 @@ mod tests {
     #[test]
     fn artifact_manifest_marks_wasm_binding_kind() {
         let json = houra_artifact_manifest_json();
+        let manifest: serde_json::Value =
+            serde_json::from_str(&json).expect("manifest JSON should parse");
 
         assert_eq!(
+            manifest["supported_binding_kinds"],
+            serde_json::json!(["wasm"])
+        );
+        assert_eq!(
             json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\",\"SPEC-036\",\"SPEC-037\",\"SPEC-038\"],\"supported_binding_kinds\":[\"wasm\"]}"
+            houra_protocol_core::artifact_manifest_json_for_binding_kinds(&["wasm"])
         );
     }
 

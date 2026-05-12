@@ -16,8 +16,9 @@ currently validates the `SPEC-030` Matrix client versions vector and the
 session vectors, `SPEC-033` Matrix registration vectors, `SPEC-034` Matrix
 device/session vectors, `SPEC-035` Matrix room membership/state MVP vectors,
 `SPEC-036` Matrix event/messages vectors, `SPEC-037` Matrix sync response
-vectors, and `SPEC-038` Matrix media parser vectors. It is not published,
-canonical, or required by the Flutter SDK.
+vectors, `SPEC-038` Matrix media parser vectors, and the `SPEC-039`
+integration gate vector that ties those parser surfaces together. It is not
+published, canonical, or required by the Flutter SDK.
 
 The Rust prototype exposes `abi_version()` and `artifact_manifest()` as
 implementation metadata for future TS / Dart bindings. Bindings can use that
@@ -30,7 +31,8 @@ a focused follow-up.
 
 The prototype also exposes binding-safe JSON envelopes for `SPEC-030`,
 `SPEC-031`, `SPEC-032`, `SPEC-033`, `SPEC-034`, `SPEC-035`, `SPEC-036`, and
-`SPEC-037` / `SPEC-038`.
+`SPEC-037` / `SPEC-038`; `SPEC-039` is exposed only as manifest coverage and a
+repo-local integration gate over those existing surfaces.
 Those APIs return a single `ok` / `value` / `error` object so WASM, N-API, FFI,
 and JS interop adapters can cross the language boundary once per parse or
 validation call instead of bouncing through many small calls. The envelope
@@ -41,9 +43,9 @@ contracts and test vectors.
 `rust-protocol-core-wasm/` is the first thin binding prototype for browser,
 Vue, and Next client experiments. It uses `wasm-bindgen` to export the manifest
 and `SPEC-030` / `SPEC-031` / `SPEC-032` / `SPEC-033` / `SPEC-034` /
-`SPEC-035` / `SPEC-036` / `SPEC-037` / `SPEC-038` JSON envelopes, but it does
-not own HTTP, retries, cancellation, token storage, UI state, or framework
-lifecycle.
+`SPEC-035` / `SPEC-036` / `SPEC-037` / `SPEC-038` JSON envelopes plus
+`SPEC-039` manifest coverage, but it does not own HTTP, retries, cancellation,
+token storage, UI state, or framework lifecycle.
 Generated JS, `.wasm` files, npm packaging, and Next server / Node bindings are
 intentionally left out until a focused package issue exists.
 
@@ -105,10 +107,20 @@ behavior.
 SPEC-038 adoption record for issue #47: the Rust prototype now consumes the
 `houra-spec` snapshot `d05eca9afebf9d166a7a8a7def326ddc616a0190`
 (`v0.2.0-pre.58-2-gd05eca9`) Matrix media vectors for Matrix Content URI
-validation and media upload response parsing only. CI pins the Flutter, Rust,
-and TypeScript jobs to that same snapshot. The WASM wrapper and TypeScript
-facade expose those envelopes without taking ownership of media transport,
-media storage, persistence, crypto, retries, secure storage, or UI behavior.
+validation and media upload response parsing only. The WASM wrapper and
+TypeScript facade expose those envelopes without taking ownership of media
+transport, media storage, persistence, crypto, retries, secure storage, or UI
+behavior.
+
+SPEC-039 adoption record: the Rust prototype now consumes the
+`houra-spec` snapshot `413a3025a32521e4a707d9dd890a10b56328154e`
+(`v0.2.0-pre.58-3-g413a302`) `SPEC-039` Matrix Client-Server MVP live e2e gate
+vector as a repo-local integration gate over the existing `SPEC-030` through
+`SPEC-038` parser and binding surfaces. CI pins the Flutter, Rust, and
+TypeScript jobs to that same snapshot. The WASM wrapper and TypeScript facade
+expose this as manifest coverage only; live server/client execution, host-owned
+token and sync-token persistence, media transport, retries, storage, UI
+behavior, and Matrix full compliance stay outside this repository.
 
 Out of scope for this package version:
 
@@ -217,8 +229,9 @@ flutter test
 ```
 
 `tool/check_spec_sync.dart` also runs `../houra-spec/tool/check_spec.dart`
-before checking bundled theme and vector references. If `HOURA_SPEC_ROOT` is
-set, that path is used instead of `../houra-spec`.
+before checking bundled theme, vector references, and the repo-local `SPEC-039`
+protocol-core integration gate. If `HOURA_SPEC_ROOT` is set, that path is used
+instead of `../houra-spec`.
 
 For the Rust protocol core prototype, run:
 
