@@ -33,6 +33,14 @@ contract clarification.
 - This package follows `../houra-spec`.
 - Do not move canonical behavior into this package.
 - Do not treat lab code as canonical or production behavior.
+- Keep this repository focused on public SDK, protocol-core, binding, and
+  package-usage experiments.
+- Do not add business adoption demos, customer proposal samples, legacy-system
+  migration walkthroughs, or provider-key-based AI demos here. Keep those in
+  separate private integration or adoption sample repositories until they are
+  sanitized for publication.
+- Keep `example/` limited to minimal SDK usage examples. It must not become a
+  business application integration demo.
 - Keep production React Native client work in `../houra-client`.
 - Keep downstream product semantics outside this repository. Product-specific
   adapters, route names, room mapping, roles, audit metadata, and app policy

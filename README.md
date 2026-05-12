@@ -9,6 +9,24 @@ Draft. The current implementation covers the MVP client profiles from
 SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
 SPEC-010, SPEC-011, and SPEC-020.
 
+## Repository Role
+
+This public repository is for Houra implementation experiments:
+
+- Flutter SDK prototype code.
+- Shared protocol-core experiments.
+- WASM, TypeScript, Dart FFI, or other binding prototypes.
+- Minimal SDK usage examples that exercise the public API surface.
+
+It is not the place for business adoption demos, customer proposal material,
+legacy-system migration walkthroughs, or samples that need provider secrets such
+as Local LLM gateways, Gemini keys, or other model credentials. Those belong in
+separate private integration or adoption sample repositories until they are
+sanitized for publication.
+
+`example/` is a package usage example for this SDK prototype, not a business
+application replacement or integration demo.
+
 This repository also contains lab-only shared implementation experiments. The
 `rust-protocol-core/` crate is the first Rust shared protocol core prototype. It
 currently validates the `SPEC-030` Matrix client versions vector and the
