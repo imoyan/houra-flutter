@@ -19,10 +19,10 @@ This public repository is for Houra implementation experiments:
 - Minimal SDK usage examples that exercise the public API surface.
 
 It is not the place for business adoption demos, customer proposal material,
-legacy-system migration walkthroughs, or samples that need provider secrets such
-as Local LLM gateways, Gemini keys, or other model credentials. Those belong in
-separate private integration or adoption sample repositories until they are
-sanitized for publication.
+legacy-system migration walkthroughs, or samples that require provider API keys
+or tokens, such as Local LLM gateway tokens, Gemini API keys, or other model
+credentials. Those belong in separate private integration or adoption sample
+repositories until they are sanitized for publication.
 
 `example/` is a package usage example for this SDK prototype, not a business
 application replacement or integration demo.

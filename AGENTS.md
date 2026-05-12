@@ -36,9 +36,9 @@ contract clarification.
 - Keep this repository focused on public SDK, Rust protocol-core, thin binding,
   and package-usage experiments.
 - Do not add business adoption demos, customer proposal samples, legacy-system
-  migration walkthroughs, or provider-key-based AI demos here. Keep those in
-  separate private integration or adoption sample repositories until they are
-  sanitized for publication.
+  migration walkthroughs, or provider API-key/token-based AI demos here. Keep
+  those in separate private integration or adoption sample repositories until
+  they are sanitized for publication.
 - Keep `example/` limited to minimal SDK usage examples. It must not become a
   business application integration demo.
 - Keep production React Native client work in `../houra-client`.
