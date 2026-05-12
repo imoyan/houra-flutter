@@ -164,15 +164,15 @@ pub struct MatrixSyncEvent {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct MatrixSyncAccountDataEvent {
+pub struct MatrixSyncBasicEvent {
     pub content: BTreeMap<String, Value>,
     #[serde(rename = "type")]
     pub event_type: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct MatrixSyncEventList {
-    pub events: Vec<MatrixSyncAccountDataEvent>,
+pub struct MatrixSyncBasicEventList {
+    pub events: Vec<MatrixSyncBasicEvent>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -214,7 +214,7 @@ pub struct MatrixSyncUnreadNotifications {
 pub struct MatrixSyncJoinedRoom {
     pub state: MatrixSyncRoomEventList,
     pub timeline: MatrixSyncTimeline,
-    pub account_data: MatrixSyncEventList,
+    pub account_data: MatrixSyncBasicEventList,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub summary: Option<MatrixSyncSummary>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -231,9 +231,9 @@ pub struct MatrixSyncRooms {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MatrixSyncResponse {
     pub next_batch: String,
-    pub account_data: MatrixSyncEventList,
+    pub account_data: MatrixSyncBasicEventList,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub presence: Option<MatrixSyncEventList>,
+    pub presence: Option<MatrixSyncBasicEventList>,
     pub rooms: MatrixSyncRooms,
 }
 
@@ -636,8 +636,8 @@ struct MatrixMessagesResponseWire {
 #[derive(Debug, Deserialize)]
 struct MatrixSyncResponseWire {
     next_batch: Option<String>,
-    account_data: Option<MatrixSyncEventListWire>,
-    presence: Option<MatrixSyncEventListWire>,
+    account_data: Option<MatrixSyncBasicEventListWire>,
+    presence: Option<MatrixSyncBasicEventListWire>,
     rooms: Option<MatrixSyncRoomsWire>,
 }
 
@@ -652,7 +652,7 @@ struct MatrixSyncRoomsWire {
 struct MatrixSyncJoinedRoomWire {
     state: Option<MatrixSyncRoomEventListWire>,
     timeline: Option<MatrixSyncTimelineWire>,
-    account_data: Option<MatrixSyncEventListWire>,
+    account_data: Option<MatrixSyncBasicEventListWire>,
     summary: Option<MatrixSyncSummaryWire>,
     unread_notifications: Option<MatrixSyncUnreadNotificationsWire>,
 }
@@ -663,8 +663,8 @@ struct MatrixSyncRoomEventListWire {
 }
 
 #[derive(Debug, Deserialize)]
-struct MatrixSyncEventListWire {
-    events: Option<Vec<MatrixSyncAccountDataEventWire>>,
+struct MatrixSyncBasicEventListWire {
+    events: Option<Vec<MatrixSyncBasicEventWire>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -687,7 +687,7 @@ struct MatrixSyncEventWire {
 }
 
 #[derive(Debug, Deserialize)]
-struct MatrixSyncAccountDataEventWire {
+struct MatrixSyncBasicEventWire {
     content: Option<BTreeMap<String, Value>>,
     #[serde(rename = "type")]
     event_type: Option<String>,
@@ -1384,14 +1384,14 @@ pub fn parse_matrix_sync_response(bytes: &[u8]) -> Result<MatrixSyncResponse, Pr
 
     Ok(MatrixSyncResponse {
         next_batch: required_room_string(wire.next_batch, "sync.next_batch")?,
-        account_data: matrix_sync_event_list_from_wire(
+        account_data: matrix_sync_basic_event_list_from_wire(
             wire.account_data
                 .ok_or_else(|| invalid_room_field("sync.account_data"))?,
             "sync.account_data",
         )?,
         presence: wire
             .presence
-            .map(|presence| matrix_sync_event_list_from_wire(presence, "sync.presence"))
+            .map(|presence| matrix_sync_basic_event_list_from_wire(presence, "sync.presence"))
             .transpose()?,
         rooms,
     })
@@ -1657,7 +1657,7 @@ fn matrix_sync_joined_room_from_wire(
                 .ok_or_else(|| invalid_room_field(&format!("{context}.timeline")))?,
             &format!("{context}.timeline"),
         )?,
-        account_data: matrix_sync_event_list_from_wire(
+        account_data: matrix_sync_basic_event_list_from_wire(
             wire.account_data
                 .ok_or_else(|| invalid_room_field(&format!("{context}.account_data")))?,
             &format!("{context}.account_data"),
@@ -1694,20 +1694,20 @@ fn matrix_sync_room_event_list_from_wire(
     Ok(MatrixSyncRoomEventList { events })
 }
 
-fn matrix_sync_event_list_from_wire(
-    wire: MatrixSyncEventListWire,
+fn matrix_sync_basic_event_list_from_wire(
+    wire: MatrixSyncBasicEventListWire,
     context: &str,
-) -> Result<MatrixSyncEventList, ProtocolError> {
+) -> Result<MatrixSyncBasicEventList, ProtocolError> {
     let events = wire
         .events
         .ok_or_else(|| invalid_room_field(&format!("{context}.events")))?
         .into_iter()
         .enumerate()
         .map(|(index, event)| {
-            matrix_sync_account_data_event_from_wire(event, &format!("{context}.events.{index}"))
+            matrix_sync_basic_event_from_wire(event, &format!("{context}.events.{index}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    Ok(MatrixSyncEventList { events })
+    Ok(MatrixSyncBasicEventList { events })
 }
 
 fn matrix_sync_timeline_from_wire(
@@ -1755,11 +1755,11 @@ fn matrix_sync_event_from_wire(
     })
 }
 
-fn matrix_sync_account_data_event_from_wire(
-    wire: MatrixSyncAccountDataEventWire,
+fn matrix_sync_basic_event_from_wire(
+    wire: MatrixSyncBasicEventWire,
     context: &str,
-) -> Result<MatrixSyncAccountDataEvent, ProtocolError> {
-    Ok(MatrixSyncAccountDataEvent {
+) -> Result<MatrixSyncBasicEvent, ProtocolError> {
+    Ok(MatrixSyncBasicEvent {
         content: wire
             .content
             .ok_or_else(|| invalid_room_field(&format!("{context}.content")))?,

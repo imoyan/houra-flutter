@@ -918,6 +918,59 @@ test("maps optional SPEC-037 Matrix sync presence and summary envelopes", () => 
   });
 });
 
+test("reports joined room context for malformed SPEC-037 sync event lists", () => {
+  const syncEnvelopeWithRoom = (joinedRoom) => ({
+    ok: true,
+    value: {
+      next_batch: "s3",
+      account_data: { events: [] },
+      rooms: {
+        join: {
+          "!room:example.test": joinedRoom,
+        },
+        invite: {},
+        leave: {},
+      },
+    },
+    error: null,
+  });
+  const stateCore = createHouraProtocolCore(
+    binding({
+      syncResponseEnvelope: syncEnvelopeWithRoom({
+        state: { events: [null] },
+        timeline: { events: [], limited: false },
+        account_data: { events: [] },
+      }),
+    }),
+  );
+
+  assert.throws(
+    () => stateCore.parseMatrixSyncResponse("{}"),
+    (error) =>
+      error instanceof HouraProtocolCoreFacadeError &&
+      error.code === "invalid_envelope" &&
+      error.message.includes("rooms.join.!room:example.test.state.events.0"),
+  );
+
+  const timelineCore = createHouraProtocolCore(
+    binding({
+      syncResponseEnvelope: syncEnvelopeWithRoom({
+        state: { events: [] },
+        timeline: { events: [null], limited: false },
+        account_data: { events: [] },
+      }),
+    }),
+  );
+
+  assert.throws(
+    () => timelineCore.parseMatrixSyncResponse("{}"),
+    (error) =>
+      error instanceof HouraProtocolCoreFacadeError &&
+      error.code === "invalid_envelope" &&
+      error.message.includes("rooms.join.!room:example.test.timeline.events.0"),
+  );
+});
+
 test("maps SPEC-038 Matrix media envelopes", () => {
   const core = createHouraProtocolCore(binding());
 

@@ -271,11 +271,29 @@ void checkSpec039ProtocolCoreGate(List<String> failures) {
     return;
   }
   final requiredContracts = event['required_contracts'];
-  if (requiredContracts is! List ||
-      !requiredContracts.contains('SPEC-030') ||
-      !requiredContracts.contains('SPEC-038')) {
-    failures
-        .add('SPEC-039 canonical vector must cover SPEC-030 through SPEC-038.');
+  const expectedRequiredContracts = [
+    'SPEC-030',
+    'SPEC-031',
+    'SPEC-032',
+    'SPEC-033',
+    'SPEC-034',
+    'SPEC-035',
+    'SPEC-036',
+    'SPEC-037',
+    'SPEC-038',
+  ];
+  if (requiredContracts is! List) {
+    failures.add('SPEC-039 canonical vector is missing required contracts.');
+  } else {
+    final missingRequiredContracts = expectedRequiredContracts
+        .where((contract) => !requiredContracts.contains(contract))
+        .toList(growable: false);
+    if (missingRequiredContracts.isNotEmpty) {
+      failures.add(
+        'SPEC-039 canonical vector is missing required contracts: '
+        '${missingRequiredContracts.join(', ')}.',
+      );
+    }
   }
 
   final requiredFragmentsByFile = {
