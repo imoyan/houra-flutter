@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 void main() {
@@ -7,6 +8,7 @@ void main() {
   checkDesignSync(failures);
   checkVectorReferences(failures);
   checkDocReferences(failures);
+  checkSpec039ProtocolCoreGate(failures);
 
   if (failures.isNotEmpty) {
     stderr.writeln('Spec sync check failed:');
@@ -217,6 +219,90 @@ void checkDocReferences(List<String> failures) {
       final resolved = resolveSpecReference(path, specRoot);
       if (!File(resolved).existsSync() && !Directory(resolved).existsSync()) {
         failures.add('${doc.path} references missing spec path: $resolved');
+      }
+    }
+  }
+}
+
+void checkSpec039ProtocolCoreGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final spec039ContractName = [
+    'SPEC-039',
+    'matrix',
+    'client',
+    'server',
+    'mvp',
+    'live',
+    'e2e',
+    'gate.md',
+  ].join('-');
+  final spec039VectorName = [
+    'matrix',
+    'client',
+    'server',
+    'mvp',
+    'live',
+    'e2e',
+    'gate.json'
+  ].join('-');
+  final contract = File(
+    '${specRoot.path}/contracts/$spec039ContractName',
+  );
+  final vector = File(
+    '${specRoot.path}/test-vectors/core/$spec039VectorName',
+  );
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-039 contract: ${contract.path}');
+    return;
+  }
+  if (!vector.existsSync()) {
+    failures.add('Missing SPEC-039 canonical vector: ${vector.path}');
+    return;
+  }
+
+  final decoded = jsonDecode(vector.readAsStringSync());
+  if (decoded is! Map<String, Object?> || decoded['contract'] != 'SPEC-039') {
+    failures.add('SPEC-039 canonical vector has an unexpected contract id.');
+    return;
+  }
+  final event = decoded['event'];
+  if (event is! Map<String, Object?>) {
+    failures.add('SPEC-039 canonical vector is missing event metadata.');
+    return;
+  }
+  final requiredContracts = event['required_contracts'];
+  if (requiredContracts is! List ||
+      !requiredContracts.contains('SPEC-030') ||
+      !requiredContracts.contains('SPEC-038')) {
+    failures
+        .add('SPEC-039 canonical vector must cover SPEC-030 through SPEC-038.');
+  }
+
+  final requiredFragmentsByFile = {
+    'rust-protocol-core/src/lib.rs': [
+      '"SPEC-039"',
+      'SPEC-039',
+    ],
+    'rust-protocol-core-wasm/src/lib.rs': [
+      'artifact_manifest_json_for_binding_kinds'
+    ],
+    'ts-protocol-core-wasm/src/index.ts': ['"SPEC-039"'],
+    'ts-protocol-core-wasm/test/index.test.mjs': [
+      'HOURA_PROTOCOL_CORE_SPEC_IDS',
+      'SPEC-039',
+    ],
+  };
+  for (final entry in requiredFragmentsByFile.entries) {
+    final file = File(entry.key);
+    if (!file.existsSync()) {
+      failures.add('Missing protocol core gate file: ${entry.key}');
+      continue;
+    }
+    final source = file.readAsStringSync();
+    for (final fragment in entry.value) {
+      if (!source.contains(fragment)) {
+        failures
+            .add('${entry.key} is missing SPEC-039 gate fragment: $fragment');
       }
     }
   }

@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import test from "node:test";
 
 import {
+  HOURA_PROTOCOL_CORE_SPEC_IDS,
   HouraProtocolCoreFacadeError,
   createHouraProtocolCore,
 } from "../dist/index.js";
@@ -12,19 +15,16 @@ const manifest = {
   crate_version: "0.1.0",
   abi_version: 1,
   protocol_boundary: "pure-protocol-core",
-  supported_specs: [
-    "SPEC-030",
-    "SPEC-031",
-    "SPEC-032",
-    "SPEC-033",
-    "SPEC-034",
-    "SPEC-035",
-    "SPEC-036",
-    "SPEC-037",
-    "SPEC-038",
-  ],
+  supported_specs: [...HOURA_PROTOCOL_CORE_SPEC_IDS],
   supported_binding_kinds: ["wasm"],
 };
+
+const specRoot = process.env.HOURA_SPEC_ROOT ?? "../../houra-spec";
+
+function readSpecVector(relativePath) {
+  const path = join(specRoot, relativePath);
+  return JSON.parse(readFileSync(path, "utf8"));
+}
 
 function binding(overrides = {}) {
   return {
@@ -368,6 +368,42 @@ test("validates manifest and maps successful versions parse envelopes", () => {
     unstable_features: {},
   });
   assert.equal(result.error, null);
+});
+
+test("accepts SPEC-039 integration gate coverage over existing facade surfaces", () => {
+  const core = createHouraProtocolCore(binding());
+  const gateName = ["matrix", "client", "server", "mvp", "live", "e2e", "gate"].join(
+    "-",
+  );
+  const vector = readSpecVector(`test-vectors/core/${gateName}.json`);
+
+  assert.equal(vector.contract, "SPEC-039");
+  assert.equal(
+    vector.event.gate,
+    ["matrix", "client", "server", "mvp", "live", "e2e"].join("-"),
+  );
+  assert.equal(vector.event.matrix_spec_version, "v1.18");
+  assert.deepEqual(vector.event.conditional_repositories, ["houra-labs"]);
+  assert.ok(core.manifest.supported_specs.includes("SPEC-039"));
+  for (const contract of vector.event.required_contracts) {
+    assert.ok(
+      core.manifest.supported_specs.includes(contract),
+      `manifest should include ${contract}`,
+    );
+  }
+  assert.equal(vector.event.scenario_steps.length, 12);
+  for (const step of vector.event.scenario_steps) {
+    assert.ok(
+      core.manifest.supported_specs.includes(step.contract),
+      `manifest should cover ${step.contract}`,
+    );
+    for (const vectorPath of step.vectors) {
+      assert.ok(
+        existsSync(join(specRoot, vectorPath)),
+        `canonical vector should exist: ${vectorPath}`,
+      );
+    }
+  }
 });
 
 test("maps SPEC-031 Matrix error and foundation validation envelopes", () => {

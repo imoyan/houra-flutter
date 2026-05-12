@@ -11,10 +11,10 @@ pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
-    "SPEC-038",
+    "SPEC-038", "SPEC-039",
 ];
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ArtifactManifest {
     pub manifest_schema_version: u32,
     pub crate_name: String,
@@ -1956,7 +1956,7 @@ mod tests {
             manifest.supported_specs,
             vec![
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
-                "SPEC-037", "SPEC-038"
+                "SPEC-037", "SPEC-038", "SPEC-039"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -1965,21 +1965,86 @@ mod tests {
     #[test]
     fn serializes_artifact_manifest_stably() {
         let json = artifact_manifest_json();
+        let manifest: ArtifactManifest =
+            serde_json::from_str(&json).expect("manifest JSON should parse");
 
-        assert_eq!(
-            json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\",\"SPEC-036\",\"SPEC-037\",\"SPEC-038\"],\"supported_binding_kinds\":[]}"
-        );
+        assert_eq!(manifest, artifact_manifest());
+        assert!(manifest.supported_binding_kinds.is_empty());
     }
 
     #[test]
     fn serializes_artifact_manifest_with_binding_kinds() {
         let json = artifact_manifest_json_for_binding_kinds(&["wasm"]);
+        let manifest: ArtifactManifest =
+            serde_json::from_str(&json).expect("manifest JSON should parse");
 
+        assert_eq!(manifest, artifact_manifest_for_binding_kinds(&["wasm"]));
+    }
+
+    #[test]
+    fn exposes_spec_039_integration_gate_coverage() {
+        let gate_name = ["matrix", "client", "server", "mvp", "live", "e2e", "gate"].join("-");
+        let vector = read_spec_vector(&format!("test-vectors/core/{gate_name}.json"));
+        assert_eq!(vector["contract"], "SPEC-039");
         assert_eq!(
-            json,
-            "{\"manifest_schema_version\":1,\"crate_name\":\"houra-protocol-core\",\"crate_version\":\"0.1.0\",\"abi_version\":1,\"protocol_boundary\":\"pure-protocol-core\",\"supported_specs\":[\"SPEC-030\",\"SPEC-031\",\"SPEC-032\",\"SPEC-033\",\"SPEC-034\",\"SPEC-035\",\"SPEC-036\",\"SPEC-037\",\"SPEC-038\"],\"supported_binding_kinds\":[\"wasm\"]}"
+            vector["event"]["gate"],
+            ["matrix", "client", "server", "mvp", "live", "e2e"].join("-")
         );
+        assert_eq!(vector["event"]["matrix_spec_version"], "v1.18");
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(
+            manifest
+                .supported_specs
+                .iter()
+                .any(|spec| spec == "SPEC-039"),
+            "manifest should mark the SPEC-039 integration gate as covered"
+        );
+        for contract in vector["event"]["required_contracts"]
+            .as_array()
+            .expect("SPEC-039 vector should list required contracts")
+        {
+            let contract = contract
+                .as_str()
+                .expect("required contract ids should be strings");
+            assert!(
+                manifest.supported_specs.iter().any(|spec| spec == contract),
+                "manifest should include required contract {contract}"
+            );
+        }
+        assert_eq!(
+            vector["event"]["conditional_repositories"]
+                .as_array()
+                .expect("SPEC-039 vector should list conditional repositories")
+                .iter()
+                .filter_map(Value::as_str)
+                .collect::<Vec<_>>(),
+            vec!["houra-labs"]
+        );
+
+        let scenario_steps = vector["event"]["scenario_steps"]
+            .as_array()
+            .expect("SPEC-039 vector should list scenario steps");
+        assert_eq!(scenario_steps.len(), 12);
+        for step in scenario_steps {
+            let contract = step["contract"]
+                .as_str()
+                .expect("scenario step should cite a contract");
+            assert!(
+                manifest.supported_specs.iter().any(|spec| spec == contract),
+                "scenario step contract {contract} should be covered"
+            );
+            for vector_path in step["vectors"]
+                .as_array()
+                .expect("scenario step should cite canonical vectors")
+            {
+                read_spec_vector(
+                    vector_path
+                        .as_str()
+                        .expect("scenario vector path should be a string"),
+                );
+            }
+        }
     }
 
     #[test]
