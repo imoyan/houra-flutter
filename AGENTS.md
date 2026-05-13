@@ -88,9 +88,8 @@ CI uses `HOURA_SPEC_ROOT` after checking out the sibling
 ## MCP
 
 - Dart MCP: before using Dart MCP tools in this repository, register the repo
-  root with `add_roots` using `file:///Users/yusuke/Developer/houra-labs` for
-  this checkout, or the current worktree root URI when working from a separate
-  worktree. Then pass that same URI as the root for `analyze_files`,
+  root with `add_roots` using the current checkout or worktree root as a
+  `file:` URI. Then pass that same URI as the root for `analyze_files`,
   `run_tests`, `dart_format`, or package URI reads. If `analyze_files` reports
   `No roots set`, call `add_roots` first instead of falling back immediately.
 
