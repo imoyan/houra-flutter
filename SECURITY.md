@@ -11,7 +11,7 @@ No package in this repository is currently published:
 - The Rust crates keep `publish = false`.
 - The TypeScript facade keeps `private: true`.
 
-## Reporting A Vulnerability
+## Reporting a Vulnerability
 
 Report suspected vulnerabilities through GitHub Security Advisories for this
 repository when available. If the advisory feature is unavailable, open a
