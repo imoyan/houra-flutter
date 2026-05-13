@@ -4,7 +4,17 @@ version = "0.1.0"
 edition = "2021"
 description = "Rust lab prototype for shared Houra protocol parsing and validation."
 license = "Apache-2.0"
+repository = "https://github.com/imoyan/houra-labs"
+documentation = "https://docs.rs/houra-protocol-core"
+readme = "README.md"
+keywords = ["houra", "protocol", "parser", "matrix"]
+categories = ["parser-implementations", "wasm"]
 publish = false
+
+[package.metadata.docs.rs]
+all-features = false
+no-default-features = false
+rustdoc-args = ["--cfg", "docsrs"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

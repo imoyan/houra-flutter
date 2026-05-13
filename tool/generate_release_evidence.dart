@@ -34,6 +34,32 @@ void main(List<String> args) {
   );
   _expect(
     failures,
+    rustCore['description'] ==
+        'Rust lab prototype for shared Houra protocol parsing and validation.',
+    'Rust crate description changed without updating release evidence.',
+  );
+  _expect(
+    failures,
+    rustCore['license'] == 'Apache-2.0',
+    'Rust crate license must stay Apache-2.0.',
+  );
+  _expect(
+    failures,
+    rustCore['repository'] == 'https://github.com/imoyan/houra-labs',
+    'Rust crate repository metadata must point at houra-labs.',
+  );
+  _expect(
+    failures,
+    rustCore['readme'] == 'README.md',
+    'Rust crate readme metadata must point at the crate README.',
+  );
+  _expect(
+    failures,
+    rustCore['documentation'] == 'https://docs.rs/houra-protocol-core',
+    'Rust crate docs.rs metadata must match the package name.',
+  );
+  _expect(
+    failures,
     rustCore['version'] == tsConstants['crateVersion'],
     'Rust crate version and TypeScript facade crate version constant differ.',
   );
@@ -75,11 +101,43 @@ void main(List<String> args) {
     'protocol_core': {
       'crate_name': rustCore['name'],
       'crate_version': rustCore['version'],
+      'description': rustCore['description'],
+      'license': rustCore['license'],
+      'repository': rustCore['repository'],
+      'documentation': rustCore['documentation'],
+      'readme': rustCore['readme'],
+      'keywords': rustCore['keywords'],
+      'categories': rustCore['categories'],
       'abi_version': tsConstants['abiVersion'],
       'manifest_schema_version': tsConstants['manifestSchemaVersion'],
       'protocol_boundary': tsConstants['protocolBoundary'],
       'binding_kinds': [tsConstants['wasmBindingKind']],
       'publish': rustCore['publish'],
+      'docs_rs': rustCore['docs_rs'],
+      'publish_readiness': {
+        'issue': 79,
+        'status': 'checklist-only-publish-deferred',
+        'package_contents_check': 'cargo package --list',
+        'dry_run_check': 'cargo publish --dry-run',
+        'expected_contents': [
+          'crate metadata',
+          'rust-protocol-core README',
+          'source files',
+          'Cargo lock metadata needed for reproducible checks',
+        ],
+        'blocked_until': [
+          'crate ownership and final package name are confirmed',
+          'publish = false is removed in a focused release PR',
+          'docs.rs API surface is reviewed against the lab boundary',
+          'cargo package --list passes on the release head',
+          'cargo publish --dry-run passes on the release head',
+        ],
+        'claim_boundaries': [
+          'no Matrix compatibility claim',
+          'no server or client behavior claim',
+          'no storage, crypto, or federation ownership claim',
+        ],
+      },
     },
     'wasm_wrapper': {
       'crate_name': rustWasm['name'],
@@ -202,7 +260,19 @@ Map<String, Object?> _readCargoPackage(File file) {
   return {
     'name': _readTomlString(packageSource, 'name'),
     'version': _readTomlString(packageSource, 'version'),
+    'description': _readTomlStringOrNull(packageSource, 'description'),
+    'license': _readTomlStringOrNull(packageSource, 'license'),
+    'repository': _readTomlStringOrNull(packageSource, 'repository'),
+    'documentation': _readTomlStringOrNull(packageSource, 'documentation'),
+    'readme': _readTomlStringOrNull(packageSource, 'readme'),
+    'keywords': _readTomlStringListOrEmpty(packageSource, 'keywords'),
+    'categories': _readTomlStringListOrEmpty(packageSource, 'categories'),
     'publish': _readTomlBool(packageSource, 'publish'),
+    'docs_rs': {
+      'all_features': _readTomlBoolOrNull(source, 'all-features'),
+      'no_default_features': _readTomlBoolOrNull(source, 'no-default-features'),
+      'rustdoc_args': _readTomlStringListOrEmpty(source, 'rustdoc-args'),
+    },
   };
 }
 
@@ -244,11 +314,37 @@ String _readTomlString(String source, String key) {
   return match.group(1)!;
 }
 
+String? _readTomlStringOrNull(String source, String key) {
+  final match = RegExp('^$key = "([^"]+)"', multiLine: true).firstMatch(source);
+  return match?.group(1);
+}
+
+List<String> _readTomlStringListOrEmpty(String source, String key) {
+  final match =
+      RegExp('^$key = \\[(.*?)\\]', multiLine: true).firstMatch(source);
+  if (match == null) {
+    return [];
+  }
+  return RegExp('"([^"]+)"')
+      .allMatches(match.group(1)!)
+      .map((match) => match.group(1)!)
+      .toList();
+}
+
 bool _readTomlBool(String source, String key) {
   final match =
       RegExp('^$key = (true|false)', multiLine: true).firstMatch(source);
   if (match == null) {
     throw FormatException('Missing TOML boolean key: $key');
+  }
+  return match.group(1) == 'true';
+}
+
+bool? _readTomlBoolOrNull(String source, String key) {
+  final match =
+      RegExp('^$key = (true|false)', multiLine: true).firstMatch(source);
+  if (match == null) {
+    return null;
   }
   return match.group(1) == 'true';
 }

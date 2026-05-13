@@ -1,3 +1,16 @@
+//! Shared Houra protocol parsing and validation helpers.
+//!
+//! This crate is a lab prototype for parser, checker, ABI, and artifact
+//! manifest surfaces that can be checked against the canonical `houra-spec`
+//! contracts and test vectors. It is not the canonical behavior source, not a
+//! production client or server implementation, and not a Matrix compatibility
+//! claim.
+//!
+//! Public APIs exposed here are intended for docs.rs review and thin binding
+//! experiments only. Hosts remain responsible for HTTP transport, retry policy,
+//! token storage, sync-token persistence, media storage, UI state, crypto, and
+//! federation behavior.
+
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
