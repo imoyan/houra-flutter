@@ -122,6 +122,94 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixFederationInviteRequestJson() {
+      return JSON.stringify(
+        overrides.federationInviteRequestEnvelope ?? {
+          ok: true,
+          value: {
+            room_version: "12",
+            event: {
+              type: "m.room.member",
+              content: { membership: "invite" },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationInviteResponseJson() {
+      return JSON.stringify(
+        overrides.federationInviteResponseEnvelope ?? {
+          ok: true,
+          value: {
+            event: {
+              type: "m.room.member",
+              content: { membership: "invite" },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationMakeJoinResponseJson() {
+      return JSON.stringify(
+        overrides.federationMakeJoinResponseEnvelope ?? {
+          ok: true,
+          value: {
+            room_version: "12",
+            event: {
+              type: "m.room.member",
+              content: { membership: "join" },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationSendJoinResponseJson() {
+      return JSON.stringify(
+        overrides.federationSendJoinResponseEnvelope ?? {
+          ok: true,
+          value: {
+            origin: "example.test",
+            state: [],
+            auth_chain: [],
+            event: {
+              type: "m.room.member",
+              content: { membership: "join" },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationTransactionJson() {
+      return JSON.stringify(
+        overrides.federationTransactionEnvelope ?? {
+          ok: true,
+          value: {
+            origin: "remote.example.test",
+            origin_server_ts: 1778408851000,
+            pdus: [],
+            edus: [],
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationTransactionResponseJson() {
+      return JSON.stringify(
+        overrides.federationTransactionResponseEnvelope ?? {
+          ok: true,
+          value: {
+            pdus: {
+              "$event1:remote.example.test": {},
+            },
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixMessagesResponseJson() {
       return JSON.stringify(
         overrides.messagesResponseEnvelope ?? {
@@ -473,6 +561,115 @@ test("accepts SPEC-040 event DAG/auth event vector coverage", () => {
       "duplicate_auth_state_key",
     ],
   );
+});
+
+test("maps SPEC-056 federation transaction, join, and invite envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const transaction = readSpecVector(
+    "test-vectors/events/matrix-federation-send-transaction-basic.json",
+  );
+  const failedTransaction = readSpecVector(
+    "test-vectors/events/matrix-federation-send-transaction-pdu-failure.json",
+  );
+  const join = readSpecVector(
+    "test-vectors/events/matrix-federation-make-send-join-basic.json",
+  );
+  const invite = readSpecVector(
+    "test-vectors/events/matrix-federation-invite-v2-basic.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-056"));
+  assert.equal(transaction.contract, "SPEC-056");
+  assert.equal(failedTransaction.contract, "SPEC-056");
+  assert.equal(join.contract, "SPEC-056");
+  assert.equal(invite.contract, "SPEC-056");
+  assert.deepEqual(core.parseMatrixFederationTransaction("{}"), {
+    ok: true,
+    value: {
+      origin: "remote.example.test",
+      origin_server_ts: 1778408851000,
+      pdus: [],
+      edus: [],
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixFederationTransactionResponse("{}"), {
+    ok: true,
+    value: {
+      pdus: {
+        "$event1:remote.example.test": {},
+      },
+    },
+    error: null,
+  });
+  const protoKeyCore = createHouraProtocolCore(
+    binding({
+      federationTransactionResponseEnvelope: {
+        ok: true,
+        value: {
+          pdus: {
+            ["__proto__"]: { error: "blocked" },
+          },
+        },
+        error: null,
+      },
+    }),
+  );
+  const protoKeyResponse =
+    protoKeyCore.parseMatrixFederationTransactionResponse("{}");
+  assert.equal(Object.prototype.blocked, undefined);
+  assert.equal(
+    Object.prototype.hasOwnProperty.call(protoKeyResponse.value.pdus, "__proto__"),
+    true,
+  );
+  assert.equal(protoKeyResponse.value.pdus.__proto__.error, "blocked");
+  assert.equal(join.event.steps[1].body.event.content.membership, "join");
+  assert.deepEqual(core.parseMatrixFederationMakeJoinResponse("{}"), {
+    ok: true,
+    value: {
+      room_version: "12",
+      event: {
+        type: "m.room.member",
+        content: { membership: "join" },
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixFederationSendJoinResponse("{}"), {
+    ok: true,
+    value: {
+      origin: "example.test",
+      state: [],
+      auth_chain: [],
+      event: {
+        type: "m.room.member",
+        content: { membership: "join" },
+      },
+    },
+    error: null,
+  });
+  assert.equal(invite.request.body.event.content.membership, "invite");
+  assert.deepEqual(core.parseMatrixFederationInviteRequest("{}"), {
+    ok: true,
+    value: {
+      room_version: "12",
+      event: {
+        type: "m.room.member",
+        content: { membership: "invite" },
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixFederationInviteResponse("{}"), {
+    ok: true,
+    value: {
+      event: {
+        type: "m.room.member",
+        content: { membership: "invite" },
+      },
+    },
+    error: null,
+  });
 });
 
 test("maps SPEC-031 Matrix error and foundation validation envelopes", () => {

@@ -244,12 +244,12 @@ behavior.
 SPEC-039 adoption record: the Rust prototype now consumes the
 `houra-spec` snapshot `b174d1f4efff37902996d95122f1115e72284d75`
 (`v0.2.0-pre.58-13-gb174d1f`) `SPEC-039` Matrix Client-Server MVP live e2e gate
-vector as a repo-local integration gate over the existing `SPEC-030` through
-`SPEC-038` parser and binding surfaces. CI pins the Flutter, Rust, and
-TypeScript jobs to that same snapshot. The WASM wrapper and TypeScript facade
-expose this as manifest coverage only; live server/client execution, host-owned
-token and sync-token persistence, media transport, retries, storage, UI
-behavior, and Matrix full compliance stay outside this repository.
+vector as a repo-local integration gate over the parser and binding surfaces
+that existed at that point. CI pins the Flutter, Rust, and TypeScript jobs to
+that same snapshot. The WASM wrapper and TypeScript facade expose SPEC-039
+itself as manifest coverage only; live server/client execution, host-owned token
+and sync-token persistence, media transport, retries, storage, UI behavior, and
+Matrix full compliance stay outside this repository.
 
 SPEC-040 adoption record: the Rust prototype now consumes the
 `houra-spec` snapshot `4b80ab451e43299ff075e352eaa3a512ef2ccee0`
@@ -259,6 +259,15 @@ TypeScript facade expose this as metadata coverage; room storage, full
 authorization decisions, state resolution, federation, event signing/hash
 verification, host persistence, and Matrix full compliance stay outside this
 repository.
+
+SPEC-056 adoption record for issue #71: the Rust prototype now consumes the
+`houra-spec` SPEC-056 Matrix federation transaction, make/send join, and invite
+vectors for parser-only federation envelope adoption. The WASM wrapper and
+TypeScript facade expose transaction body, transaction response, make_join
+response, send_join response, invite request, and invite response JSON
+envelopes without taking ownership of request authentication, network send,
+retry, storage, event acceptance policy, signing keys, room persistence, or
+full federation behavior.
 
 SPEC-069 Dart SDK adoption record for issue #99: the Flutter SDK prototype now
 consumes the sibling `houra-spec` `SPEC-069` device key query vectors for
@@ -600,6 +609,8 @@ External registration order:
 
 Current package-specific follow-ups:
 
+- #71: SPEC-056 federation transaction / join / invite parser adoption.
+  Completed as parser-only shared-core adoption.
 - #72: SPEC-057 backfill / event_auth / state interop candidates. Completed as
   candidate criteria only; parser and algorithm helper implementation remain
   split into follow-up issues.

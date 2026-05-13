@@ -13,6 +13,7 @@ const expectedSpecIds = [
   'SPEC-038',
   'SPEC-039',
   'SPEC-040',
+  'SPEC-056',
 ];
 
 void main(List<String> args) {
