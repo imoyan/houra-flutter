@@ -217,6 +217,18 @@ metadata-only release evidence from the validated manifest so release notes can
 record artifact compatibility without storing raw query, prompt, request,
 token, or secret values.
 
+Rust protocol-core crate publish readiness for issue #79: the
+`rust-protocol-core/` crate now has crates.io-facing package metadata,
+docs.rs metadata, and a crate-local README while keeping `publish = false`.
+The crate README is the docs.rs / package landing surface for its lab boundary:
+the Rust core is a parser / validation helper checked against `houra-spec`, not
+canonical behavior and not a Matrix, server, client, storage, crypto, or
+federation support claim. Release evidence records this as
+`checklist-only-publish-deferred` and keeps package publication blocked until a
+focused release PR confirms ownership, removes `publish = false`, reviews the
+docs.rs API surface, and passes `cargo package --list` plus
+`cargo publish --dry-run` on the release head.
+
 Out of scope for this package version:
 
 - end-to-end encryption
@@ -527,7 +539,8 @@ External registration order:
 
 Current package-specific follow-ups:
 
-- #79: Rust protocol-core crate publication readiness.
+- #79: Rust protocol-core crate publication readiness. Completed as a
+  metadata / checklist gate; actual crates.io publication remains deferred.
 - #80: TypeScript / WASM facade npm publish gate. Completed.
 - #81: shared-core parity / performance evidence gate. Completed.
 - Future package publication issues must remove `publish_to: none`,
