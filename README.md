@@ -173,6 +173,17 @@ must be split into SPEC-sized follow-up issues and tied to the corresponding
 `houra-spec/test-vectors/core/matrix-appservice-*`,
 `matrix-identity-*`, and `matrix-push-*` vectors.
 
+Federation state interop helper candidate gate for issue #72: SPEC-057 remains
+a federation interop gate, not a production federation implementation. Labs may
+adopt parser-only helpers for backfill request/response bodies, event auth
+responses, state ID responses, and state-resolution interop evidence records.
+Room-version/state algorithm helpers are a separate candidate path and require
+parity vectors, p95 runtime thresholds, payload size/depth limits, artifact
+boundary review, and CI runtime impact review before implementation. Server
+persistence, missing-event recovery policy, request authentication, federation
+retry/backoff, remote trust policy, and full state-resolution correctness stay
+server-owned and outside this repository.
+
 SPEC-031 adoption record for issue #31: the Rust prototype now consumes the
 `houra-spec` `v0.2.0-pre.23` Matrix foundation vectors for Matrix error
 envelope parsing and identifier validation only. The WASM wrapper and
@@ -577,6 +588,9 @@ External registration order:
 
 Current package-specific follow-ups:
 
+- #72: SPEC-057 backfill / event_auth / state interop candidates. Completed as
+  candidate criteria only; parser and algorithm helper implementation remain
+  split into follow-up issues.
 - #73: SPEC-058〜060 ecosystem service parser candidates. Completed as
   candidate criteria only; parser implementation remains split by SPEC.
 - #76: N-API / Node binding candidate gate. Completed as candidate criteria
