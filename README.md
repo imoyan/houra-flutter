@@ -261,6 +261,15 @@ authorization decisions, state resolution, federation, event signing/hash
 verification, host persistence, and Matrix full compliance stay outside this
 repository.
 
+SPEC-055 adoption record for issue #70: the Rust prototype now consumes the
+`houra-spec` SPEC-055 Matrix federation discovery and signing-key vectors for
+parser-only federation bootstrap adoption. The WASM wrapper and TypeScript
+facade expose server-name, well-known server, signing-key, key-query request,
+key-query response, and destination-resolution failure evidence JSON envelopes
+without taking ownership of outbound network policy, DNS/SRV/CNAME resolution,
+SSRF controls, redirect following, key cache lifecycle, notary trust policy,
+request signing, private signing keys, or production federation behavior.
+
 SPEC-056 adoption record for issue #71: the Rust prototype now consumes the
 `houra-spec` SPEC-056 Matrix federation transaction, make/send join, and invite
 vectors for parser-only federation envelope adoption. The WASM wrapper and
@@ -621,6 +630,8 @@ External registration order:
 
 Current package-specific follow-ups:
 
+- #70: SPEC-055 federation discovery / signing key parser adoption. Completed
+  as parser-only shared-core adoption.
 - #71: SPEC-056 federation transaction / join / invite parser adoption.
   Completed as parser-only shared-core adoption.
 - #72: SPEC-057 backfill / event_auth / state interop candidates. Completed as

@@ -16,6 +16,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-038",
   "SPEC-039",
   "SPEC-040",
+  "SPEC-055",
   "SPEC-056",
 ] as const;
 
@@ -29,10 +30,16 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixErrorEnvelopeJson(responseBody: string): string;
   parseMatrixFederationInviteRequestJson(responseBody: string): string;
   parseMatrixFederationInviteResponseJson(responseBody: string): string;
+  parseMatrixFederationDestinationResolutionFailureJson(responseBody: string): string;
+  parseMatrixFederationKeyQueryRequestJson(responseBody: string): string;
+  parseMatrixFederationKeyQueryResponseJson(responseBody: string): string;
   parseMatrixFederationMakeJoinResponseJson(responseBody: string): string;
+  parseMatrixFederationServerNameJson(serverName: string): string;
   parseMatrixFederationSendJoinResponseJson(responseBody: string): string;
+  parseMatrixFederationSigningKeyJson(responseBody: string): string;
   parseMatrixFederationTransactionJson(responseBody: string): string;
   parseMatrixFederationTransactionResponseJson(responseBody: string): string;
+  parseMatrixFederationWellKnownServerJson(responseBody: string): string;
   parseMatrixLoginFlowsJson(responseBody: string): string;
   parseMatrixLoginSessionJson(responseBody: string): string;
   parseMatrixMediaContentUriJson(contentUri: string): string;
@@ -272,6 +279,58 @@ export interface MatrixFederationInviteResponse {
   event: Record<string, unknown>;
 }
 
+export interface MatrixFederationServerName {
+  server_name: string;
+  host: string;
+  port?: number;
+}
+
+export interface MatrixFederationWellKnownServer {
+  delegated_server_name: string;
+  host: string;
+  port?: number;
+}
+
+export interface MatrixFederationVerifyKey {
+  key: string;
+}
+
+export interface MatrixFederationOldVerifyKey {
+  expired_ts: number;
+  key: string;
+}
+
+export interface MatrixFederationSigningKey {
+  server_name: string;
+  verify_keys: Record<string, MatrixFederationVerifyKey>;
+  old_verify_keys: Record<string, MatrixFederationOldVerifyKey>;
+  valid_until_ts: number;
+  signatures: Record<string, Record<string, string>>;
+}
+
+export interface MatrixFederationKeyQueryCriteria {
+  minimum_valid_until_ts?: number;
+}
+
+export interface MatrixFederationKeyQueryRequest {
+  server_keys: Record<
+    string,
+    Record<string, MatrixFederationKeyQueryCriteria>
+  >;
+}
+
+export interface MatrixFederationKeyQueryResponse {
+  server_keys: MatrixFederationSigningKey[];
+}
+
+export interface MatrixFederationDestinationResolutionFailure {
+  server_name: string;
+  stages: string[];
+  destination_resolved: boolean;
+  federation_request_sent: boolean;
+  backoff_recorded: boolean;
+}
+
 export interface ProtocolErrorEnvelope {
   code: string;
   message: string;
@@ -301,18 +360,36 @@ export interface HouraProtocolCoreFacade {
   parseMatrixFederationInviteResponse(
     responseBody: string,
   ): ProtocolResult<MatrixFederationInviteResponse>;
+  parseMatrixFederationDestinationResolutionFailure(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationDestinationResolutionFailure>;
+  parseMatrixFederationKeyQueryRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationKeyQueryRequest>;
+  parseMatrixFederationKeyQueryResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationKeyQueryResponse>;
   parseMatrixFederationMakeJoinResponse(
     responseBody: string,
   ): ProtocolResult<MatrixFederationMakeJoinResponse>;
+  parseMatrixFederationServerName(
+    serverName: string,
+  ): ProtocolResult<MatrixFederationServerName>;
   parseMatrixFederationSendJoinResponse(
     responseBody: string,
   ): ProtocolResult<MatrixFederationSendJoinResponse>;
+  parseMatrixFederationSigningKey(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationSigningKey>;
   parseMatrixFederationTransaction(
     responseBody: string,
   ): ProtocolResult<MatrixFederationTransaction>;
   parseMatrixFederationTransactionResponse(
     responseBody: string,
   ): ProtocolResult<MatrixFederationTransactionResponse>;
+  parseMatrixFederationWellKnownServer(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationWellKnownServer>;
   parseMatrixLoginFlows(responseBody: string): ProtocolResult<MatrixLoginFlows>;
   parseMatrixLoginSession(
     responseBody: string,
@@ -431,6 +508,29 @@ export function createHouraProtocolCore(
       );
       return readMatrixFederationInviteResponseEnvelope(envelope);
     },
+    parseMatrixFederationDestinationResolutionFailure(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationDestinationResolutionFailureJson(
+          responseBody,
+        ),
+        "parse envelope",
+      );
+      return readMatrixFederationDestinationResolutionFailureEnvelope(envelope);
+    },
+    parseMatrixFederationKeyQueryRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationKeyQueryRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationKeyQueryRequestEnvelope(envelope);
+    },
+    parseMatrixFederationKeyQueryResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationKeyQueryResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationKeyQueryResponseEnvelope(envelope);
+    },
     parseMatrixFederationMakeJoinResponse(responseBody: string) {
       const envelope = parseJsonObject(
         binding.parseMatrixFederationMakeJoinResponseJson(responseBody),
@@ -438,12 +538,26 @@ export function createHouraProtocolCore(
       );
       return readMatrixFederationMakeJoinResponseEnvelope(envelope);
     },
+    parseMatrixFederationServerName(serverName: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationServerNameJson(serverName),
+        "parse envelope",
+      );
+      return readMatrixFederationServerNameEnvelope(envelope);
+    },
     parseMatrixFederationSendJoinResponse(responseBody: string) {
       const envelope = parseJsonObject(
         binding.parseMatrixFederationSendJoinResponseJson(responseBody),
         "parse envelope",
       );
       return readMatrixFederationSendJoinResponseEnvelope(envelope);
+    },
+    parseMatrixFederationSigningKey(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationSigningKeyJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationSigningKeyEnvelope(envelope);
     },
     parseMatrixFederationTransaction(responseBody: string) {
       const envelope = parseJsonObject(
@@ -458,6 +572,13 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixFederationTransactionResponseEnvelope(envelope);
+    },
+    parseMatrixFederationWellKnownServer(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationWellKnownServerJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationWellKnownServerEnvelope(envelope);
     },
     parseMatrixLoginFlows(responseBody: string) {
       const envelope = parseJsonObject(
@@ -775,6 +896,83 @@ function readMatrixFederationInviteResponseEnvelope(
 ): ProtocolResult<MatrixFederationInviteResponse> {
   return readProtocolResult(envelope, (value) => ({
     event: readRecord(value, "event", "federation.invite_response"),
+  }));
+}
+
+function readMatrixFederationServerNameEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationServerName> {
+  return readProtocolResult(envelope, (value) => {
+    const serverName: MatrixFederationServerName = {
+      server_name: readString(value, "server_name", "invalid_envelope"),
+      host: readString(value, "host", "invalid_envelope"),
+    };
+    readOptionalNumber(value, "port", (port) => {
+      serverName.port = port;
+    });
+    return serverName;
+  });
+}
+
+function readMatrixFederationWellKnownServerEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationWellKnownServer> {
+  return readProtocolResult(envelope, (value) => {
+    const wellKnown: MatrixFederationWellKnownServer = {
+      delegated_server_name: readString(
+        value,
+        "delegated_server_name",
+        "invalid_envelope",
+      ),
+      host: readString(value, "host", "invalid_envelope"),
+    };
+    readOptionalNumber(value, "port", (port) => {
+      wellKnown.port = port;
+    });
+    return wellKnown;
+  });
+}
+
+function readMatrixFederationSigningKeyEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationSigningKey> {
+  return readProtocolResult(envelope, readMatrixFederationSigningKey);
+}
+
+function readMatrixFederationKeyQueryRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationKeyQueryRequest> {
+  return readProtocolResult(envelope, (value) => ({
+    server_keys: readNestedFederationKeyQueryCriteria(
+      value,
+      "server_keys",
+      "federation.key_query_request.server_keys",
+    ),
+  }));
+}
+
+function readMatrixFederationKeyQueryResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationKeyQueryResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    server_keys: readArray(value, "server_keys", "invalid_envelope").map(
+      (entry, index) =>
+        readMatrixFederationSigningKey(
+          assertRecord(entry, `federation.key_query_response.${index}`),
+        ),
+    ),
+  }));
+}
+
+function readMatrixFederationDestinationResolutionFailureEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationDestinationResolutionFailure> {
+  return readProtocolResult(envelope, (value) => ({
+    server_name: readString(value, "server_name", "invalid_envelope"),
+    stages: readStringArray(value, "stages", "invalid_envelope"),
+    destination_resolved: readBoolean(value, "destination_resolved"),
+    federation_request_sent: readBoolean(value, "federation_request_sent"),
+    backoff_recorded: readBoolean(value, "backoff_recorded"),
   }));
 }
 
@@ -1418,6 +1616,116 @@ function readRecordArray(
   return readArray(source, field, "invalid_envelope").map((entry, index) =>
     assertRecord(entry, `${context}.${index}`),
   );
+}
+
+function readMatrixFederationSigningKey(
+  value: Record<string, unknown>,
+): MatrixFederationSigningKey {
+  return {
+    server_name: readString(value, "server_name", "invalid_envelope"),
+    verify_keys: readFederationVerifyKeys(
+      value,
+      "verify_keys",
+      "federation.signing_key.verify_keys",
+    ),
+    old_verify_keys: readFederationOldVerifyKeys(
+      value,
+      "old_verify_keys",
+      "federation.signing_key.old_verify_keys",
+    ),
+    valid_until_ts: readNumber(value, "valid_until_ts", "invalid_envelope"),
+    signatures: readNestedStringRecord(
+      value,
+      "signatures",
+      "federation.signing_key.signatures",
+    ),
+  };
+}
+
+function readFederationVerifyKeys(
+  source: Record<string, unknown>,
+  field: string,
+  context: string,
+): Record<string, MatrixFederationVerifyKey> {
+  const keys: [string, MatrixFederationVerifyKey][] = [];
+  for (const [keyId, key] of Object.entries(readRecord(source, field, context))) {
+    keys.push([
+      keyId,
+      {
+        key: readString(assertRecord(key, `${context}.${keyId}`), "key", "invalid_envelope"),
+      },
+    ]);
+  }
+  return Object.fromEntries(keys);
+}
+
+function readFederationOldVerifyKeys(
+  source: Record<string, unknown>,
+  field: string,
+  context: string,
+): Record<string, MatrixFederationOldVerifyKey> {
+  const keys: [string, MatrixFederationOldVerifyKey][] = [];
+  for (const [keyId, key] of Object.entries(readRecord(source, field, context))) {
+    const record = assertRecord(key, `${context}.${keyId}`);
+    keys.push([
+      keyId,
+      {
+        expired_ts: readNumber(record, "expired_ts", "invalid_envelope"),
+        key: readString(record, "key", "invalid_envelope"),
+      },
+    ]);
+  }
+  return Object.fromEntries(keys);
+}
+
+function readNestedStringRecord(
+  source: Record<string, unknown>,
+  field: string,
+  context: string,
+): Record<string, Record<string, string>> {
+  const outer: [string, Record<string, string>][] = [];
+  for (const [outerKey, inner] of Object.entries(readRecord(source, field, context))) {
+    const innerValues: [string, string][] = [];
+    for (const [innerKey, value] of Object.entries(
+      assertRecord(inner, `${context}.${outerKey}`),
+    )) {
+      if (typeof value !== "string") {
+        throw new HouraProtocolCoreFacadeError(
+          "invalid_envelope",
+          `${context}.${outerKey}.${innerKey} must be a string`,
+        );
+      }
+      innerValues.push([innerKey, value]);
+    }
+    outer.push([outerKey, Object.fromEntries(innerValues)]);
+  }
+  return Object.fromEntries(outer);
+}
+
+function readNestedFederationKeyQueryCriteria(
+  source: Record<string, unknown>,
+  field: string,
+  context: string,
+): Record<string, Record<string, MatrixFederationKeyQueryCriteria>> {
+  const servers: [string, Record<string, MatrixFederationKeyQueryCriteria>][] =
+    [];
+  for (const [serverName, keyCriteria] of Object.entries(
+    readRecord(source, field, context),
+  )) {
+    const keys: [string, MatrixFederationKeyQueryCriteria][] = [];
+    for (const [keyId, criteria] of Object.entries(
+      assertRecord(keyCriteria, `${context}.${serverName}`),
+    )) {
+      const record = assertRecord(criteria, `${context}.${serverName}.${keyId}`);
+      const parsed: MatrixFederationKeyQueryCriteria = {};
+      readOptionalNumber(record, "minimum_valid_until_ts", (minimumValidUntilTs) => {
+        parsed.minimum_valid_until_ts = minimumValidUntilTs;
+      });
+      keys.push([keyId, parsed]);
+    }
+    servers.push([serverName, Object.fromEntries(keys)]);
+  }
+  return Object.fromEntries(servers);
 }
 
 function readStringArray(

@@ -24,7 +24,7 @@ pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
-    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-056",
+    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-055", "SPEC-056",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -306,6 +306,67 @@ pub struct MatrixFederationInviteResponse {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationServerName {
+    pub server_name: String,
+    pub host: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub port: Option<u16>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationWellKnownServer {
+    pub delegated_server_name: String,
+    pub host: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub port: Option<u16>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationVerifyKey {
+    pub key: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationOldVerifyKey {
+    pub expired_ts: u64,
+    pub key: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationSigningKey {
+    pub server_name: String,
+    pub verify_keys: BTreeMap<String, MatrixFederationVerifyKey>,
+    pub old_verify_keys: BTreeMap<String, MatrixFederationOldVerifyKey>,
+    pub valid_until_ts: u64,
+    pub signatures: BTreeMap<String, BTreeMap<String, String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationKeyQueryCriteria {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub minimum_valid_until_ts: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationKeyQueryRequest {
+    pub server_keys: BTreeMap<String, BTreeMap<String, MatrixFederationKeyQueryCriteria>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationKeyQueryResponse {
+    pub server_keys: Vec<MatrixFederationSigningKey>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationDestinationResolutionFailure {
+    pub server_name: String,
+    pub stages: Vec<String>,
+    pub destination_resolved: bool,
+    pub federation_request_sent: bool,
+    pub backoff_recorded: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ProtocolErrorEnvelope {
     pub code: String,
     pub message: String,
@@ -491,6 +552,48 @@ pub struct MatrixFederationInviteRequestParseEnvelope {
 pub struct MatrixFederationInviteResponseParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixFederationInviteResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationServerNameParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationServerName>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationWellKnownServerParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationWellKnownServer>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationSigningKeyParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationSigningKey>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationKeyQueryRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationKeyQueryRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationKeyQueryResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationKeyQueryResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationDestinationResolutionFailureParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationDestinationResolutionFailure>,
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
@@ -861,6 +964,48 @@ struct MatrixFederationInviteWire {
 #[derive(Debug, Deserialize)]
 struct MatrixFederationInviteResponseWire {
     event: Option<Value>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationWellKnownServerWire {
+    #[serde(rename = "m.server")]
+    delegated_server_name: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationVerifyKeyWire {
+    key: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationOldVerifyKeyWire {
+    expired_ts: Option<i64>,
+    key: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationSigningKeyWire {
+    server_name: Option<String>,
+    verify_keys: Option<BTreeMap<String, MatrixFederationVerifyKeyWire>>,
+    #[serde(default)]
+    old_verify_keys: BTreeMap<String, MatrixFederationOldVerifyKeyWire>,
+    valid_until_ts: Option<i64>,
+    signatures: Option<BTreeMap<String, BTreeMap<String, String>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationKeyQueryCriteriaWire {
+    minimum_valid_until_ts: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationKeyQueryRequestWire {
+    server_keys: Option<BTreeMap<String, BTreeMap<String, MatrixFederationKeyQueryCriteriaWire>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationKeyQueryResponseWire {
+    server_keys: Option<Vec<MatrixFederationSigningKeyWire>>,
 }
 
 pub fn abi_version() -> u32 {
@@ -1885,6 +2030,287 @@ pub fn parse_matrix_federation_invite_response_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_federation_server_name(
+    server_name: &str,
+) -> Result<MatrixFederationServerName, ProtocolError> {
+    let server_name = required_federation_borrowed_string(server_name, "federation.server_name")?;
+    if server_name.contains('/') || server_name.contains('@') || server_name.contains('#') {
+        return Err(invalid_federation_field("federation.server_name"));
+    }
+    let (host, port) = split_federation_server_name(server_name)?;
+
+    Ok(MatrixFederationServerName {
+        server_name: server_name.to_owned(),
+        host,
+        port,
+    })
+}
+
+pub fn parse_matrix_federation_server_name_envelope(
+    server_name: &str,
+) -> MatrixFederationServerNameParseEnvelope {
+    match parse_matrix_federation_server_name(server_name) {
+        Ok(value) => MatrixFederationServerNameParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationServerNameParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_server_name_json(server_name: &str) -> String {
+    serde_json::to_string(&parse_matrix_federation_server_name_envelope(server_name))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_well_known_server(
+    bytes: &[u8],
+) -> Result<MatrixFederationWellKnownServer, ProtocolError> {
+    let wire: MatrixFederationWellKnownServerWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let delegated_server_name =
+        required_federation_string(wire.delegated_server_name, "federation.well_known.m.server")?;
+    let parsed = parse_matrix_federation_server_name(&delegated_server_name)?;
+
+    Ok(MatrixFederationWellKnownServer {
+        delegated_server_name: parsed.server_name,
+        host: parsed.host,
+        port: parsed.port,
+    })
+}
+
+pub fn parse_matrix_federation_well_known_server_envelope(
+    bytes: &[u8],
+) -> MatrixFederationWellKnownServerParseEnvelope {
+    match parse_matrix_federation_well_known_server(bytes) {
+        Ok(value) => MatrixFederationWellKnownServerParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationWellKnownServerParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_well_known_server_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_well_known_server_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_signing_key(
+    bytes: &[u8],
+) -> Result<MatrixFederationSigningKey, ProtocolError> {
+    let wire: MatrixFederationSigningKeyWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    matrix_federation_signing_key_from_wire(wire)
+}
+
+pub fn parse_matrix_federation_signing_key_envelope(
+    bytes: &[u8],
+) -> MatrixFederationSigningKeyParseEnvelope {
+    match parse_matrix_federation_signing_key(bytes) {
+        Ok(value) => MatrixFederationSigningKeyParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationSigningKeyParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_signing_key_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_signing_key_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_key_query_request(
+    bytes: &[u8],
+) -> Result<MatrixFederationKeyQueryRequest, ProtocolError> {
+    let wire: MatrixFederationKeyQueryRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let server_keys = wire
+        .server_keys
+        .ok_or_else(|| invalid_federation_field("federation.key_query_request.server_keys"))?
+        .into_iter()
+        .map(|(server_name, key_criteria)| {
+            parse_matrix_federation_server_name(&server_name)?;
+            if key_criteria.is_empty() {
+                return Err(invalid_federation_field(
+                    "federation.key_query_request.server_keys",
+                ));
+            }
+            let criteria = key_criteria
+                .into_iter()
+                .map(|(key_id, criteria)| {
+                    required_federation_key_id(&key_id, "federation.key_query_request.key_id")?;
+                    Ok((
+                        key_id,
+                        MatrixFederationKeyQueryCriteria {
+                            minimum_valid_until_ts: optional_federation_timestamp(
+                                criteria.minimum_valid_until_ts,
+                                "federation.key_query_request.minimum_valid_until_ts",
+                            )?,
+                        },
+                    ))
+                })
+                .collect::<Result<BTreeMap<_, _>, _>>()?;
+            Ok((server_name, criteria))
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?;
+
+    Ok(MatrixFederationKeyQueryRequest { server_keys })
+}
+
+pub fn parse_matrix_federation_key_query_request_envelope(
+    bytes: &[u8],
+) -> MatrixFederationKeyQueryRequestParseEnvelope {
+    match parse_matrix_federation_key_query_request(bytes) {
+        Ok(value) => MatrixFederationKeyQueryRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationKeyQueryRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_key_query_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_key_query_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_key_query_response(
+    bytes: &[u8],
+) -> Result<MatrixFederationKeyQueryResponse, ProtocolError> {
+    let wire: MatrixFederationKeyQueryResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let server_keys = wire
+        .server_keys
+        .ok_or_else(|| invalid_federation_field("federation.key_query_response.server_keys"))?
+        .into_iter()
+        .map(matrix_federation_signing_key_from_wire)
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(MatrixFederationKeyQueryResponse { server_keys })
+}
+
+pub fn parse_matrix_federation_key_query_response_envelope(
+    bytes: &[u8],
+) -> MatrixFederationKeyQueryResponseParseEnvelope {
+    match parse_matrix_federation_key_query_response(bytes) {
+        Ok(value) => MatrixFederationKeyQueryResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationKeyQueryResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_key_query_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_key_query_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_destination_resolution_failure(
+    bytes: &[u8],
+) -> Result<MatrixFederationDestinationResolutionFailure, ProtocolError> {
+    let value: Value =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let event = value
+        .get("event")
+        .and_then(Value::as_object)
+        .ok_or_else(|| invalid_federation_field("federation.destination_failure.event"))?;
+    let server_name = event
+        .get("server_name")
+        .and_then(Value::as_str)
+        .ok_or_else(|| invalid_federation_field("federation.destination_failure.server_name"))?;
+    parse_matrix_federation_server_name(server_name)?;
+    let steps = event
+        .get("steps")
+        .and_then(Value::as_array)
+        .ok_or_else(|| invalid_federation_field("federation.destination_failure.steps"))?;
+    let mut stages = Vec::new();
+    let mut destination_resolved = true;
+    let mut federation_request_sent = true;
+    let mut backoff_recorded = false;
+    for step in steps {
+        let step = step
+            .as_object()
+            .ok_or_else(|| invalid_federation_field("federation.destination_failure.steps"))?;
+        let stage = step
+            .get("stage")
+            .and_then(Value::as_str)
+            .ok_or_else(|| invalid_federation_field("federation.destination_failure.stage"))?;
+        stages.push(stage.to_owned());
+        if let Some(result) = step.get("result").and_then(Value::as_object) {
+            if let Some(value) = result.get("destination_resolved").and_then(Value::as_bool) {
+                destination_resolved = value;
+            }
+            if let Some(value) = result
+                .get("federation_request_sent")
+                .and_then(Value::as_bool)
+            {
+                federation_request_sent = value;
+            }
+            if let Some(value) = result.get("backoff_recorded").and_then(Value::as_bool) {
+                backoff_recorded = value;
+            }
+        }
+    }
+
+    Ok(MatrixFederationDestinationResolutionFailure {
+        server_name: server_name.to_owned(),
+        stages,
+        destination_resolved,
+        federation_request_sent,
+        backoff_recorded,
+    })
+}
+
+pub fn parse_matrix_federation_destination_resolution_failure_envelope(
+    bytes: &[u8],
+) -> MatrixFederationDestinationResolutionFailureParseEnvelope {
+    match parse_matrix_federation_destination_resolution_failure(bytes) {
+        Ok(value) => MatrixFederationDestinationResolutionFailureParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationDestinationResolutionFailureParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_destination_resolution_failure_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_destination_resolution_failure_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 fn required_non_empty(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
     match value {
         Some(value) if !value.is_empty() => Ok(value),
@@ -2227,6 +2653,18 @@ fn invalid_federation_field(field: &str) -> ProtocolError {
     }
 }
 
+fn required_federation_borrowed_string<'a>(
+    value: &'a str,
+    field: &str,
+) -> Result<&'a str, ProtocolError> {
+    let value = value.trim();
+    if value.is_empty() {
+        Err(invalid_federation_field(field))
+    } else {
+        Ok(value)
+    }
+}
+
 fn required_federation_string(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
     match value {
         Some(value) if !value.is_empty() => Ok(value),
@@ -2249,6 +2687,17 @@ fn required_federation_timestamp(value: Option<i64>, field: &str) -> Result<u64,
     match value {
         Some(value) if value >= 0 => Ok(value as u64),
         _ => Err(invalid_federation_field(field)),
+    }
+}
+
+fn optional_federation_timestamp(
+    value: Option<i64>,
+    field: &str,
+) -> Result<Option<u64>, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(Some(value as u64)),
+        Some(_) => Err(invalid_federation_field(field)),
+        None => Ok(None),
     }
 }
 
@@ -2282,6 +2731,112 @@ fn required_federation_object(value: Option<Value>, field: &str) -> Result<Value
         Some(value) if value.is_object() => Ok(value),
         _ => Err(invalid_federation_field(field)),
     }
+}
+
+fn split_federation_server_name(server_name: &str) -> Result<(String, Option<u16>), ProtocolError> {
+    let (host, port) = match server_name.rsplit_once(':') {
+        Some((host, port)) if !host.contains(':') => {
+            let port = port
+                .parse::<u16>()
+                .map_err(|_| invalid_federation_field("federation.server_name.port"))?;
+            (host, Some(port))
+        }
+        _ => (server_name, None),
+    };
+    if host.is_empty() || host.starts_with('.') || host.ends_with('.') {
+        return Err(invalid_federation_field("federation.server_name.host"));
+    }
+    Ok((host.to_owned(), port))
+}
+
+fn required_federation_key_id(key_id: &str, field: &str) -> Result<(), ProtocolError> {
+    if key_id.is_empty() || !key_id.contains(':') {
+        Err(invalid_federation_field(field))
+    } else {
+        Ok(())
+    }
+}
+
+fn federation_signatures(
+    value: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    field: &str,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, ProtocolError> {
+    let signatures = value.ok_or_else(|| invalid_federation_field(field))?;
+    if signatures.is_empty() {
+        return Err(invalid_federation_field(field));
+    }
+    for (server_name, signatures) in &signatures {
+        parse_matrix_federation_server_name(server_name)?;
+        if signatures.is_empty() {
+            return Err(invalid_federation_field(field));
+        }
+        for (key_id, signature) in signatures {
+            required_federation_key_id(key_id, field)?;
+            required_federation_borrowed_string(signature, field)?;
+        }
+    }
+    Ok(signatures)
+}
+
+fn matrix_federation_signing_key_from_wire(
+    wire: MatrixFederationSigningKeyWire,
+) -> Result<MatrixFederationSigningKey, ProtocolError> {
+    let server_name =
+        required_federation_string(wire.server_name, "federation.signing_key.server_name")?;
+    parse_matrix_federation_server_name(&server_name)?;
+    let verify_keys = wire
+        .verify_keys
+        .ok_or_else(|| invalid_federation_field("federation.signing_key.verify_keys"))?
+        .into_iter()
+        .map(|(key_id, key)| {
+            required_federation_key_id(&key_id, "federation.signing_key.verify_keys")?;
+            Ok((
+                key_id,
+                MatrixFederationVerifyKey {
+                    key: required_federation_string(
+                        key.key,
+                        "federation.signing_key.verify_keys.key",
+                    )?,
+                },
+            ))
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?;
+    if verify_keys.is_empty() {
+        return Err(invalid_federation_field(
+            "federation.signing_key.verify_keys",
+        ));
+    }
+    let old_verify_keys = wire
+        .old_verify_keys
+        .into_iter()
+        .map(|(key_id, key)| {
+            required_federation_key_id(&key_id, "federation.signing_key.old_verify_keys")?;
+            Ok((
+                key_id,
+                MatrixFederationOldVerifyKey {
+                    expired_ts: required_federation_timestamp(
+                        key.expired_ts,
+                        "federation.signing_key.old_verify_keys.expired_ts",
+                    )?,
+                    key: required_federation_string(
+                        key.key,
+                        "federation.signing_key.old_verify_keys.key",
+                    )?,
+                },
+            ))
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?;
+
+    Ok(MatrixFederationSigningKey {
+        server_name,
+        verify_keys,
+        old_verify_keys,
+        valid_until_ts: required_federation_timestamp(
+            wire.valid_until_ts,
+            "federation.signing_key.valid_until_ts",
+        )?,
+        signatures: federation_signatures(wire.signatures, "federation.signing_key.signatures")?,
+    })
 }
 
 fn required_media_content_uri(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
@@ -2418,7 +2973,7 @@ mod tests {
             manifest.supported_specs,
             vec![
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
-                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-056"
+                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-055", "SPEC-056"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -2666,6 +3221,93 @@ mod tests {
             .supported_specs
             .iter()
             .any(|spec| spec == "SPEC-056"));
+    }
+
+    #[test]
+    fn parses_spec_055_federation_discovery_and_signing_key_vectors() {
+        let well_known =
+            read_spec_vector("test-vectors/core/matrix-federation-well-known-server-basic.json");
+        let parsed_well_known = parse_matrix_federation_well_known_server(
+            well_known["response"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-055 well-known response should parse");
+        assert_eq!(
+            parsed_well_known.delegated_server_name,
+            "delegated.example.test:8448"
+        );
+        assert_eq!(parsed_well_known.host, "delegated.example.test");
+        assert_eq!(parsed_well_known.port, Some(8448));
+        assert!(parse_matrix_federation_well_known_server(
+            "{\"m.server\":\"https://bad.example.test\"}".as_bytes()
+        )
+        .is_err());
+
+        let signing_key =
+            read_spec_vector("test-vectors/core/matrix-federation-signing-key-basic.json");
+        let parsed_signing_key = parse_matrix_federation_signing_key(
+            signing_key["response"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-055 signing key response should parse");
+        assert_eq!(parsed_signing_key.server_name, "example.test");
+        assert_eq!(
+            parsed_signing_key
+                .verify_keys
+                .get("ed25519:auto1")
+                .expect("current key should be present")
+                .key,
+            "VGhpcyBpcyBhIHRlc3QgcHVibGljIHZlcmlmeSBrZXk"
+        );
+        assert!(parsed_signing_key
+            .old_verify_keys
+            .contains_key("ed25519:old1"));
+        assert_eq!(parsed_signing_key.valid_until_ts, 1779011408000);
+
+        let key_query =
+            read_spec_vector("test-vectors/core/matrix-federation-key-query-basic.json");
+        let parsed_key_query_request = parse_matrix_federation_key_query_request(
+            key_query["request"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-055 key query request should parse");
+        assert_eq!(
+            parsed_key_query_request.server_keys["example.test"]["ed25519:auto1"]
+                .minimum_valid_until_ts,
+            Some(1779011408000)
+        );
+        let parsed_key_query_response = parse_matrix_federation_key_query_response(
+            key_query["response"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-055 key query response should parse");
+        assert_eq!(parsed_key_query_response.server_keys.len(), 1);
+        assert!(parsed_key_query_response.server_keys[0]
+            .signatures
+            .contains_key("notary.example.test"));
+
+        let failure = read_spec_vector(
+            "test-vectors/core/matrix-federation-destination-resolution-failure.json",
+        );
+        let parsed_failure =
+            parse_matrix_federation_destination_resolution_failure(failure.to_string().as_bytes())
+                .expect("SPEC-055 destination failure evidence should parse");
+        assert_eq!(parsed_failure.server_name, "broken.example.test");
+        assert_eq!(
+            parsed_failure.stages,
+            vec![
+                "well_known",
+                "srv_matrix_fed",
+                "srv_matrix_deprecated",
+                "address_records",
+                "failure_cache"
+            ]
+        );
+        assert!(!parsed_failure.destination_resolved);
+        assert!(!parsed_failure.federation_request_sent);
+        assert!(parsed_failure.backoff_recorded);
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-055"));
     }
 
     #[test]

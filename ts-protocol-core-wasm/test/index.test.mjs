@@ -151,6 +151,71 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixFederationDestinationResolutionFailureJson() {
+      return JSON.stringify(
+        overrides.federationDestinationResolutionFailureEnvelope ?? {
+          ok: true,
+          value: {
+            server_name: "broken.example.test",
+            stages: [
+              "well_known",
+              "srv_matrix_fed",
+              "srv_matrix_deprecated",
+              "address_records",
+              "failure_cache",
+            ],
+            destination_resolved: false,
+            federation_request_sent: false,
+            backoff_recorded: true,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationKeyQueryRequestJson() {
+      return JSON.stringify(
+        overrides.federationKeyQueryRequestEnvelope ?? {
+          ok: true,
+          value: {
+            server_keys: {
+              "example.test": {
+                "ed25519:auto1": {
+                  minimum_valid_until_ts: 1779011408000,
+                },
+              },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationKeyQueryResponseJson() {
+      return JSON.stringify(
+        overrides.federationKeyQueryResponseEnvelope ?? {
+          ok: true,
+          value: {
+            server_keys: [
+              {
+                server_name: "example.test",
+                verify_keys: {
+                  "ed25519:auto1": {
+                    key: "public",
+                  },
+                },
+                old_verify_keys: {},
+                valid_until_ts: 1779011408000,
+                signatures: {
+                  "example.test": {
+                    "ed25519:auto1": "signature",
+                  },
+                },
+              },
+            ],
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixFederationMakeJoinResponseJson() {
       return JSON.stringify(
         overrides.federationMakeJoinResponseEnvelope ?? {
@@ -161,6 +226,19 @@ function binding(overrides = {}) {
               type: "m.room.member",
               content: { membership: "join" },
             },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationServerNameJson() {
+      return JSON.stringify(
+        overrides.federationServerNameEnvelope ?? {
+          ok: true,
+          value: {
+            server_name: "delegated.example.test:8448",
+            host: "delegated.example.test",
+            port: 8448,
           },
           error: null,
         },
@@ -177,6 +255,34 @@ function binding(overrides = {}) {
             event: {
               type: "m.room.member",
               content: { membership: "join" },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationSigningKeyJson() {
+      return JSON.stringify(
+        overrides.federationSigningKeyEnvelope ?? {
+          ok: true,
+          value: {
+            server_name: "example.test",
+            verify_keys: {
+              "ed25519:auto1": {
+                key: "public",
+              },
+            },
+            old_verify_keys: {
+              "ed25519:old1": {
+                expired_ts: 1777801808000,
+                key: "old-public",
+              },
+            },
+            valid_until_ts: 1779011408000,
+            signatures: {
+              "example.test": {
+                "ed25519:auto1": "signature",
+              },
             },
           },
           error: null,
@@ -205,6 +311,19 @@ function binding(overrides = {}) {
             pdus: {
               "$event1:remote.example.test": {},
             },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationWellKnownServerJson() {
+      return JSON.stringify(
+        overrides.federationWellKnownServerEnvelope ?? {
+          ok: true,
+          value: {
+            delegated_server_name: "delegated.example.test:8448",
+            host: "delegated.example.test",
+            port: 8448,
           },
           error: null,
         },
@@ -560,6 +679,118 @@ test("accepts SPEC-040 event DAG/auth event vector coverage", () => {
       "prev_event_cycle",
       "duplicate_auth_state_key",
     ],
+  );
+});
+
+test("maps SPEC-055 federation discovery and signing-key envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const wellKnown = readSpecVector(
+    "test-vectors/core/matrix-federation-well-known-server-basic.json",
+  );
+  const signingKey = readSpecVector(
+    "test-vectors/core/matrix-federation-signing-key-basic.json",
+  );
+  const keyQuery = readSpecVector(
+    "test-vectors/core/matrix-federation-key-query-basic.json",
+  );
+  const failure = readSpecVector(
+    "test-vectors/core/matrix-federation-destination-resolution-failure.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-055"));
+  assert.equal(wellKnown.contract, "SPEC-055");
+  assert.equal(signingKey.contract, "SPEC-055");
+  assert.equal(keyQuery.contract, "SPEC-055");
+  assert.equal(failure.contract, "SPEC-055");
+  assert.deepEqual(core.parseMatrixFederationServerName("ignored"), {
+    ok: true,
+    value: {
+      server_name: "delegated.example.test:8448",
+      host: "delegated.example.test",
+      port: 8448,
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixFederationWellKnownServer("{}"), {
+    ok: true,
+    value: {
+      delegated_server_name: "delegated.example.test:8448",
+      host: "delegated.example.test",
+      port: 8448,
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixFederationSigningKey("{}"), {
+    ok: true,
+    value: {
+      server_name: "example.test",
+      verify_keys: {
+        "ed25519:auto1": { key: "public" },
+      },
+      old_verify_keys: {
+        "ed25519:old1": {
+          expired_ts: 1777801808000,
+          key: "old-public",
+        },
+      },
+      valid_until_ts: 1779011408000,
+      signatures: {
+        "example.test": { "ed25519:auto1": "signature" },
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixFederationKeyQueryRequest("{}"), {
+    ok: true,
+    value: {
+      server_keys: {
+        "example.test": {
+          "ed25519:auto1": {
+            minimum_valid_until_ts: 1779011408000,
+          },
+        },
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixFederationKeyQueryResponse("{}"), {
+    ok: true,
+    value: {
+      server_keys: [
+        {
+          server_name: "example.test",
+          verify_keys: {
+            "ed25519:auto1": { key: "public" },
+          },
+          old_verify_keys: {},
+          valid_until_ts: 1779011408000,
+          signatures: {
+            "example.test": { "ed25519:auto1": "signature" },
+          },
+        },
+      ],
+    },
+    error: null,
+  });
+  assert.deepEqual(
+    core.parseMatrixFederationDestinationResolutionFailure("{}"),
+    {
+      ok: true,
+      value: {
+        server_name: "broken.example.test",
+        stages: [
+          "well_known",
+          "srv_matrix_fed",
+          "srv_matrix_deprecated",
+          "address_records",
+          "failure_cache",
+        ],
+        destination_resolved: false,
+        federation_request_sent: false,
+        backoff_recorded: true,
+      },
+      error: null,
+    },
   );
 });
 
