@@ -16,6 +16,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-038",
   "SPEC-039",
   "SPEC-040",
+  "SPEC-056",
 ] as const;
 
 export interface HouraProtocolCoreWasmBinding {
@@ -26,6 +27,12 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixDevicesJson(responseBody: string): string;
   parseMatrixEventIdResponseJson(responseBody: string): string;
   parseMatrixErrorEnvelopeJson(responseBody: string): string;
+  parseMatrixFederationInviteRequestJson(responseBody: string): string;
+  parseMatrixFederationInviteResponseJson(responseBody: string): string;
+  parseMatrixFederationMakeJoinResponseJson(responseBody: string): string;
+  parseMatrixFederationSendJoinResponseJson(responseBody: string): string;
+  parseMatrixFederationTransactionJson(responseBody: string): string;
+  parseMatrixFederationTransactionResponseJson(responseBody: string): string;
   parseMatrixLoginFlowsJson(responseBody: string): string;
   parseMatrixLoginSessionJson(responseBody: string): string;
   parseMatrixMediaContentUriJson(contentUri: string): string;
@@ -229,6 +236,42 @@ export interface MatrixMediaUploadResponse {
   content_uri: string;
 }
 
+export interface MatrixFederationTransaction {
+  origin: string;
+  origin_server_ts: number;
+  pdus: Record<string, unknown>[];
+  edus: Record<string, unknown>[];
+}
+
+export interface MatrixFederationPduResult {
+  error?: string;
+}
+
+export interface MatrixFederationTransactionResponse {
+  pdus: Record<string, MatrixFederationPduResult>;
+}
+
+export interface MatrixFederationMakeJoinResponse {
+  room_version: string;
+  event: Record<string, unknown>;
+}
+
+export interface MatrixFederationSendJoinResponse {
+  origin: string;
+  state: Record<string, unknown>[];
+  auth_chain: Record<string, unknown>[];
+  event: Record<string, unknown>;
+}
+
+export interface MatrixFederationInviteRequest {
+  room_version: string;
+  event: Record<string, unknown>;
+}
+
+export interface MatrixFederationInviteResponse {
+  event: Record<string, unknown>;
+}
+
 export interface ProtocolErrorEnvelope {
   code: string;
   message: string;
@@ -252,6 +295,24 @@ export interface HouraProtocolCoreFacade {
     responseBody: string,
   ): ProtocolResult<MatrixEventIdResponse>;
   parseMatrixErrorEnvelope(responseBody: string): ProtocolResult<MatrixErrorEnvelope>;
+  parseMatrixFederationInviteRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationInviteRequest>;
+  parseMatrixFederationInviteResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationInviteResponse>;
+  parseMatrixFederationMakeJoinResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationMakeJoinResponse>;
+  parseMatrixFederationSendJoinResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationSendJoinResponse>;
+  parseMatrixFederationTransaction(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationTransaction>;
+  parseMatrixFederationTransactionResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationTransactionResponse>;
   parseMatrixLoginFlows(responseBody: string): ProtocolResult<MatrixLoginFlows>;
   parseMatrixLoginSession(
     responseBody: string,
@@ -355,6 +416,48 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixErrorEnvelope(envelope);
+    },
+    parseMatrixFederationInviteRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationInviteRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationInviteRequestEnvelope(envelope);
+    },
+    parseMatrixFederationInviteResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationInviteResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationInviteResponseEnvelope(envelope);
+    },
+    parseMatrixFederationMakeJoinResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationMakeJoinResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationMakeJoinResponseEnvelope(envelope);
+    },
+    parseMatrixFederationSendJoinResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationSendJoinResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationSendJoinResponseEnvelope(envelope);
+    },
+    parseMatrixFederationTransaction(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationTransactionJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationTransactionEnvelope(envelope);
+    },
+    parseMatrixFederationTransactionResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationTransactionResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationTransactionResponseEnvelope(envelope);
     },
     parseMatrixLoginFlows(responseBody: string) {
       const envelope = parseJsonObject(
@@ -598,6 +701,80 @@ function readMatrixFoundationValidationEnvelope(
 ): ProtocolResult<MatrixFoundationValidation> {
   return readProtocolResult(envelope, (value) => ({
     valid: readBoolean(value, "valid"),
+  }));
+}
+
+function readMatrixFederationTransactionEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationTransaction> {
+  return readProtocolResult(envelope, (value) => ({
+    origin: readString(value, "origin", "invalid_envelope"),
+    origin_server_ts: readNumber(value, "origin_server_ts", "invalid_envelope"),
+    pdus: readRecordArray(value, "pdus", "federation.transaction.pdus"),
+    edus: readRecordArray(value, "edus", "federation.transaction.edus"),
+  }));
+}
+
+function readMatrixFederationTransactionResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationTransactionResponse> {
+  return readProtocolResult(envelope, (value) => {
+    const pdus: [string, MatrixFederationPduResult][] = [];
+    for (const [eventId, result] of Object.entries(
+      readRecord(value, "pdus", "federation.transaction_response"),
+    )) {
+      const record = assertRecord(
+        result,
+        `federation.transaction_response.pdus.${eventId}`,
+      );
+      const pduResult: MatrixFederationPduResult = {};
+      readOptionalString(record, "error", (error) => {
+        pduResult.error = error;
+      }, `federation.transaction_response.pdus.${eventId}`);
+      pdus.push([eventId, pduResult]);
+    }
+    return { pdus: Object.fromEntries(pdus) };
+  });
+}
+
+function readMatrixFederationMakeJoinResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationMakeJoinResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    room_version: readString(value, "room_version", "invalid_envelope"),
+    event: readRecord(value, "event", "federation.make_join"),
+  }));
+}
+
+function readMatrixFederationSendJoinResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationSendJoinResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    origin: readString(value, "origin", "invalid_envelope"),
+    state: readRecordArray(value, "state", "federation.send_join.state"),
+    auth_chain: readRecordArray(
+      value,
+      "auth_chain",
+      "federation.send_join.auth_chain",
+    ),
+    event: readRecord(value, "event", "federation.send_join"),
+  }));
+}
+
+function readMatrixFederationInviteRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationInviteRequest> {
+  return readProtocolResult(envelope, (value) => ({
+    room_version: readString(value, "room_version", "invalid_envelope"),
+    event: readRecord(value, "event", "federation.invite"),
+  }));
+}
+
+function readMatrixFederationInviteResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationInviteResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    event: readRecord(value, "event", "federation.invite_response"),
   }));
 }
 
@@ -1231,6 +1408,16 @@ function readArray(
     );
   }
   return value;
+}
+
+function readRecordArray(
+  source: Record<string, unknown>,
+  field: string,
+  context: string,
+): Record<string, unknown>[] {
+  return readArray(source, field, "invalid_envelope").map((entry, index) =>
+    assertRecord(entry, `${context}.${index}`),
+  );
 }
 
 function readStringArray(

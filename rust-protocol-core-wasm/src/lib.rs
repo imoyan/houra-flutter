@@ -107,6 +107,36 @@ pub fn parse_matrix_media_upload_response_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_media_upload_response_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixFederationTransactionJson)]
+pub fn parse_matrix_federation_transaction_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_transaction_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationTransactionResponseJson)]
+pub fn parse_matrix_federation_transaction_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_transaction_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationMakeJoinResponseJson)]
+pub fn parse_matrix_federation_make_join_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_make_join_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationSendJoinResponseJson)]
+pub fn parse_matrix_federation_send_join_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_send_join_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationInviteRequestJson)]
+pub fn parse_matrix_federation_invite_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_invite_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationInviteResponseJson)]
+pub fn parse_matrix_federation_invite_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_invite_response_json(response_body.as_bytes())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -126,6 +156,11 @@ mod tests {
             .expect("supported_specs should be an array")
             .iter()
             .any(|spec| spec == "SPEC-040"));
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
+            .any(|spec| spec == "SPEC-056"));
         assert_eq!(
             json,
             houra_protocol_core::artifact_manifest_json_for_binding_kinds(&["wasm"])
@@ -195,6 +230,46 @@ mod tests {
                 "{\"content_uri\":\"mxc://example.test/media1\"}",
             ),
             "{\"ok\":true,\"value\":{\"content_uri\":\"mxc://example.test/media1\"},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_federation_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_federation_transaction_json(
+                "{\"origin\":\"remote.example.test\",\"origin_server_ts\":1778408851000,\"pdus\":[],\"edus\":[]}",
+            ),
+            "{\"ok\":true,\"value\":{\"origin\":\"remote.example.test\",\"origin_server_ts\":1778408851000,\"pdus\":[],\"edus\":[]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_transaction_response_json(
+                "{\"pdus\":{\"$event1:remote.example.test\":{}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"pdus\":{\"$event1:remote.example.test\":{}}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_make_join_response_json(
+                "{\"room_version\":\"12\",\"event\":{\"type\":\"m.room.member\",\"content\":{\"membership\":\"join\"}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"room_version\":\"12\",\"event\":{\"content\":{\"membership\":\"join\"},\"type\":\"m.room.member\"}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_send_join_response_json(
+                "{\"origin\":\"example.test\",\"state\":[],\"auth_chain\":[],\"event\":{\"type\":\"m.room.member\",\"content\":{\"membership\":\"join\"}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"origin\":\"example.test\",\"state\":[],\"auth_chain\":[],\"event\":{\"content\":{\"membership\":\"join\"},\"type\":\"m.room.member\"}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_invite_request_json(
+                "{\"room_version\":\"12\",\"event\":{\"type\":\"m.room.member\",\"content\":{\"membership\":\"invite\"}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"room_version\":\"12\",\"event\":{\"content\":{\"membership\":\"invite\"},\"type\":\"m.room.member\"}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_invite_response_json(
+                "{\"event\":{\"type\":\"m.room.member\",\"content\":{\"membership\":\"invite\"}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"event\":{\"content\":{\"membership\":\"invite\"},\"type\":\"m.room.member\"}},\"error\":null}"
         );
     }
 
