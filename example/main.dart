@@ -12,6 +12,12 @@ Future<void> main() async {
     final flows = await client.auth.fetchLoginFlows();
     print('API version: ${versions.apiVersion}');
     print('Login flows: ${flows.flows.map((flow) => flow.type).join(', ')}');
+  } on HouraHttpException catch (error) {
+    stderr.writeln('Houra HTTP error: ${error.responseBodySummary}');
+    exitCode = 1;
+  } on HouraException catch (error) {
+    stderr.writeln('Houra SDK error: ${error.message}');
+    exitCode = 1;
   } finally {
     client.close();
   }
