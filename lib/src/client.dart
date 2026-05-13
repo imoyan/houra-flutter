@@ -1,6 +1,7 @@
 import 'package:http/http.dart' as http;
 
 import 'auth.dart';
+import 'device_keys.dart';
 import 'discovery.dart';
 import 'media.dart';
 import 'messaging.dart';
@@ -33,6 +34,9 @@ final class HouraClient {
 
   /// Auth endpoints for login flows, sessions, and token validation.
   HouraAuthClient get auth => HouraAuthClient(_transport);
+
+  /// Matrix public device-key query endpoints.
+  HouraDeviceKeysClient get deviceKeys => HouraDeviceKeysClient(_transport);
 
   /// Room creation, membership, and state endpoints.
   HouraRoomsClient get rooms => HouraRoomsClient(_transport);

@@ -121,11 +121,7 @@ enum HouraRoomMembership {
 
 /// SPEC-006 room object.
 final class HouraRoom {
-  const HouraRoom({
-    required this.roomId,
-    required this.membership,
-    this.name,
-  });
+  const HouraRoom({required this.roomId, required this.membership, this.name});
 
   final String roomId;
   final HouraRoomMembership membership;
@@ -212,9 +208,7 @@ final class HouraSendMessageResponse {
   final String eventId;
 
   factory HouraSendMessageResponse.fromJson(Map<String, Object?> json) {
-    return HouraSendMessageResponse(
-      eventId: _requiredString(json, 'event_id'),
-    );
+    return HouraSendMessageResponse(eventId: _requiredString(json, 'event_id'));
   }
 }
 
@@ -338,6 +332,64 @@ final class HouraMediaMetadata {
   }
 }
 
+/// SPEC-069 Matrix device key query response.
+final class HouraDeviceKeyQueryResponse {
+  const HouraDeviceKeyQueryResponse({
+    required this.failures,
+    required this.deviceKeys,
+  });
+
+  /// Remote homeserver failures, keyed by homeserver name.
+  final Map<String, Object?> failures;
+
+  /// Public device keys keyed by Matrix user id, then device id.
+  final Map<String, Map<String, HouraMatrixDeviceKey>> deviceKeys;
+
+  factory HouraDeviceKeyQueryResponse.fromJson(Map<String, Object?> json) {
+    return HouraDeviceKeyQueryResponse(
+      failures: _requiredJsonObject(json, 'failures'),
+      deviceKeys: _requiredDeviceKeyUsers(json, 'device_keys'),
+    );
+  }
+}
+
+/// Public Matrix device key object from SPEC-069.
+final class HouraMatrixDeviceKey {
+  const HouraMatrixDeviceKey({
+    required this.userId,
+    required this.deviceId,
+    required this.algorithms,
+    required this.keys,
+    required this.signatures,
+    required this.raw,
+    this.unsigned,
+  });
+
+  final String userId;
+  final String deviceId;
+  final List<String> algorithms;
+  final Map<String, String> keys;
+  final Map<String, Map<String, String>> signatures;
+
+  /// Optional unsigned metadata such as device display name.
+  final Map<String, Object?>? unsigned;
+
+  /// Original public object, preserved for unknown field round-tripping.
+  final Map<String, Object?> raw;
+
+  factory HouraMatrixDeviceKey.fromJson(Map<String, Object?> json) {
+    return HouraMatrixDeviceKey(
+      userId: _requiredString(json, 'user_id'),
+      deviceId: _requiredString(json, 'device_id'),
+      algorithms: _requiredStringList(json, 'algorithms'),
+      keys: _requiredStringMap(json, 'keys'),
+      signatures: _requiredNestedStringMap(json, 'signatures'),
+      unsigned: _optionalJsonObject(json, 'unsigned'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+}
+
 String _requiredString(Map<String, Object?> json, String key) {
   final value = json[key];
   if (value is String && value.isNotEmpty) {
@@ -365,6 +417,20 @@ Map<String, Object?> _requiredJsonObject(
   throw HouraResponseFormatException('Expected object "$key".');
 }
 
+Map<String, Object?>? _optionalJsonObject(
+  Map<String, Object?> json,
+  String key,
+) {
+  final value = json[key];
+  if (value == null) {
+    return null;
+  }
+  if (value is Map) {
+    return Map<String, Object?>.unmodifiable(value.cast<String, Object?>());
+  }
+  throw HouraResponseFormatException('Expected optional object "$key".');
+}
+
 List<Map<String, Object?>> _requiredObjectList(
   Map<String, Object?> json,
   String key,
@@ -376,9 +442,7 @@ List<Map<String, Object?>> _requiredObjectList(
   return List<Map<String, Object?>>.unmodifiable(
     value.map((item) {
       if (item is Map) {
-        return Map<String, Object?>.unmodifiable(
-          item.cast<String, Object?>(),
-        );
+        return Map<String, Object?>.unmodifiable(item.cast<String, Object?>());
       }
       throw HouraResponseFormatException('Expected object array "$key".');
     }),
@@ -415,4 +479,83 @@ List<String> _requiredStringList(Map<String, Object?> json, String key) {
     result.add(item);
   }
   return List.unmodifiable(result);
+}
+
+Map<String, String> _requiredStringMap(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is! Map) {
+    throw HouraResponseFormatException('Expected string map "$key".');
+  }
+  return Map<String, String>.unmodifiable(
+    value.cast<String, Object?>().map((mapKey, mapValue) {
+      if (mapValue is! String || mapValue.isEmpty) {
+        throw HouraResponseFormatException('Expected string map "$key".');
+      }
+      return MapEntry(mapKey, mapValue);
+    }),
+  );
+}
+
+Map<String, Map<String, String>> _requiredNestedStringMap(
+  Map<String, Object?> json,
+  String key,
+) {
+  final value = json[key];
+  if (value is! Map) {
+    throw HouraResponseFormatException('Expected nested string map "$key".');
+  }
+  return Map<String, Map<String, String>>.unmodifiable(
+    value.cast<String, Object?>().map((mapKey, mapValue) {
+      if (mapValue is! Map) {
+        throw HouraResponseFormatException(
+          'Expected nested string map "$key".',
+        );
+      }
+      final inner = mapValue.cast<String, Object?>().map((
+        innerKey,
+        innerValue,
+      ) {
+        if (innerValue is! String || innerValue.isEmpty) {
+          throw HouraResponseFormatException(
+            'Expected nested string map "$key".',
+          );
+        }
+        return MapEntry(innerKey, innerValue);
+      });
+      return MapEntry(mapKey, Map<String, String>.unmodifiable(inner));
+    }),
+  );
+}
+
+Map<String, Map<String, HouraMatrixDeviceKey>> _requiredDeviceKeyUsers(
+  Map<String, Object?> json,
+  String key,
+) {
+  final value = json[key];
+  if (value is! Map) {
+    throw HouraResponseFormatException('Expected device key map "$key".');
+  }
+  return Map<String, Map<String, HouraMatrixDeviceKey>>.unmodifiable(
+    value.cast<String, Object?>().map((userId, devicesValue) {
+      if (devicesValue is! Map) {
+        throw HouraResponseFormatException('Expected device key map "$key".');
+      }
+      final devices = devicesValue.cast<String, Object?>().map((
+        deviceId,
+        deviceValue,
+      ) {
+        if (deviceValue is! Map) {
+          throw HouraResponseFormatException('Expected device key object.');
+        }
+        return MapEntry(
+          deviceId,
+          HouraMatrixDeviceKey.fromJson(deviceValue.cast<String, Object?>()),
+        );
+      });
+      return MapEntry(
+        userId,
+        Map<String, HouraMatrixDeviceKey>.unmodifiable(devices),
+      );
+    }),
+  );
 }

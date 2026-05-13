@@ -27,10 +27,7 @@ void main() {
     final versions = await client.discovery.fetchVersions();
 
     expect(observed.method, vector.request['method']);
-    expect(
-      observed.url.path,
-      '/base${vector.request['path']}',
-    );
+    expect(observed.url.path, '/base${vector.request['path']}');
     expect(versions.project, bodyContains['project']);
     expect(versions.apiVersion, bodyContains['api_version']);
     expect(versions.compatibilityLevel, bodyContains['compatibility_level']);
@@ -79,36 +76,38 @@ void main() {
     );
   });
 
-  test('fetchVersions preserves HTTP error body without logging it by default',
-      () async {
-    final client = HouraClient(
-      serverBaseUri: Uri.parse('https://example.test'),
-      httpClient: MockClient(
-        (_) async => http.Response('server unavailable', 503),
-      ),
-    );
+  test(
+    'fetchVersions preserves HTTP error body without logging it by default',
+    () async {
+      final client = HouraClient(
+        serverBaseUri: Uri.parse('https://example.test'),
+        httpClient: MockClient(
+          (_) async => http.Response('server unavailable', 503),
+        ),
+      );
 
-    await expectLater(
-      client.discovery.fetchVersions(),
-      throwsA(
-        isA<HouraHttpException>()
-            .having((error) => error.statusCode, 'statusCode', 503)
-            .having(
-              (error) => error.responseBody,
-              'responseBody',
-              'server unavailable',
-            )
-            .having(
-              (error) => error.responseBodySummary,
-              'responseBodySummary',
-              'server unavailable',
-            )
-            .having(
-              (error) => error.message,
-              'message',
-              isNot(contains('server unavailable')),
-            ),
-      ),
-    );
-  });
+      await expectLater(
+        client.discovery.fetchVersions(),
+        throwsA(
+          isA<HouraHttpException>()
+              .having((error) => error.statusCode, 'statusCode', 503)
+              .having(
+                (error) => error.responseBody,
+                'responseBody',
+                'server unavailable',
+              )
+              .having(
+                (error) => error.responseBodySummary,
+                'responseBodySummary',
+                'server unavailable',
+              )
+              .having(
+                (error) => error.message,
+                'message',
+                isNot(contains('server unavailable')),
+              ),
+        ),
+      );
+    },
+  );
 }

@@ -59,9 +59,7 @@ void main() {
     final batch = await client.sync.pollOnce(
       accessToken: 'token-1',
       tokenStore: store,
-      timeout: Duration(
-        milliseconds: int.parse(query['timeout'] as String),
-      ),
+      timeout: Duration(milliseconds: int.parse(query['timeout'] as String)),
     );
 
     expect(observed.method, vector.request['method']);
@@ -69,7 +67,9 @@ void main() {
     expect(observed.url.queryParameters, query);
     expect(batch.nextBatch, 's1');
     expect(
-        batch.rooms.single.timeline.events.single.textMessage?.body, 'hello');
+      batch.rooms.single.timeline.events.single.textMessage?.body,
+      'hello',
+    );
     expect(await store.read(), 's1');
   });
 
