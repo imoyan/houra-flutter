@@ -37,7 +37,10 @@ void checkSdkBoundary(List<String> failures) {
     'tool',
     'ts-protocol-core-wasm',
   };
-  const allowedToolFiles = {'check_spec_sync.dart'};
+  const allowedToolFiles = {
+    'check_spec_sync.dart',
+    'generate_release_evidence.dart',
+  };
   const canonicalOnlyEntries = {
     'contracts',
     'test-vectors',
