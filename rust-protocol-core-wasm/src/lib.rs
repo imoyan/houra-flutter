@@ -121,6 +121,11 @@ mod tests {
             manifest["supported_binding_kinds"],
             serde_json::json!(["wasm"])
         );
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
+            .any(|spec| spec == "SPEC-040"));
         assert_eq!(
             json,
             houra_protocol_core::artifact_manifest_json_for_binding_kinds(&["wasm"])

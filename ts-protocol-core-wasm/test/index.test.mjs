@@ -438,6 +438,43 @@ test("accepts SPEC-039 integration gate coverage over existing facade surfaces",
   }
 });
 
+test("accepts SPEC-040 event DAG/auth event vector coverage", () => {
+  const core = createHouraProtocolCore(binding());
+  const valid = readSpecVector("test-vectors/events/matrix-event-dag-auth-events-basic.json");
+  const invalid = readSpecVector(
+    "test-vectors/events/matrix-event-dag-auth-events-invalid.json",
+  );
+
+  assert.equal(valid.contract, "SPEC-040");
+  assert.equal(invalid.contract, "SPEC-040");
+  assert.equal(valid.event.matrix_spec_version, "v1.18");
+  assert.equal(valid.event.room_version, "12");
+  assert.equal(invalid.event.matrix_spec_version, "v1.18");
+  assert.ok(core.manifest.supported_specs.includes("SPEC-040"));
+  assert.equal(valid.event.events.length, 3);
+  assert.equal(valid.expected.candidate_event_id, valid.event.candidate_event_id);
+  assert.deepEqual(valid.expected.candidate_prev_events, [
+    "$memberAlice000000000000000000000000000000000001",
+  ]);
+  assert.deepEqual(valid.expected.candidate_auth_events, [
+    "$memberAlice000000000000000000000000000000000001",
+  ]);
+
+  assert.equal(invalid.expected.error, "M_INVALID_PARAM");
+  assert.equal(invalid.event.invalid_cases.length, invalid.expected.invalid_case_count);
+  assert.deepEqual(
+    invalid.event.invalid_cases.map((invalidCase) => invalidCase.expected_violation),
+    [
+      "missing_prev_event",
+      "duplicate_auth_event",
+      "self_prev_event",
+      "auth_create_event_v12",
+      "prev_event_cycle",
+      "duplicate_auth_state_key",
+    ],
+  );
+});
+
 test("maps SPEC-031 Matrix error and foundation validation envelopes", () => {
   const core = createHouraProtocolCore(binding());
 

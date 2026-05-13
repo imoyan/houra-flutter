@@ -12,6 +12,7 @@ const expectedSpecIds = [
   'SPEC-037',
   'SPEC-038',
   'SPEC-039',
+  'SPEC-040',
 ];
 
 void main(List<String> args) {
@@ -106,6 +107,7 @@ void main(List<String> args) {
           'canonical spec check passes',
           'design bundle matches canonical design',
           'SPEC-039 integration gate references are present',
+          'SPEC-040 event DAG/auth event vector references are present',
         ],
       },
       {
@@ -113,7 +115,7 @@ void main(List<String> args) {
         'command': 'cargo test --locked',
         'guards': [
           'artifact manifest serializes stably',
-          'covered SPEC ids include SPEC-030 through SPEC-039',
+          'covered SPEC ids include SPEC-030 through SPEC-040',
         ],
       },
       {

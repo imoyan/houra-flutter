@@ -11,7 +11,7 @@ pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
-    "SPEC-038", "SPEC-039",
+    "SPEC-038", "SPEC-039", "SPEC-040",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1956,7 +1956,7 @@ mod tests {
             manifest.supported_specs,
             vec![
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
-                "SPEC-037", "SPEC-038", "SPEC-039"
+                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -2045,6 +2045,71 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn exposes_spec_040_event_dag_auth_event_vector_coverage() {
+        let valid = read_spec_vector("test-vectors/events/matrix-event-dag-auth-events-basic.json");
+        let invalid =
+            read_spec_vector("test-vectors/events/matrix-event-dag-auth-events-invalid.json");
+        assert_eq!(valid["contract"], "SPEC-040");
+        assert_eq!(invalid["contract"], "SPEC-040");
+        assert_eq!(valid["event"]["matrix_spec_version"], "v1.18");
+        assert_eq!(valid["event"]["room_version"], "12");
+        assert_eq!(invalid["event"]["matrix_spec_version"], "v1.18");
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(
+            manifest
+                .supported_specs
+                .iter()
+                .any(|spec| spec == "SPEC-040"),
+            "manifest should mark the SPEC-040 event DAG/auth event vectors as covered"
+        );
+
+        let events = valid["event"]["events"]
+            .as_array()
+            .expect("SPEC-040 valid vector should list events");
+        assert_eq!(events.len(), 3);
+        assert_eq!(
+            valid["expected"]["candidate_event_id"],
+            valid["event"]["candidate_event_id"]
+        );
+        assert_eq!(
+            valid["expected"]["candidate_prev_events"],
+            serde_json::json!(["$memberAlice000000000000000000000000000000000001"])
+        );
+        assert_eq!(
+            valid["expected"]["candidate_auth_events"],
+            serde_json::json!(["$memberAlice000000000000000000000000000000000001"])
+        );
+
+        let invalid_cases = invalid["event"]["invalid_cases"]
+            .as_array()
+            .expect("SPEC-040 invalid vector should list invalid cases");
+        assert_eq!(
+            invalid_cases.len(),
+            invalid["expected"]["invalid_case_count"]
+                .as_u64()
+                .expect("invalid_case_count should be an integer") as usize
+        );
+        assert_eq!(invalid["expected"]["error"], "M_INVALID_PARAM");
+        assert_eq!(
+            invalid_cases
+                .iter()
+                .map(|case| case["expected_violation"]
+                    .as_str()
+                    .expect("invalid case should cite expected_violation"))
+                .collect::<Vec<_>>(),
+            vec![
+                "missing_prev_event",
+                "duplicate_auth_event",
+                "self_prev_event",
+                "auth_create_event_v12",
+                "prev_event_cycle",
+                "duplicate_auth_state_key",
+            ]
+        );
     }
 
     #[test]

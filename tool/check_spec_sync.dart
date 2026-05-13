@@ -9,6 +9,7 @@ void main() {
   checkVectorReferences(failures);
   checkDocReferences(failures);
   checkSpec039ProtocolCoreGate(failures);
+  checkSpec040ProtocolCoreGate(failures);
 
   if (failures.isNotEmpty) {
     stderr.writeln('Spec sync check failed:');
@@ -320,6 +321,86 @@ void checkSpec039ProtocolCoreGate(List<String> failures) {
       if (!source.contains(fragment)) {
         failures.add(
           '${entry.key} is missing SPEC-039 gate fragment: $fragment',
+        );
+      }
+    }
+  }
+}
+
+void checkSpec040ProtocolCoreGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final contract = File(
+    '${specRoot.path}/contracts/SPEC-040-matrix-event-dag-auth-events.md',
+  );
+  final validVector = File(
+    '${specRoot.path}/test-vectors/events/matrix-event-dag-auth-events-basic.json',
+  );
+  final invalidVector = File(
+    '${specRoot.path}/test-vectors/events/matrix-event-dag-auth-events-invalid.json',
+  );
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-040 contract: ${contract.path}');
+    return;
+  }
+  if (!validVector.existsSync()) {
+    failures.add('Missing SPEC-040 canonical vector: ${validVector.path}');
+    return;
+  }
+  if (!invalidVector.existsSync()) {
+    failures.add('Missing SPEC-040 canonical vector: ${invalidVector.path}');
+    return;
+  }
+
+  final validDecoded = jsonDecode(validVector.readAsStringSync());
+  final invalidDecoded = jsonDecode(invalidVector.readAsStringSync());
+  if (validDecoded is! Map<String, Object?> ||
+      validDecoded['contract'] != 'SPEC-040') {
+    failures.add('SPEC-040 valid vector has an unexpected contract id.');
+    return;
+  }
+  if (invalidDecoded is! Map<String, Object?> ||
+      invalidDecoded['contract'] != 'SPEC-040') {
+    failures.add('SPEC-040 invalid vector has an unexpected contract id.');
+    return;
+  }
+
+  final validEvent = validDecoded['event'];
+  final invalidEvent = invalidDecoded['event'];
+  if (validEvent is! Map<String, Object?> ||
+      validEvent['matrix_spec_version'] != 'v1.18' ||
+      validEvent['room_version'] != '12') {
+    failures.add(
+        'SPEC-040 valid vector is missing Matrix v1.18 room v12 metadata.');
+  }
+  if (invalidEvent is! Map<String, Object?> ||
+      invalidEvent['matrix_spec_version'] != 'v1.18') {
+    failures.add('SPEC-040 invalid vector is missing Matrix v1.18 metadata.');
+  }
+
+  final requiredFragmentsByFile = {
+    'rust-protocol-core/src/lib.rs': ['"SPEC-040"', 'SPEC-040'],
+    'rust-protocol-core-wasm/src/lib.rs': [
+      'artifact_manifest_json_for_binding_kinds',
+    ],
+    'ts-protocol-core-wasm/src/index.ts': ['"SPEC-040"'],
+    'ts-protocol-core-wasm/test/index.test.mjs': [
+      'HOURA_PROTOCOL_CORE_SPEC_IDS',
+      'SPEC-040',
+      'matrix-event-dag-auth-events-basic',
+      'matrix-event-dag-auth-events-invalid',
+    ],
+  };
+  for (final entry in requiredFragmentsByFile.entries) {
+    final file = File(entry.key);
+    if (!file.existsSync()) {
+      failures.add('Missing protocol core gate file: ${entry.key}');
+      continue;
+    }
+    final source = file.readAsStringSync();
+    for (final fragment in entry.value) {
+      if (!source.contains(fragment)) {
+        failures.add(
+          '${entry.key} is missing SPEC-040 gate fragment: $fragment',
         );
       }
     }
