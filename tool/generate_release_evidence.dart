@@ -156,6 +156,40 @@ void main(List<String> args) {
       'secondary_facade_targets': ['next', 'vue'],
       'node_runtime_status': 'package-validation-and-tests-only',
     },
+    'dart_binding_candidate': {
+      'issue': 77,
+      'status': 'candidate-only-implementation-deferred',
+      'native_ffi_use_cases': [
+        'Flutter or Dart host apps that need a local Rust artifact',
+        'iOS, Android, macOS, Windows, or Linux hosts with native package ownership',
+      ],
+      'web_js_wasm_use_cases': [
+        'Flutter web or Dart web hosts that provide the generated WASM module',
+        'browser-hosted experiments that keep bundler and fetch ownership in the host',
+      ],
+      'host_owned_boundaries': [
+        'token storage',
+        'sync token persistence',
+        'Flutter UI lifecycle',
+        'route policy',
+        'secure storage',
+        'fetch, retry, and cancellation policy',
+      ],
+      'blocked_until': [
+        'platform matrix is confirmed',
+        'native and web artifact packaging policy is confirmed',
+        'binary size threshold is confirmed per target family',
+        'p95 binding overhead threshold is measured',
+        'fallback behavior is decided for hosts without native or WASM artifacts',
+        'package registry metadata is confirmed in a focused publish issue',
+      ],
+      'out_of_scope': [
+        'making the Flutter SDK prototype the canonical behavior source',
+        'publishing a Dart FFI or Dart web package from this issue',
+        'moving token or sync token persistence into the SDK core',
+        'owning production client UI lifecycle or secure storage policy',
+      ],
+    },
     'checks': [
       {
         'name': 'spec-sync',

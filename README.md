@@ -135,6 +135,20 @@ package tarball, 5 ms p95 parse/validation overhead, and CI runtime targets of
 10 minutes for Flutter, 10 minutes for Rust/WASM, 5 minutes for TypeScript, and
 2 minutes for the release evidence job.
 
+Dart FFI / Dart web binding candidate gate for issue #77: Dart native and Dart
+web remain candidate adapter paths, not implemented package surfaces. Dart
+native FFI is only a candidate for host apps that need a local Rust artifact on
+iOS, Android, macOS, Windows, or Linux and can absorb native packaging,
+signing, crash reporting, and binary-size review. Dart web JS interop / WASM is
+only a candidate for browser-hosted Flutter or Dart web experiments that can
+provide the generated WASM module and keep bundler, fetch, retry, cancellation,
+and browser lifecycle ownership in the host. The Flutter SDK prototype must not
+become the canonical behavior source, and token storage, sync-token persistence,
+Flutter UI lifecycle, route policy, and secure storage stay host-owned.
+Release evidence records this as `candidate-only-implementation-deferred` with
+package publication blocked until platform matrix, artifact size, p95 overhead,
+fallback behavior, and registry metadata are confirmed in a focused follow-up.
+
 SPEC-031 adoption record for issue #31: the Rust prototype now consumes the
 `houra-spec` `v0.2.0-pre.23` Matrix foundation vectors for Matrix error
 envelope parsing and identifier validation only. The WASM wrapper and
@@ -539,6 +553,8 @@ External registration order:
 
 Current package-specific follow-ups:
 
+- #77: Dart FFI / Dart web binding candidate gate. Completed as candidate
+  criteria only; implementation and publication remain deferred.
 - #79: Rust protocol-core crate publication readiness. Completed as a
   metadata / checklist gate; actual crates.io publication remains deferred.
 - #80: TypeScript / WASM facade npm publish gate. Completed.
