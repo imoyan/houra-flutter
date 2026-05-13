@@ -149,6 +149,17 @@ Release evidence records this as `candidate-only-implementation-deferred` with
 package publication blocked until platform matrix, artifact size, p95 overhead,
 fallback behavior, and registry metadata are confirmed in a focused follow-up.
 
+N-API / Node binding candidate gate for issue #76: a native Node binding remains
+a candidate for server-side hosts that need lower overhead, synchronous local
+artifact calls, or an operational reason that browser-style WASM cannot cover.
+The existing TypeScript / WASM facade remains the fallback path for Next server
+experiments, package validation, and hosts where a generated WASM module is
+acceptable. N-API adoption is blocked until the platform matrix, prebuild
+policy, rebuild trigger, binary-size threshold, p95 overhead threshold, CI
+runtime impact, and fallback behavior are confirmed. Node server transport,
+request lifecycle, retry policy, cancellation, tenant context, and storage
+policy stay host-owned and outside the binding package.
+
 SPEC-031 adoption record for issue #31: the Rust prototype now consumes the
 `houra-spec` `v0.2.0-pre.23` Matrix foundation vectors for Matrix error
 envelope parsing and identifier validation only. The WASM wrapper and
@@ -553,6 +564,8 @@ External registration order:
 
 Current package-specific follow-ups:
 
+- #76: N-API / Node binding candidate gate. Completed as candidate criteria
+  only; native binding implementation and publication remain deferred.
 - #77: Dart FFI / Dart web binding candidate gate. Completed as candidate
   criteria only; implementation and publication remain deferred.
 - #79: Rust protocol-core crate publication readiness. Completed as a
