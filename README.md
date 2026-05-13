@@ -93,6 +93,19 @@ crate, ABI, binding kind, protocol boundary, supported specs, and an optional
 spec snapshot ref, but it must not contain raw requests, prompts, tokens, or
 secrets.
 
+WASM / TypeScript facade publish readiness for issue #75: generated
+`wasm-bindgen` JavaScript and `.wasm` files stay out of the repository until a
+focused package artifact issue decides otherwise. The TypeScript facade package
+keeps `private: true`, but defines `exports`, `types`, `files`, `sideEffects`,
+and a `prepack` build hook so `npm pack --dry-run` can validate package
+contents before a future publish PR. The package artifact contains the compiled
+TypeScript facade only; host applications still provide the generated WASM
+module object and own bundler choice, browser / Next / Vue lifecycle, HTTP
+transport, retry policy, and storage. Publish gates are `npm run typecheck`,
+`npm test`, `npm pack --dry-run`, the Rust/WASM wrapper checks, manifest
+fail-closed compatibility, package size review, and follow-up p95 binding
+overhead measurement before `private: true` is removed.
+
 SPEC-031 adoption record for issue #31: the Rust prototype now consumes the
 `houra-spec` `v0.2.0-pre.23` Matrix foundation vectors for Matrix error
 envelope parsing and identifier validation only. The WASM wrapper and
@@ -330,6 +343,7 @@ cd ts-protocol-core-wasm
 npm ci
 npm run typecheck
 npm test
+npm pack --dry-run
 ```
 
 If Rust is not installed locally, the same checks can run in a Rust Docker image
