@@ -46,9 +46,10 @@ currently validates the `SPEC-030` Matrix client versions vector and the
 session vectors, `SPEC-033` Matrix registration vectors, `SPEC-034` Matrix
 device/session vectors, `SPEC-035` Matrix room membership/state MVP vectors,
 `SPEC-036` Matrix event/messages vectors, `SPEC-037` Matrix sync response
-vectors, `SPEC-038` Matrix media parser vectors, and the `SPEC-039`
-integration gate vector that ties those parser surfaces together. It is not
-published, canonical, or required by the Flutter SDK.
+vectors, `SPEC-038` Matrix media parser vectors, the `SPEC-039` integration
+gate vector that ties those parser surfaces together, and the `SPEC-040` Matrix
+event DAG/auth-event vectors. It is not published, canonical, or required by
+the Flutter SDK.
 
 The Rust prototype exposes `abi_version()` and `artifact_manifest()` as
 implementation metadata for future TS / Dart bindings. Bindings can use that
@@ -61,8 +62,8 @@ a focused follow-up.
 
 The prototype also exposes binding-safe JSON envelopes for `SPEC-030`,
 `SPEC-031`, `SPEC-032`, `SPEC-033`, `SPEC-034`, `SPEC-035`, `SPEC-036`, and
-`SPEC-037` / `SPEC-038`; `SPEC-039` is exposed only as manifest coverage and a
-repo-local integration gate over those existing surfaces.
+`SPEC-037` / `SPEC-038`; `SPEC-039` and `SPEC-040` are exposed only as manifest
+coverage and repo-local vector gates over those existing surfaces.
 Those APIs return a single `ok` / `value` / `error` object so WASM, N-API, FFI,
 and JS interop adapters can cross the language boundary once per parse or
 validation call instead of bouncing through many small calls. The envelope
@@ -74,8 +75,8 @@ contracts and test vectors.
 Vue, and Next client experiments. It uses `wasm-bindgen` to export the manifest
 and `SPEC-030` / `SPEC-031` / `SPEC-032` / `SPEC-033` / `SPEC-034` /
 `SPEC-035` / `SPEC-036` / `SPEC-037` / `SPEC-038` JSON envelopes plus
-`SPEC-039` manifest coverage, but it does not own HTTP, retries, cancellation,
-token storage, UI state, or framework lifecycle.
+`SPEC-039` / `SPEC-040` manifest coverage, but it does not own HTTP, retries,
+cancellation, token storage, UI state, or framework lifecycle.
 Generated JS, `.wasm` files, generated-artifact packaging, and Next server /
 Node bindings are intentionally left out until a focused package artifact issue
 exists. The TypeScript facade metadata below only packages the compiled facade
@@ -198,6 +199,15 @@ TypeScript jobs to that same snapshot. The WASM wrapper and TypeScript facade
 expose this as manifest coverage only; live server/client execution, host-owned
 token and sync-token persistence, media transport, retries, storage, UI
 behavior, and Matrix full compliance stay outside this repository.
+
+SPEC-040 adoption record: the Rust prototype now consumes the
+`houra-spec` snapshot `4b80ab451e43299ff075e352eaa3a512ef2ccee0`
+(`v0.2.0-pre.58-16-g4b80ab4`) `SPEC-040` Matrix event DAG/auth-event vectors
+as a repo-local vector gate over manifest coverage only. The WASM wrapper and
+TypeScript facade expose this as metadata coverage; room storage, full
+authorization decisions, state resolution, federation, event signing/hash
+verification, host persistence, and Matrix full compliance stay outside this
+repository.
 
 Shared-core artifact gate adoption record for issue #74: the TypeScript facade
 now fails closed when the Rust artifact manifest has an unexpected manifest

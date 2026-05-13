@@ -15,6 +15,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-037",
   "SPEC-038",
   "SPEC-039",
+  "SPEC-040",
 ] as const;
 
 export interface HouraProtocolCoreWasmBinding {
