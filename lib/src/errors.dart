@@ -1,7 +1,8 @@
-/// Base class for houra SDK exceptions.
+/// Base class for typed Houra SDK exceptions.
 abstract class HouraException implements Exception {
   const HouraException(this.message);
 
+  /// Human-readable failure summary.
   final String message;
 
   @override
@@ -16,7 +17,10 @@ final class HouraTransportException extends HouraException {
     this.stackTrace,
   });
 
+  /// Original transport-layer cause, when available.
   final Object? cause;
+
+  /// Original stack trace for [cause], when available.
   final StackTrace? stackTrace;
 }
 
@@ -29,15 +33,26 @@ final class HouraHttpException extends HouraException {
     this.code,
     this.serverMessage,
   }) : super(
-          _httpMessage(statusCode, uri, responseBody, code, serverMessage),
+          _httpMessage(statusCode, uri, code, serverMessage),
         );
 
+  /// HTTP status code returned by the server.
   final int statusCode;
+
+  /// Fully resolved request URI.
   final Uri uri;
+
+  /// Raw response body. Hosts should avoid logging it when it may contain
+  /// sensitive application data.
   final String responseBody;
+
+  /// Contract error code parsed from the response body, when present.
   final String? code;
+
+  /// Contract error message parsed from the response body, when present.
   final String? serverMessage;
 
+  /// Short, whitespace-normalized response body for diagnostics.
   String get responseBodySummary => _summarize(responseBody);
 }
 
@@ -62,7 +77,6 @@ String _summarize(String body) {
 String _httpMessage(
   int statusCode,
   Uri uri,
-  String responseBody,
   String? code,
   String? serverMessage,
 ) {
@@ -70,7 +84,6 @@ String _httpMessage(
     'HTTP $statusCode from $uri',
     if (code != null) code,
     if (serverMessage != null) serverMessage,
-    _summarize(responseBody),
   ];
   return parts.where((part) => part.isNotEmpty).join(': ');
 }

@@ -9,6 +9,36 @@ Draft. The current implementation covers the MVP client profiles from
 SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
 SPEC-010, SPEC-011, and SPEC-020.
 
+## Repository Role
+
+This public repository is for Houra implementation experiments:
+
+- Flutter SDK prototype code.
+- Rust-first shared protocol-core experiments.
+- WASM, TypeScript, Dart FFI, or other thin binding prototypes.
+- Minimal SDK usage examples that exercise the public API surface.
+
+It is not the place for business adoption demos, customer proposal material,
+legacy-system migration walkthroughs, or samples that require provider API keys
+or tokens, such as Local LLM gateway tokens, Gemini API keys, or other model
+credentials. Those belong in separate private integration or adoption sample
+repositories until they are sanitized for publication.
+
+`example/` is a package usage example for this SDK prototype, not a business
+application replacement or integration demo.
+
+The expected long-term shape is:
+
+- `houra-spec`: canonical contracts, vectors, and design.
+- `houra-core`: a thin Rust protocol / parser / state core promoted from
+  `rust-protocol-core/` when it is ready.
+- `houra-ts`: the representative TypeScript SDK or binding promoted from the
+  TypeScript facade work when it is ready.
+- Other language bindings: thin adapters added by demand after the Rust core
+  and TypeScript representative path are stable.
+- Private integration sample repositories: Gennai OSS, Java MVC, SPA, Local
+  LLM, Gemini, and business process integration demos.
+
 This repository also contains lab-only shared implementation experiments. The
 `rust-protocol-core/` crate is the first Rust shared protocol core prototype. It
 currently validates the `SPEC-030` Matrix client versions vector and the
@@ -179,6 +209,31 @@ Future<void> main() async {
 See `example/main.dart` for a minimal command-line usage example backed by the
 current contract surface.
 
+### API ownership boundaries
+
+`HouraClient` accepts a `serverBaseUri`, an optional host-owned `http.Client`,
+and a per-request timeout. If no HTTP client is passed, `HouraClient.close()`
+closes the SDK-created client. If a host passes its own HTTP client, the host
+keeps lifecycle ownership.
+
+Authentication calls return tokens and authenticated APIs accept tokens, but the
+SDK does not persist access tokens. Sync-token persistence is also host-owned:
+call `sync.sync()` with a host-stored `since` value, or inject a
+`HouraSyncTokenStore` into `sync.pollOnce()` when a small adapter is useful.
+
+SDK failures are typed as `HouraException` subclasses:
+
+- `HouraTransportException`: request setup, network, timeout, or unsupported
+  HTTP method failures before a usable response is available.
+- `HouraHttpException`: non-2xx HTTP responses, including parsed contract error
+  code and message when the server provides them.
+- `HouraResponseFormatException`: successful responses that do not match the
+  expected contract shape.
+- `HouraThemeFormatException`: malformed shared theme token files.
+
+Media helpers map SPEC-020 metadata and base64 upload shapes only. Hosts still
+own media transport policy, storage, retry behavior, cancellation, and UI.
+
 ## Themes
 
 Shared visual themes live in `design/themes/*.json`.
@@ -227,6 +282,9 @@ dart format --set-exit-if-changed .
 flutter analyze
 flutter test
 ```
+
+Run these checks before sending SDK-facing changes for review. The same sequence
+is the expected local verification for example and API documentation updates.
 
 `tool/check_spec_sync.dart` also runs `../houra-spec/tool/check_spec.dart`
 before checking bundled theme, vector references, and the repo-local `SPEC-039`

@@ -79,7 +79,8 @@ void main() {
     );
   });
 
-  test('fetchVersions preserves HTTP error status and body summary', () async {
+  test('fetchVersions preserves HTTP error body without logging it by default',
+      () async {
     final client = HouraClient(
       serverBaseUri: Uri.parse('https://example.test'),
       httpClient: MockClient(
@@ -101,6 +102,11 @@ void main() {
               (error) => error.responseBodySummary,
               'responseBodySummary',
               'server unavailable',
+            )
+            .having(
+              (error) => error.message,
+              'message',
+              isNot(contains('server unavailable')),
             ),
       ),
     );

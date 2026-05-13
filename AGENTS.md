@@ -33,6 +33,14 @@ contract clarification.
 - This package follows `../houra-spec`.
 - Do not move canonical behavior into this package.
 - Do not treat lab code as canonical or production behavior.
+- Keep this repository focused on public SDK, Rust protocol-core, thin binding,
+  and package-usage experiments.
+- Do not add business adoption demos, customer proposal samples, legacy-system
+  migration walkthroughs, or provider API-key/token-based AI demos here. Keep
+  those in separate private integration or adoption sample repositories until
+  they are sanitized for publication.
+- Keep `example/` limited to minimal SDK usage examples. It must not become a
+  business application integration demo.
 - Keep production React Native client work in `../houra-client`.
 - Keep downstream product semantics outside this repository. Product-specific
   adapters, route names, room mapping, roles, audit metadata, and app policy
@@ -77,6 +85,14 @@ sibling spec root consistency check.
 CI uses `HOURA_SPEC_ROOT` after checking out the sibling
 `houra-spec` repository next to this repository.
 
+## MCP
+
+- Dart MCP: before using Dart MCP tools in this repository, register the repo
+  root with `add_roots` using the current checkout or worktree root as a
+  `file:` URI. Then pass that same URI as the root for `analyze_files`,
+  `run_tests`, `dart_format`, or package URI reads. If `analyze_files` reports
+  `No roots set`, call `add_roots` first instead of falling back immediately.
+
 ## Long-Term Guardrails
 
 - Keep the Flutter package as a lab prototype, not the source of behavior.
@@ -87,5 +103,9 @@ CI uses `HOURA_SPEC_ROOT` after checking out the sibling
 - Run SDK hardening only after the sibling spec freeze checklist exists.
 - Keep public API ergonomics, examples, theme adapter stability, and error
   handling docs tied to canonical contracts and vectors.
+- Treat `rust-protocol-core/` as the future `houra-core` candidate and
+  `ts-protocol-core-wasm/` as the first representative TypeScript binding
+  candidate. Other languages should remain thin adapters until the Rust core
+  and TypeScript path stabilize.
 - Leave pub.dev publication, package name, and versioning for a separate release
   decision issue while `publish_to: none` remains set.

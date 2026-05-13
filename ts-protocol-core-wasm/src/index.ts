@@ -160,7 +160,7 @@ export interface MatrixSyncEvent {
   unsigned?: Record<string, unknown>;
 }
 
-export interface MatrixSyncAccountDataEvent {
+export interface MatrixSyncBasicEvent {
   content: Record<string, unknown>;
   type: string;
 }
@@ -175,7 +175,7 @@ export interface MatrixSyncJoinedRoom {
     prev_batch?: string;
   };
   account_data: {
-    events: MatrixSyncAccountDataEvent[];
+    events: MatrixSyncBasicEvent[];
   };
   summary?: {
     "m.joined_member_count"?: number;
@@ -190,10 +190,10 @@ export interface MatrixSyncJoinedRoom {
 export interface MatrixSyncResponse {
   next_batch: string;
   account_data: {
-    events: MatrixSyncAccountDataEvent[];
+    events: MatrixSyncBasicEvent[];
   };
   presence?: {
-    events: MatrixSyncAccountDataEvent[];
+    events: MatrixSyncBasicEvent[];
   };
   rooms: {
     join: Record<string, MatrixSyncJoinedRoom>;
@@ -752,7 +752,7 @@ function readMatrixSyncResponseEnvelope(
     const rooms = readRecord(value, "rooms", "sync value");
     const result: MatrixSyncResponse = {
       next_batch: readString(value, "next_batch", "invalid_envelope"),
-      account_data: readMatrixSyncAccountDataEvents(
+      account_data: readMatrixSyncBasicEvents(
         readRecord(value, "account_data", "sync value"),
         "account_data",
       ),
@@ -763,7 +763,7 @@ function readMatrixSyncResponseEnvelope(
       },
     };
     if (value.presence !== null && value.presence !== undefined) {
-      result.presence = readMatrixSyncAccountDataEvents(
+      result.presence = readMatrixSyncBasicEvents(
         readRecord(value, "presence", "sync value"),
         "presence",
       );
@@ -786,17 +786,26 @@ function readMatrixSyncJoinedRooms(
           "events",
           "invalid_envelope",
         ).map((entry, index) =>
-          readMatrixSyncEvent(assertRecord(entry, `state.events.${index}`)),
+          readMatrixSyncEvent(
+            assertRecord(entry, `rooms.join.${roomId}.state.events.${index}`),
+            `rooms.join.${roomId}.state.events.${index}`,
+          ),
         ),
       },
       timeline: {
         events: readArray(timeline, "events", "invalid_envelope").map(
           (entry, index) =>
-            readMatrixSyncEvent(assertRecord(entry, `timeline.events.${index}`)),
+            readMatrixSyncEvent(
+              assertRecord(
+                entry,
+                `rooms.join.${roomId}.timeline.events.${index}`,
+              ),
+              `rooms.join.${roomId}.timeline.events.${index}`,
+            ),
         ),
         limited: readBoolean(timeline, "limited"),
       },
-      account_data: readMatrixSyncAccountDataEvents(
+      account_data: readMatrixSyncBasicEvents(
         readRecord(roomRecord, "account_data", `rooms.join.${roomId}`),
         `rooms.join.${roomId}.account_data`,
       ),
@@ -822,32 +831,35 @@ function readMatrixSyncJoinedRooms(
   return rooms;
 }
 
-function readMatrixSyncEvent(value: Record<string, unknown>): MatrixSyncEvent {
+function readMatrixSyncEvent(
+  value: Record<string, unknown>,
+  context: string,
+): MatrixSyncEvent {
   const result: MatrixSyncEvent = {
-    content: readRecord(value, "content", "sync event"),
-    event_id: readString(value, "event_id", "invalid_envelope"),
-    origin_server_ts: readNumber(value, "origin_server_ts", "invalid_envelope"),
-    sender: readString(value, "sender", "invalid_envelope"),
-    type: readString(value, "type", "invalid_envelope"),
+    content: readRecord(value, "content", context),
+    event_id: readContextString(value, "event_id", context),
+    origin_server_ts: readContextNumber(value, "origin_server_ts", context),
+    sender: readContextString(value, "sender", context),
+    type: readContextString(value, "type", context),
   };
   readOptionalString(value, "state_key", (stateKey) => {
     result.state_key = stateKey;
-  });
+  }, context);
   if (value.unsigned !== null && value.unsigned !== undefined) {
-    result.unsigned = readRecord(value, "unsigned", "sync event");
+    result.unsigned = readRecord(value, "unsigned", context);
   }
   return result;
 }
 
-function readMatrixSyncAccountDataEvents(
+function readMatrixSyncBasicEvents(
   value: Record<string, unknown>,
   context: string,
-): { events: MatrixSyncAccountDataEvent[] } {
+): { events: MatrixSyncBasicEvent[] } {
   return {
     events: readArray(value, "events", "invalid_envelope").map((entry, index) => {
       const record = assertRecord(entry, `${context}.events.${index}`);
       return {
-        content: readRecord(record, "content", "account data event"),
+        content: readRecord(record, "content", "sync basic event"),
         type: readString(record, "type", "invalid_envelope"),
       };
     }),
@@ -1035,6 +1047,7 @@ function readOptionalString(
   source: Record<string, unknown>,
   field: string,
   apply: (value: string) => void,
+  context?: string,
 ): void {
   const value = source[field];
   if (value === null || value === undefined) {
@@ -1043,10 +1056,27 @@ function readOptionalString(
   if (typeof value !== "string") {
     throw new HouraProtocolCoreFacadeError(
       "invalid_envelope",
-      `${field} must be a string`,
+      context
+        ? `${context}.${field} must be a string`
+        : `${field} must be a string`,
     );
   }
   apply(value);
+}
+
+function readContextString(
+  source: Record<string, unknown>,
+  field: string,
+  context: string,
+): string {
+  const value = source[field];
+  if (typeof value !== "string") {
+    throw new HouraProtocolCoreFacadeError(
+      "invalid_envelope",
+      `${context}.${field} must be a string`,
+    );
+  }
+  return value;
 }
 
 function readNumber(
@@ -1059,6 +1089,21 @@ function readNumber(
     throw new HouraProtocolCoreFacadeError(
       errorCode,
       `${field} must be an integer`,
+    );
+  }
+  return value;
+}
+
+function readContextNumber(
+  source: Record<string, unknown>,
+  field: string,
+  context: string,
+): number {
+  const value = source[field];
+  if (typeof value !== "number" || !Number.isInteger(value)) {
+    throw new HouraProtocolCoreFacadeError(
+      "invalid_envelope",
+      `${context}.${field} must be an integer`,
     );
   }
   return value;

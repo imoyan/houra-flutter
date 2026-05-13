@@ -7,6 +7,10 @@ final class HouraMediaClient {
 
   final HouraTransport _transport;
 
+  /// Uploads a base64 payload and returns the server media descriptor.
+  ///
+  /// Media transport and storage remain host-owned. This helper only maps the
+  /// covered SPEC-020 request and response shape.
   Future<HouraMediaUpload> uploadBase64({
     required String accessToken,
     required String filename,
@@ -28,6 +32,7 @@ final class HouraMediaClient {
     return HouraMediaUpload.fromJson(response.jsonObject);
   }
 
+  /// Fetches media metadata for a server-owned media ID.
   Future<HouraMediaMetadata> getMetadata({
     required String accessToken,
     required String mediaId,
