@@ -481,6 +481,49 @@ Do not publish from this issue. The release PR must confirm:
 - no business adoption demo, provider API-key/token example, or production
   client behavior has been added to this repository
 
+## OSS Publication Readiness
+
+Before treating this repository as externally ready, confirm this checklist:
+
+- README, LICENSE, CHANGELOG, issue templates, PR template, and SECURITY policy
+  are present and aligned with the lab boundary.
+- GitHub repository description and topics identify this as Houra lab prototype
+  work, not the canonical specification or production client.
+- GitHub Releases are release anchors only. Release notes must record the head
+  SHA, `houra-spec` snapshot, generated release evidence artifact, package
+  dry-run results, and any known blockers.
+- `houra-spec` contracts, test vectors, and design schemas remain the source of
+  truth. GitHub Releases, Context7, OpenSSF Scorecard, Best Practices Badge,
+  package registries, docs.rs, and other indexes are non-normative.
+- Security contact and vulnerability handling stay in `SECURITY.md`; public
+  issues must not contain tokens, API keys, raw prompts, private requests, or
+  customer data.
+- `example/` remains a minimal SDK usage example and does not include business
+  adoption demos, provider API-key/token-based examples, customer material, or
+  production application policy.
+
+External registration order:
+
+1. Keep `houra-spec` snapshot and release evidence gate passing on `main`.
+2. Confirm repository metadata, topics, security policy, and release notes.
+3. Add GitHub Release notes and attach release evidence for a tagged lab
+   snapshot.
+4. Register non-normative documentation indexes such as Context7 only after the
+   release anchor exists.
+5. Add OpenSSF Scorecard and Best Practices Badge after the security policy and
+   release anchor are in place.
+6. Handle pub.dev, npm, crates.io, docs.rs, and container registry publication
+   through focused package-specific issues.
+
+Current package-specific follow-ups:
+
+- #79: Rust protocol-core crate publication readiness.
+- #80: TypeScript / WASM facade npm publish gate. Completed.
+- #81: shared-core parity / performance evidence gate. Completed.
+- Future package publication issues must remove `publish_to: none`,
+  `publish = false`, or `private: true` only after ownership, package name,
+  version, artifact evidence, and registry metadata are confirmed.
+
 ## Roadmap
 
 The long-term path for this lab package is Flutter SDK hardening, shared theme
