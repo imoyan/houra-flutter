@@ -63,6 +63,8 @@ The current package implements:
 - SPEC-010 Timeline
 - SPEC-011 Basic Sync
 - SPEC-020 Media
+- SPEC-051 Matrix Key Upload / Claim request descriptors and public response
+  parsers only
 - SPEC-069 Matrix Device Key Query request descriptor and public response
   parser only
 
