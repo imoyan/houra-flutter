@@ -33,7 +33,7 @@ final class HouraHttpException extends HouraException {
     this.code,
     this.serverMessage,
   }) : super(
-          _httpMessage(statusCode, uri, responseBody, code, serverMessage),
+          _httpMessage(statusCode, uri, code, serverMessage),
         );
 
   /// HTTP status code returned by the server.
@@ -77,7 +77,6 @@ String _summarize(String body) {
 String _httpMessage(
   int statusCode,
   Uri uri,
-  String responseBody,
   String? code,
   String? serverMessage,
 ) {
@@ -85,7 +84,6 @@ String _httpMessage(
     'HTTP $statusCode from $uri',
     if (code != null) code,
     if (serverMessage != null) serverMessage,
-    _summarize(responseBody),
   ];
   return parts.where((part) => part.isNotEmpty).join(': ');
 }

@@ -13,7 +13,12 @@ Future<void> main() async {
     print('API version: ${versions.apiVersion}');
     print('Login flows: ${flows.flows.map((flow) => flow.type).join(', ')}');
   } on HouraHttpException catch (error) {
-    stderr.writeln('Houra HTTP error: ${error.responseBodySummary}');
+    final details = [
+      'status=${error.statusCode}',
+      if (error.code != null) 'code=${error.code}',
+      if (error.serverMessage != null) 'message=${error.serverMessage}',
+    ].join(' ');
+    stderr.writeln('Houra HTTP error: $details');
     exitCode = 1;
   } on HouraException catch (error) {
     stderr.writeln('Houra SDK error: ${error.message}');
