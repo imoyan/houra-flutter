@@ -24,6 +24,7 @@ void checkSdkBoundary(List<String> failures) {
     '.github',
     '.gitignore',
     'AGENTS.md',
+    'CHANGELOG.md',
     'LICENSE',
     'README.md',
     'design',
