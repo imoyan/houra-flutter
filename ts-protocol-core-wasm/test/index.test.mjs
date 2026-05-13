@@ -4,17 +4,21 @@ import { join } from "node:path";
 import test from "node:test";
 
 import {
+  HOURA_PROTOCOL_CORE_CRATE_NAME,
+  HOURA_PROTOCOL_CORE_CRATE_VERSION,
+  HOURA_PROTOCOL_CORE_PROTOCOL_BOUNDARY,
   HOURA_PROTOCOL_CORE_SPEC_IDS,
   HouraProtocolCoreFacadeError,
+  artifactReleaseEvidenceFromManifest,
   createHouraProtocolCore,
 } from "../dist/index.js";
 
 const manifest = {
   manifest_schema_version: 1,
-  crate_name: "houra-protocol-core",
-  crate_version: "0.1.0",
+  crate_name: HOURA_PROTOCOL_CORE_CRATE_NAME,
+  crate_version: HOURA_PROTOCOL_CORE_CRATE_VERSION,
   abi_version: 1,
-  protocol_boundary: "pure-protocol-core",
+  protocol_boundary: HOURA_PROTOCOL_CORE_PROTOCOL_BOUNDARY,
   supported_specs: [...HOURA_PROTOCOL_CORE_SPEC_IDS],
   supported_binding_kinds: ["wasm"],
 };
@@ -359,6 +363,7 @@ function binding(overrides = {}) {
 test("validates manifest and maps successful versions parse envelopes", () => {
   const core = createHouraProtocolCore(binding());
 
+  assert.equal(core.manifest.crate_name, "houra-protocol-core");
   assert.deepEqual(core.manifest.supported_binding_kinds, ["wasm"]);
   const result = core.parseMatrixClientVersionsResponse('{"versions":["v1.18"]}');
 
@@ -368,6 +373,33 @@ test("validates manifest and maps successful versions parse envelopes", () => {
     unstable_features: {},
   });
   assert.equal(result.error, null);
+});
+
+test("exposes metadata-only release evidence from the artifact manifest", () => {
+  const core = createHouraProtocolCore(binding());
+
+  assert.deepEqual(core.releaseEvidence, {
+    evidence_kind: "houra-protocol-core-artifact",
+    redaction: "metadata-only-no-raw-requests-or-secrets",
+    binding_kind: "wasm",
+    manifest_schema_version: 1,
+    crate_name: "houra-protocol-core",
+    crate_version: "0.1.0",
+    abi_version: 1,
+    protocol_boundary: "pure-protocol-core",
+    supported_specs: [...HOURA_PROTOCOL_CORE_SPEC_IDS],
+    supported_binding_kinds: ["wasm"],
+  });
+
+  assert.deepEqual(
+    artifactReleaseEvidenceFromManifest(manifest, {
+      specSnapshotRef: "413a3025a32521e4a707d9dd890a10b56328154e",
+    }),
+    {
+      ...core.releaseEvidence,
+      spec_snapshot_ref: "413a3025a32521e4a707d9dd890a10b56328154e",
+    },
+  );
 });
 
 test("accepts SPEC-039 integration gate coverage over existing facade surfaces", () => {
@@ -1105,21 +1137,31 @@ test("returns protocol error envelopes without throwing", () => {
 });
 
 test("rejects bindings with incompatible manifests", () => {
-  assert.throws(
-    () =>
-      createHouraProtocolCore(
-        binding({
-          manifest: {
-            ...manifest,
-            supported_binding_kinds: [],
-          },
-        }),
-      ),
-    (error) =>
-      error instanceof HouraProtocolCoreFacadeError &&
-      error.code === "invalid_manifest" &&
-      error.message.includes("supported_binding_kinds"),
-  );
+  for (const [field, value] of [
+    ["manifest_schema_version", 2],
+    ["crate_name", "other-core"],
+    ["crate_version", "9.9.9"],
+    ["abi_version", 2],
+    ["protocol_boundary", "host-owned-storage"],
+    ["supported_specs", [...HOURA_PROTOCOL_CORE_SPEC_IDS].reverse()],
+    ["supported_binding_kinds", []],
+  ]) {
+    assert.throws(
+      () =>
+        createHouraProtocolCore(
+          binding({
+            manifest: {
+              ...manifest,
+              [field]: value,
+            },
+          }),
+        ),
+      (error) =>
+        error instanceof HouraProtocolCoreFacadeError &&
+        error.code === "invalid_manifest" &&
+        error.message.includes(field),
+    );
+  }
 });
 
 test("rejects malformed parse envelopes", () => {
