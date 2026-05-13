@@ -370,13 +370,47 @@ Current decision: keep this package unpublished while the SDK remains a draft.
 - Package name: keep `houra`.
 - Version: keep `0.1.0` until the first release candidate is cut.
 - License: Apache-2.0, as declared in `LICENSE`.
+- Repository metadata: keep `repository`, `issue_tracker`, and package `topics`
+  in `pubspec.yaml` aligned with this GitHub repository.
 - Publication: keep `publish_to: none`.
 - Canonical source: continue reading contracts, vectors, and design tokens from
   `../houra-spec` or `HOURA_SPEC_ROOT`.
+- Supported contract claim: keep the public Flutter SDK claim limited to
+  SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
+  SPEC-010, SPEC-011, and SPEC-020 until matching canonical contracts and
+  vectors expand the SDK surface.
 
 Before publishing to pub.dev, open a separate release PR that removes
 `publish_to: none` only after package ownership, repository metadata,
 versioning, and the final Houra freeze baseline are confirmed.
+
+### Pub.dev Release Gate
+
+Run the release gate from the repository root with the canonical spec checkout
+available:
+
+```bash
+flutter pub get
+HOURA_SPEC_ROOT=../houra-spec dart run tool/check_spec_sync.dart
+dart format --set-exit-if-changed .
+flutter analyze
+HOURA_SPEC_ROOT=../houra-spec flutter test
+flutter pub publish --dry-run
+```
+
+The current dry-run blocker found during issue #78 was the missing
+`CHANGELOG.md`; the package now includes one. The dry run may still report
+server-side policy checks after `publish_to: none` is removed in a separate
+release PR.
+
+Do not publish from this issue. The release PR must confirm:
+
+- pub.dev package ownership for `houra`
+- final package name and version
+- repository, issue tracker, topics, license, and changelog metadata
+- final `houra-spec` freeze baseline or explicit `HOURA_SPEC_ROOT` snapshot
+- no business adoption demo, provider API-key/token example, or production
+  client behavior has been added to this repository
 
 ## Roadmap
 
