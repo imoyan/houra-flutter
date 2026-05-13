@@ -76,8 +76,10 @@ and `SPEC-030` / `SPEC-031` / `SPEC-032` / `SPEC-033` / `SPEC-034` /
 `SPEC-035` / `SPEC-036` / `SPEC-037` / `SPEC-038` JSON envelopes plus
 `SPEC-039` manifest coverage, but it does not own HTTP, retries, cancellation,
 token storage, UI state, or framework lifecycle.
-Generated JS, `.wasm` files, npm packaging, and Next server / Node bindings are
-intentionally left out until a focused package issue exists.
+Generated JS, `.wasm` files, generated-artifact packaging, and Next server /
+Node bindings are intentionally left out until a focused package artifact issue
+exists. The TypeScript facade metadata below only packages the compiled facade
+that wraps a host-provided WASM module.
 
 `ts-protocol-core-wasm/` is the matching TypeScript facade prototype for browser,
 Vue, and Next client experiments. It does not load WASM by itself and does not
@@ -92,6 +94,19 @@ That evidence is intentionally metadata-only: it records manifest schema,
 crate, ABI, binding kind, protocol boundary, supported specs, and an optional
 spec snapshot ref, but it must not contain raw requests, prompts, tokens, or
 secrets.
+
+WASM / TypeScript facade publish readiness for issue #75: generated
+`wasm-bindgen` JavaScript and `.wasm` files stay out of the repository until a
+focused package artifact issue decides otherwise. The TypeScript facade package
+keeps `private: true`, but defines `exports`, `types`, `files`, `sideEffects`,
+and a `prepack` build hook so `npm pack --dry-run` can validate package
+contents before a future publish PR. The package artifact contains the compiled
+TypeScript facade only; host applications still provide the generated WASM
+module object and own bundler choice, browser / Next / Vue lifecycle, HTTP
+transport, retry policy, and storage. Publish gates are `npm run typecheck`,
+`npm test`, `npm pack --dry-run`, the Rust/WASM wrapper checks, manifest
+fail-closed compatibility, package size review, and follow-up p95 binding
+overhead measurement before `private: true` is removed.
 
 SPEC-031 adoption record for issue #31: the Rust prototype now consumes the
 `houra-spec` `v0.2.0-pre.23` Matrix foundation vectors for Matrix error
@@ -330,6 +345,7 @@ cd ts-protocol-core-wasm
 npm ci
 npm run typecheck
 npm test
+npm pack --dry-run
 ```
 
 If Rust is not installed locally, the same checks can run in a Rust Docker image
