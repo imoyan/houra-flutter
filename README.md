@@ -76,8 +76,10 @@ and `SPEC-030` / `SPEC-031` / `SPEC-032` / `SPEC-033` / `SPEC-034` /
 `SPEC-035` / `SPEC-036` / `SPEC-037` / `SPEC-038` JSON envelopes plus
 `SPEC-039` manifest coverage, but it does not own HTTP, retries, cancellation,
 token storage, UI state, or framework lifecycle.
-Generated JS, `.wasm` files, npm packaging, and Next server / Node bindings are
-intentionally left out until a focused package issue exists.
+Generated JS, `.wasm` files, generated-artifact packaging, and Next server /
+Node bindings are intentionally left out until a focused package artifact issue
+exists. The TypeScript facade metadata below only packages the compiled facade
+that wraps a host-provided WASM module.
 
 `ts-protocol-core-wasm/` is the matching TypeScript facade prototype for browser,
 Vue, and Next client experiments. It does not load WASM by itself and does not
