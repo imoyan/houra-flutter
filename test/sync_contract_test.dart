@@ -8,6 +8,45 @@ import 'package:houra/houra.dart';
 import 'vector_test_support.dart';
 
 void main() {
+  test('matrixSync parses SPEC-052 to-device delivery vector', () async {
+    final vector = readVector(
+      'test-vectors/messaging/matrix-to-device-sync-receive-basic.json',
+    );
+    final event = objectFrom(vector.raw, 'event');
+    final steps = event['steps'] as List<Object?>;
+    final syncStep = (steps[1] as Map).cast<String, Object?>();
+    final responseBody = objectFrom(syncStep, 'expected_body_contains');
+
+    late http.Request observed;
+    final client = _client((request) async {
+      observed = request;
+      return http.Response(
+        jsonEncode(responseBody),
+        syncStep['expected_status'] as int,
+      );
+    });
+
+    final batch = await client.sync.matrixSync(
+      accessToken: syncStep['access_token'] as String,
+    );
+
+    expect(observed.method, syncStep['method']);
+    expect(observed.url.path, syncStep['path']);
+    expect(observed.headers['authorization'], 'Bearer token-bob-device1');
+    expect(batch.nextBatch, responseBody['next_batch']);
+    expect(batch.toDeviceEvents, hasLength(1));
+    final eventEnvelope = batch.toDeviceEvents.single;
+    expect(eventEnvelope.sender, '@alice:example.test');
+    expect(eventEnvelope.type, 'm.room.encrypted');
+    final payload = eventEnvelope.encryptedPayload!;
+    expect(payload.algorithm, 'm.olm.v1.curve25519-aes-sha2');
+    expect(payload.senderKey, 'alice-curve25519-device1');
+    expect(
+      payload.olmCiphertext!['bob-curve25519-bob1']!.body,
+      'olm-prekey-ciphertext',
+    );
+  });
+
   test('listRooms follows SPEC-009 vector', () async {
     final vector = readVector('test-vectors/sync/room-list-basic.json');
     late http.Request observed;
@@ -80,6 +119,13 @@ void main() {
     );
     expect(
       () => HouraTimelinePage.fromJson({'events': [], 'start': ''}),
+      throwsA(isA<HouraResponseFormatException>()),
+    );
+    expect(
+      () => HouraMatrixSyncBatch.fromJson({
+        'next_batch': 's1',
+        'to_device': {'events': 'bad'},
+      }),
       throwsA(isA<HouraResponseFormatException>()),
     );
   });
