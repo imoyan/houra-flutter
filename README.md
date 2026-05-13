@@ -160,6 +160,19 @@ runtime impact, and fallback behavior are confirmed. Node server transport,
 request lifecycle, retry policy, cancellation, tenant context, and storage
 policy stay host-owned and outside the binding package.
 
+Ecosystem service parser candidate gate for issue #73: SPEC-058, SPEC-059, and
+SPEC-060 are service-boundary contracts, not production service implementations.
+Labs may adopt parser-only helpers for Application Service registration,
+namespace matching, transactions, and query request shapes; Identity Service
+hash-details, lookup, validation, bind/unbind, and signed association shapes;
+and Push Gateway notify, rejected pushkey, event-id-only, pusher data, and push
+rule payload shapes. Service deployment, service tokens, network policy,
+privacy enforcement, provider delivery, vendor credentials, and user-facing
+consent or notification UI stay outside this repository. Implementation work
+must be split into SPEC-sized follow-up issues and tied to the corresponding
+`houra-spec/test-vectors/core/matrix-appservice-*`,
+`matrix-identity-*`, and `matrix-push-*` vectors.
+
 SPEC-031 adoption record for issue #31: the Rust prototype now consumes the
 `houra-spec` `v0.2.0-pre.23` Matrix foundation vectors for Matrix error
 envelope parsing and identifier validation only. The WASM wrapper and
@@ -564,6 +577,8 @@ External registration order:
 
 Current package-specific follow-ups:
 
+- #73: SPEC-058〜060 ecosystem service parser candidates. Completed as
+  candidate criteria only; parser implementation remains split by SPEC.
 - #76: N-API / Node binding candidate gate. Completed as candidate criteria
   only; native binding implementation and publication remain deferred.
 - #77: Dart FFI / Dart web binding candidate gate. Completed as candidate

@@ -227,6 +227,59 @@ void main(List<String> args) {
         'claiming server behavior or Matrix compatibility from the binding',
       ],
     },
+    'ecosystem_service_parser_candidates': {
+      'issue': 73,
+      'status': 'candidate-only-implementation-deferred',
+      'spec_ids': ['SPEC-058', 'SPEC-059', 'SPEC-060'],
+      'labs_owned_candidates': {
+        'SPEC-058': [
+          'Application Service registration shape parser',
+          'namespace matching helper candidate',
+          'transaction payload parser',
+          'user and room alias query request shape parser',
+        ],
+        'SPEC-059': [
+          'Identity Service hash details parser',
+          'lookup request and response shape parser',
+          'validation session shape parser',
+          'bind and unbind request/response shape parser',
+          'signed association metadata parser candidate',
+        ],
+        'SPEC-060': [
+          'Push Gateway notify payload parser',
+          'rejected pushkey response parser',
+          'event-id-only notification shape parser',
+          'pusher data validation helper candidate',
+          'push rule payload shape parser candidate',
+        ],
+      },
+      'parity_vector_globs': [
+        'test-vectors/core/matrix-appservice-*.json',
+        'test-vectors/core/matrix-identity-*.json',
+        'test-vectors/core/matrix-push-*.json',
+      ],
+      'host_or_service_owned_boundaries': [
+        'service deployment',
+        'service token storage',
+        'network policy enforcement',
+        'privacy enforcement',
+        'provider delivery',
+        'vendor credentials',
+        'user-facing consent UI',
+        'notification rendering UI',
+      ],
+      'follow_up_split': [
+        'SPEC-058 Application Service parser-only helpers',
+        'SPEC-059 Identity Service parser-only helpers',
+        'SPEC-060 Push Gateway parser-only helpers',
+      ],
+      'out_of_scope': [
+        'claiming production service behavior from labs helpers',
+        'owning application service deployment or bridge protocol behavior',
+        'owning identity provider delivery or consent policy',
+        'owning APNS, FCM, Web Push, or vendor credential handling',
+      ],
+    },
     'checks': [
       {
         'name': 'spec-sync',
