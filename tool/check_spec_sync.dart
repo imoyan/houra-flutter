@@ -27,6 +27,7 @@ void checkSdkBoundary(List<String> failures) {
     'CHANGELOG.md',
     'LICENSE',
     'README.md',
+    'SECURITY.md',
     'design',
     'example',
     'lib',
