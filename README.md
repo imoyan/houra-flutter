@@ -104,9 +104,20 @@ contents before a future publish PR. The package artifact contains the compiled
 TypeScript facade only; host applications still provide the generated WASM
 module object and own bundler choice, browser / Next / Vue lifecycle, HTTP
 transport, retry policy, and storage. Publish gates are `npm run typecheck`,
-`npm test`, `npm pack --dry-run`, the Rust/WASM wrapper checks, manifest
+`npm test`, `npm run pack:dry-run`, the Rust/WASM wrapper checks, manifest
 fail-closed compatibility, package size review, and follow-up p95 binding
 overhead measurement before `private: true` is removed.
+
+TypeScript / WASM npm publish gate for issue #80: the scoped package name stays
+`@houra/protocol-core-wasm-facade`, with `exports`, `types`, `files`,
+`sideEffects`, `license`, repository, bugs, keywords, and package README
+metadata defined while `private: true` remains set. `npm run pack:dry-run` must
+show only the compiled facade, package metadata, and package README. Generated
+WASM artifacts stay excluded until a separate artifact issue decides whether
+they are published or left to host app build steps. Browser ESM is the primary
+runtime target; Next and Vue are supported at the facade boundary; Node remains
+test/package-validation only until a separate Node or N-API binding issue
+adopts a runtime package.
 
 SPEC-031 adoption record for issue #31: the Rust prototype now consumes the
 `houra-spec` `v0.2.0-pre.23` Matrix foundation vectors for Matrix error
@@ -345,7 +356,7 @@ cd ts-protocol-core-wasm
 npm ci
 npm run typecheck
 npm test
-npm pack --dry-run
+npm run pack:dry-run
 ```
 
 If Rust is not installed locally, the same checks can run in a Rust Docker image
