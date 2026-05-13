@@ -388,6 +388,83 @@ final class HouraMatrixDeviceKey {
       raw: Map<String, Object?>.unmodifiable(json),
     );
   }
+
+  Map<String, Object?> toJson() => {
+        ...raw,
+        'user_id': userId,
+        'device_id': deviceId,
+        'algorithms': algorithms,
+        'keys': keys,
+        'signatures': signatures,
+        if (unsigned != null) 'unsigned': unsigned,
+      };
+}
+
+/// SPEC-051 Matrix key upload response.
+final class HouraKeyUploadResponse {
+  const HouraKeyUploadResponse({required this.oneTimeKeyCounts});
+
+  final Map<String, int> oneTimeKeyCounts;
+
+  factory HouraKeyUploadResponse.fromJson(Map<String, Object?> json) {
+    return HouraKeyUploadResponse(
+      oneTimeKeyCounts: _requiredIntMap(json, 'one_time_key_counts'),
+    );
+  }
+}
+
+/// SPEC-051 Matrix key claim response.
+final class HouraKeyClaimResponse {
+  const HouraKeyClaimResponse({
+    required this.failures,
+    required this.oneTimeKeys,
+  });
+
+  /// Remote homeserver failures, keyed by homeserver name.
+  final Map<String, Object?> failures;
+
+  /// Public one-time or fallback keys keyed by user id, device id, and key id.
+  final Map<String, Map<String, Map<String, HouraMatrixSignedKey>>> oneTimeKeys;
+
+  factory HouraKeyClaimResponse.fromJson(Map<String, Object?> json) {
+    return HouraKeyClaimResponse(
+      failures: _requiredJsonObject(json, 'failures'),
+      oneTimeKeys: _requiredClaimKeyUsers(json, 'one_time_keys'),
+    );
+  }
+}
+
+/// Public Matrix signed one-time or fallback key object from SPEC-051.
+final class HouraMatrixSignedKey {
+  const HouraMatrixSignedKey({
+    required this.key,
+    required this.signatures,
+    required this.raw,
+    this.fallback,
+  });
+
+  final String key;
+  final bool? fallback;
+  final Map<String, Map<String, String>> signatures;
+
+  /// Original public object, preserved for unknown field round-tripping.
+  final Map<String, Object?> raw;
+
+  factory HouraMatrixSignedKey.fromJson(Map<String, Object?> json) {
+    return HouraMatrixSignedKey(
+      key: _requiredString(json, 'key'),
+      fallback: _optionalBool(json, 'fallback'),
+      signatures: _requiredNestedStringMap(json, 'signatures'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+        ...raw,
+        'key': key,
+        'signatures': signatures,
+        if (fallback != null) 'fallback': fallback,
+      };
 }
 
 String _requiredString(Map<String, Object?> json, String key) {
@@ -466,6 +543,17 @@ String? _optionalString(Map<String, Object?> json, String key) {
   throw HouraResponseFormatException('Expected optional string "$key".');
 }
 
+bool? _optionalBool(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value == null) {
+    return null;
+  }
+  if (value is bool) {
+    return value;
+  }
+  throw HouraResponseFormatException('Expected optional boolean "$key".');
+}
+
 List<String> _requiredStringList(Map<String, Object?> json, String key) {
   final value = json[key];
   if (value is! List) {
@@ -490,6 +578,21 @@ Map<String, String> _requiredStringMap(Map<String, Object?> json, String key) {
     value.cast<String, Object?>().map((mapKey, mapValue) {
       if (mapValue is! String || mapValue.isEmpty) {
         throw HouraResponseFormatException('Expected string map "$key".');
+      }
+      return MapEntry(mapKey, mapValue);
+    }),
+  );
+}
+
+Map<String, int> _requiredIntMap(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is! Map) {
+    throw HouraResponseFormatException('Expected integer map "$key".');
+  }
+  return Map<String, int>.unmodifiable(
+    value.cast<String, Object?>().map((mapKey, mapValue) {
+      if (mapValue is! int || mapValue < 0) {
+        throw HouraResponseFormatException('Expected integer map "$key".');
       }
       return MapEntry(mapKey, mapValue);
     }),
@@ -555,6 +658,47 @@ Map<String, Map<String, HouraMatrixDeviceKey>> _requiredDeviceKeyUsers(
       return MapEntry(
         userId,
         Map<String, HouraMatrixDeviceKey>.unmodifiable(devices),
+      );
+    }),
+  );
+}
+
+Map<String, Map<String, Map<String, HouraMatrixSignedKey>>>
+    _requiredClaimKeyUsers(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is! Map) {
+    throw HouraResponseFormatException('Expected claim key map "$key".');
+  }
+  return Map<String,
+      Map<String, Map<String, HouraMatrixSignedKey>>>.unmodifiable(
+    value.cast<String, Object?>().map((userId, devicesValue) {
+      if (devicesValue is! Map) {
+        throw HouraResponseFormatException('Expected claim key map "$key".');
+      }
+      final devices = devicesValue.cast<String, Object?>().map((
+        deviceId,
+        keysValue,
+      ) {
+        if (keysValue is! Map) {
+          throw HouraResponseFormatException('Expected claim key map "$key".');
+        }
+        final keys = keysValue.cast<String, Object?>().map((keyId, keyValue) {
+          if (keyValue is! Map) {
+            throw HouraResponseFormatException('Expected signed key object.');
+          }
+          return MapEntry(
+            keyId,
+            HouraMatrixSignedKey.fromJson(keyValue.cast<String, Object?>()),
+          );
+        });
+        return MapEntry(
+          deviceId,
+          Map<String, HouraMatrixSignedKey>.unmodifiable(keys),
+        );
+      });
+      return MapEntry(
+        userId,
+        Map<String, Map<String, HouraMatrixSignedKey>>.unmodifiable(devices),
       );
     }),
   );

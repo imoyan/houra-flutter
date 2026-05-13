@@ -7,9 +7,10 @@ The name comes from horagai, a conch shell used to signal over distance.
 
 Draft. The current implementation covers the MVP client profiles from
 SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
-SPEC-010, SPEC-011, and SPEC-020. It also includes query-only Dart SDK coverage
-for SPEC-069 Matrix device key query request descriptors and public response
-parsing without claiming Matrix E2EE support.
+SPEC-010, SPEC-011, and SPEC-020. It also includes parser-only Dart SDK
+coverage for SPEC-051 Matrix key upload / claim and SPEC-069 Matrix device key
+query request descriptors and public response parsing without claiming Matrix
+E2EE support.
 
 ## Repository Role
 
@@ -266,6 +267,17 @@ consumes the sibling `houra-spec` `SPEC-069` device key query vectors for
 device-key response parsing, remote-failure field preservation, unknown
 user/device omission behavior, and Matrix `M_*` error-envelope mapping. This is
 query-only parser coverage; access-token persistence, transport retry policy,
+signature verification, trust UI, secure storage, Olm/Megolm sessions,
+encrypted-room behavior, key backup, verification UX, and Matrix E2EE support
+advertisement stay outside this repository.
+
+SPEC-051 Dart SDK adoption record for issue #102: the Flutter SDK prototype now
+consumes the sibling `houra-spec` `SPEC-051` key upload and claim vectors for
+`POST /_matrix/client/v3/keys/upload` and
+`POST /_matrix/client/v3/keys/claim` request descriptor construction, public
+`one_time_key_counts` parsing, public one-time/fallback key response parsing,
+remote-failure field preservation, and Matrix `M_*` error-envelope mapping.
+This is parser-only coverage; key generation, key storage, claim lifecycle,
 signature verification, trust UI, secure storage, Olm/Megolm sessions,
 encrypted-room behavior, key backup, verification UX, and Matrix E2EE support
 advertisement stay outside this repository.

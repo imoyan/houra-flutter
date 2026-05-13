@@ -33,6 +33,9 @@ void main() {
     expect(houra.HouraMediaMetadata, isA<Type>());
     expect(houra.HouraDeviceKeyQueryResponse, isA<Type>());
     expect(houra.HouraMatrixDeviceKey, isA<Type>());
+    expect(houra.HouraKeyUploadResponse, isA<Type>());
+    expect(houra.HouraKeyClaimResponse, isA<Type>());
+    expect(houra.HouraMatrixSignedKey, isA<Type>());
     expect(houra.HouraException, isA<Type>());
     expect(houra.HouraHttpException, isA<Type>());
     expect(houra.HouraTransportException, isA<Type>());
