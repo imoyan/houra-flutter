@@ -86,6 +86,12 @@ commit generated artifacts. Instead, a host app passes the generated
 validates the manifest, ABI version, binding kind, and supported `SPEC-*` ids
 before mapping the Rust JSON envelopes into TypeScript result types. This keeps
 bundler choice, framework lifecycle, transport, and storage in the host layer.
+The facade also validates the crate name, crate version, protocol boundary, and
+ordered covered SPEC list before exposing a `releaseEvidence` metadata object.
+That evidence is intentionally metadata-only: it records manifest schema,
+crate, ABI, binding kind, protocol boundary, supported specs, and an optional
+spec snapshot ref, but it must not contain raw requests, prompts, tokens, or
+secrets.
 
 SPEC-031 adoption record for issue #31: the Rust prototype now consumes the
 `houra-spec` `v0.2.0-pre.23` Matrix foundation vectors for Matrix error
@@ -151,6 +157,14 @@ TypeScript jobs to that same snapshot. The WASM wrapper and TypeScript facade
 expose this as manifest coverage only; live server/client execution, host-owned
 token and sync-token persistence, media transport, retries, storage, UI
 behavior, and Matrix full compliance stay outside this repository.
+
+Shared-core artifact gate adoption record for issue #74: the TypeScript facade
+now fails closed when the Rust artifact manifest has an unexpected manifest
+schema version, crate name, crate version, ABI version, protocol boundary,
+ordered covered SPEC list, or missing WASM binding kind. The facade exposes
+metadata-only release evidence from the validated manifest so release notes can
+record artifact compatibility without storing raw query, prompt, request,
+token, or secret values.
 
 Out of scope for this package version:
 

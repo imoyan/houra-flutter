@@ -1,5 +1,8 @@
 export const HOURA_PROTOCOL_CORE_ABI_VERSION = 1;
 export const HOURA_PROTOCOL_CORE_MANIFEST_SCHEMA_VERSION = 1;
+export const HOURA_PROTOCOL_CORE_CRATE_NAME = "houra-protocol-core";
+export const HOURA_PROTOCOL_CORE_CRATE_VERSION = "0.1.0";
+export const HOURA_PROTOCOL_CORE_PROTOCOL_BOUNDARY = "pure-protocol-core";
 export const HOURA_PROTOCOL_CORE_WASM_BINDING_KIND = "wasm";
 export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-030",
@@ -46,6 +49,20 @@ export interface ArtifactManifest {
   protocol_boundary: string;
   supported_specs: string[];
   supported_binding_kinds: string[];
+}
+
+export interface ArtifactReleaseEvidence {
+  evidence_kind: "houra-protocol-core-artifact";
+  redaction: "metadata-only-no-raw-requests-or-secrets";
+  binding_kind: typeof HOURA_PROTOCOL_CORE_WASM_BINDING_KIND;
+  manifest_schema_version: number;
+  crate_name: string;
+  crate_version: string;
+  abi_version: number;
+  protocol_boundary: string;
+  supported_specs: string[];
+  supported_binding_kinds: string[];
+  spec_snapshot_ref?: string;
 }
 
 export interface MatrixClientVersions {
@@ -223,6 +240,7 @@ export type ProtocolResult<T> =
 
 export interface HouraProtocolCoreFacade {
   manifest: ArtifactManifest;
+  releaseEvidence: ArtifactReleaseEvidence;
   parseMatrixClientEvent(responseBody: string): ProtocolResult<MatrixClientEvent>;
   parseMatrixClientVersionsResponse(
     responseBody: string,
@@ -294,6 +312,7 @@ export function createHouraProtocolCore(
 
   return {
     manifest,
+    releaseEvidence: artifactReleaseEvidenceFromManifest(manifest),
     parseMatrixClientEvent(responseBody: string) {
       const envelope = parseJsonObject(
         binding.parseMatrixClientEventJson(responseBody),
@@ -437,6 +456,27 @@ export function createHouraProtocolCore(
   };
 }
 
+export function artifactReleaseEvidenceFromManifest(
+  manifest: ArtifactManifest,
+  options: { specSnapshotRef?: string } = {},
+): ArtifactReleaseEvidence {
+  return {
+    evidence_kind: "houra-protocol-core-artifact",
+    redaction: "metadata-only-no-raw-requests-or-secrets",
+    binding_kind: HOURA_PROTOCOL_CORE_WASM_BINDING_KIND,
+    manifest_schema_version: manifest.manifest_schema_version,
+    crate_name: manifest.crate_name,
+    crate_version: manifest.crate_version,
+    abi_version: manifest.abi_version,
+    protocol_boundary: manifest.protocol_boundary,
+    supported_specs: [...manifest.supported_specs],
+    supported_binding_kinds: [...manifest.supported_binding_kinds],
+    ...(options.specSnapshotRef === undefined
+      ? {}
+      : { spec_snapshot_ref: options.specSnapshotRef }),
+  };
+}
+
 function readArtifactManifest(
   binding: HouraProtocolCoreWasmBinding,
 ): ArtifactManifest {
@@ -472,11 +512,22 @@ function assertManifestCompatible(manifest: ArtifactManifest): void {
   if (manifest.abi_version !== HOURA_PROTOCOL_CORE_ABI_VERSION) {
     issues.push("abi_version");
   }
-  for (const specId of HOURA_PROTOCOL_CORE_SPEC_IDS) {
-    if (!manifest.supported_specs.includes(specId)) {
-      issues.push("supported_specs");
-      break;
-    }
+  if (manifest.crate_name !== HOURA_PROTOCOL_CORE_CRATE_NAME) {
+    issues.push("crate_name");
+  }
+  if (manifest.crate_version !== HOURA_PROTOCOL_CORE_CRATE_VERSION) {
+    issues.push("crate_version");
+  }
+  if (manifest.protocol_boundary !== HOURA_PROTOCOL_CORE_PROTOCOL_BOUNDARY) {
+    issues.push("protocol_boundary");
+  }
+  if (
+    !orderedStringArrayEquals(
+      manifest.supported_specs,
+      HOURA_PROTOCOL_CORE_SPEC_IDS,
+    )
+  ) {
+    issues.push("supported_specs");
   }
   if (
     !manifest.supported_binding_kinds.includes(
@@ -492,6 +543,16 @@ function assertManifestCompatible(manifest: ArtifactManifest): void {
       `unsupported Rust protocol core manifest: ${issues.join(", ")}`,
     );
   }
+}
+
+function orderedStringArrayEquals(
+  actual: readonly string[],
+  expected: readonly string[],
+): boolean {
+  if (actual.length !== expected.length) {
+    return false;
+  }
+  return expected.every((value, index) => actual[index] === value);
 }
 
 function readMatrixClientVersionsEnvelope(
