@@ -261,6 +261,18 @@ authorization decisions, state resolution, federation, event signing/hash
 verification, host persistence, and Matrix full compliance stay outside this
 repository.
 
+SPEC-054 adoption record for issue #69: the Rust prototype now consumes the
+`houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
+(`v0.2.0-pre.58-43-g395c400`) SPEC-054 SAS verification, cross-signing key
+lifecycle, invalid-signature, missing-token, and wrong-device failure vectors
+for parser-only verification envelope adoption. The WASM wrapper and TypeScript
+facade expose SAS to-device flow, cancel, public cross-signing key upload,
+signature upload, invalid-signature failure, missing-token gate, and
+wrong-device failure JSON envelopes without taking ownership of local SAS
+calculation, Ed25519 verification, Olm/Megolm sessions, cross-signing private
+keys, trust decisions, QR verification, account recovery UI, token persistence,
+or Matrix E2EE support advertisement.
+
 SPEC-055 adoption record for issue #70: the Rust prototype now consumes the
 `houra-spec` SPEC-055 Matrix federation discovery and signing-key vectors for
 parser-only federation bootstrap adoption. The WASM wrapper and TypeScript
@@ -630,6 +642,8 @@ External registration order:
 
 Current package-specific follow-ups:
 
+- #69: SPEC-054 verification / cross-signing / wrong-device parser adoption.
+  Completed as parser-only shared-core adoption.
 - #70: SPEC-055 federation discovery / signing key parser adoption. Completed
   as parser-only shared-core adoption.
 - #71: SPEC-056 federation transaction / join / invite parser adoption.
