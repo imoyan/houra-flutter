@@ -10,6 +10,12 @@ import 'transport.dart';
 
 /// Root client for Houra API calls.
 final class HouraClient {
+  /// Creates a client for a single Houra server base URI.
+  ///
+  /// [serverBaseUri] must use `http` or `https` and include a host. If
+  /// [httpClient] is omitted, this client creates and owns an HTTP client that
+  /// is closed by [close]. If [httpClient] is provided, the host keeps ownership
+  /// and must close it. [requestTimeout] bounds each SDK request.
   HouraClient({
     required Uri serverBaseUri,
     http.Client? httpClient,

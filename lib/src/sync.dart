@@ -3,8 +3,10 @@ import 'transport.dart';
 
 /// Host-owned persistence for sync tokens.
 abstract interface class HouraSyncTokenStore {
+  /// Reads the last persisted sync token, or `null` for an initial sync.
   Future<String?> read();
 
+  /// Persists the next sync token returned by the server.
   Future<void> write(String token);
 }
 
@@ -29,6 +31,7 @@ final class HouraSyncClient {
 
   final HouraTransport _transport;
 
+  /// Lists rooms visible to the current access token.
   Future<HouraRoomList> listRooms({required String accessToken}) async {
     final response = await _transport.send(
       HouraRequest(
@@ -40,6 +43,7 @@ final class HouraSyncClient {
     return HouraRoomList.fromJson(response.jsonObject);
   }
 
+  /// Fetches a room timeline page.
   Future<HouraTimelinePage> getTimeline({
     required String accessToken,
     required String roomId,
@@ -60,6 +64,10 @@ final class HouraSyncClient {
     return HouraTimelinePage.fromJson(response.jsonObject);
   }
 
+  /// Performs one sync request.
+  ///
+  /// The SDK does not persist [since]. Hosts may pass a token from their own
+  /// storage and persist the returned [HouraSyncBatch.nextBatch].
   Future<HouraSyncBatch> sync({
     required String accessToken,
     String? since,
@@ -79,6 +87,10 @@ final class HouraSyncClient {
     return HouraSyncBatch.fromJson(response.jsonObject);
   }
 
+  /// Performs one sync request using an injected host-owned token store.
+  ///
+  /// This convenience method writes only through [tokenStore]; it does not add
+  /// SDK-owned durable storage.
   Future<HouraSyncBatch> pollOnce({
     required String accessToken,
     required HouraSyncTokenStore tokenStore,
