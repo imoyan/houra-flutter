@@ -56,8 +56,10 @@ void checkSdkBoundary(List<String> failures) {
       failures.add('Unexpected top-level entry in SDK root: $name');
     }
     if (canonicalOnlyEntries.contains(name)) {
-      failures.add('Canonical spec entry must not be copied into SDK root: '
-          '$name');
+      failures.add(
+        'Canonical spec entry must not be copied into SDK root: '
+        '$name',
+      );
     }
   }
 
@@ -70,7 +72,8 @@ void checkSdkBoundary(List<String> failures) {
     final name = entityName(entity);
     if (entity is! File || !allowedToolFiles.contains(name)) {
       failures.add(
-          'Unexpected SDK tool entry: ${relativePath(entity, Directory.current)}');
+        'Unexpected SDK tool entry: ${relativePath(entity, Directory.current)}',
+      );
     }
   }
 }
@@ -89,10 +92,11 @@ void checkCanonicalSpecRoot(List<String> failures) {
   }
 
   final result = Process.runSync(
-    'dart',
-    ['tool/check_spec.dart'],
-    workingDirectory: specRoot.path,
-  );
+      'dart',
+      [
+        'tool/check_spec.dart',
+      ],
+      workingDirectory: specRoot.path);
   if (result.exitCode != 0) {
     failures.add('Canonical spec check failed: dart tool/check_spec.dart');
     addCommandOutput('stdout', result.stdout, failures);
@@ -132,8 +136,10 @@ void checkDesignSync(List<String> failures) {
   }
   for (final relativePath in localFiles.keys) {
     if (!canonicalFiles.containsKey(relativePath)) {
-      failures.add('Bundled design file has no canonical source: '
-          'design/$relativePath');
+      failures.add(
+        'Bundled design file has no canonical source: '
+        'design/$relativePath',
+      );
     }
   }
 }
@@ -157,8 +163,10 @@ void checkVectorReferences(List<String> failures) {
       final specRoot = canonicalSpecRoot();
       final canonical = File('${specRoot.path}/$vectorPath');
       if (!canonical.existsSync()) {
-        failures.add('$relativeTestPath references missing vector: '
-            '${specRoot.path}/$vectorPath');
+        failures.add(
+          '$relativeTestPath references missing vector: '
+          '${specRoot.path}/$vectorPath',
+        );
       }
     }
 
@@ -166,8 +174,10 @@ void checkVectorReferences(List<String> failures) {
       continue;
     }
     for (final match in directSpecVectorPattern.allMatches(source)) {
-      failures.add('$relativeTestPath should use readVector(...) for '
-          'canonical vector reference: ${match.group(0)}');
+      failures.add(
+        '$relativeTestPath should use readVector(...) for '
+        'canonical vector reference: ${match.group(0)}',
+      );
     }
   }
 }
@@ -193,10 +203,7 @@ void checkDocReferences(List<String> failures) {
     }
   }
 
-  final docFiles = [
-    File('README.md'),
-    File('AGENTS.md'),
-  ];
+  final docFiles = [File('README.md'), File('AGENTS.md')];
   final specReferencePattern = RegExp(r'\bSPEC-\d{3}\b');
   final relativeSpecPathPattern = RegExp(
     r'''`?(\.\./houra-spec(?:/[A-Za-z0-9._/\-]+)?)`?''',
@@ -243,14 +250,10 @@ void checkSpec039ProtocolCoreGate(List<String> failures) {
     'mvp',
     'live',
     'e2e',
-    'gate.json'
+    'gate.json',
   ].join('-');
-  final contract = File(
-    '${specRoot.path}/contracts/$spec039ContractName',
-  );
-  final vector = File(
-    '${specRoot.path}/test-vectors/core/$spec039VectorName',
-  );
+  final contract = File('${specRoot.path}/contracts/$spec039ContractName');
+  final vector = File('${specRoot.path}/test-vectors/core/$spec039VectorName');
   if (!contract.existsSync()) {
     failures.add('Missing SPEC-039 contract: ${contract.path}');
     return;
@@ -282,27 +285,18 @@ void checkSpec039ProtocolCoreGate(List<String> failures) {
     'SPEC-037',
     'SPEC-038',
   ];
-  if (requiredContracts is! List) {
-    failures.add('SPEC-039 canonical vector is missing required contracts.');
-  } else {
-    final missingRequiredContracts = expectedRequiredContracts
-        .where((contract) => !requiredContracts.contains(contract))
-        .toList(growable: false);
-    if (missingRequiredContracts.isNotEmpty) {
-      failures.add(
-        'SPEC-039 canonical vector is missing required contracts: '
-        '${missingRequiredContracts.join(', ')}.',
-      );
-    }
+  if (requiredContracts is! List ||
+      !orderedListEquals(requiredContracts, expectedRequiredContracts)) {
+    failures.add(
+      'SPEC-039 canonical vector must list required_contracts '
+      'exactly as SPEC-030 through SPEC-038.',
+    );
   }
 
   final requiredFragmentsByFile = {
-    'rust-protocol-core/src/lib.rs': [
-      '"SPEC-039"',
-      'SPEC-039',
-    ],
+    'rust-protocol-core/src/lib.rs': ['"SPEC-039"', 'SPEC-039'],
     'rust-protocol-core-wasm/src/lib.rs': [
-      'artifact_manifest_json_for_binding_kinds'
+      'artifact_manifest_json_for_binding_kinds',
     ],
     'ts-protocol-core-wasm/src/index.ts': ['"SPEC-039"'],
     'ts-protocol-core-wasm/test/index.test.mjs': [
@@ -319,11 +313,24 @@ void checkSpec039ProtocolCoreGate(List<String> failures) {
     final source = file.readAsStringSync();
     for (final fragment in entry.value) {
       if (!source.contains(fragment)) {
-        failures
-            .add('${entry.key} is missing SPEC-039 gate fragment: $fragment');
+        failures.add(
+          '${entry.key} is missing SPEC-039 gate fragment: $fragment',
+        );
       }
     }
   }
+}
+
+bool orderedListEquals(List actual, List<String> expected) {
+  if (actual.length != expected.length) {
+    return false;
+  }
+  for (var index = 0; index < expected.length; index += 1) {
+    if (actual[index] != expected[index]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 Directory canonicalSpecRoot() {
@@ -380,8 +387,9 @@ void addCommandOutput(String label, Object? output, List<String> failures) {
 }
 
 String entityName(FileSystemEntity entity) {
-  final segments =
-      entity.uri.pathSegments.where((segment) => segment.isNotEmpty);
+  final segments = entity.uri.pathSegments.where(
+    (segment) => segment.isNotEmpty,
+  );
   if (segments.isEmpty) {
     return entity.path;
   }
