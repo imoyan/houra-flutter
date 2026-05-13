@@ -16,6 +16,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-038",
   "SPEC-039",
   "SPEC-040",
+  "SPEC-054",
   "SPEC-055",
   "SPEC-056",
 ] as const;
@@ -40,6 +41,13 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixFederationTransactionJson(responseBody: string): string;
   parseMatrixFederationTransactionResponseJson(responseBody: string): string;
   parseMatrixFederationWellKnownServerJson(responseBody: string): string;
+  parseMatrixVerificationSasFlowJson(responseBody: string): string;
+  parseMatrixVerificationCancelJson(responseBody: string): string;
+  parseMatrixCrossSigningDeviceSigningUploadJson(responseBody: string): string;
+  parseMatrixCrossSigningSignatureUploadJson(responseBody: string): string;
+  parseMatrixCrossSigningInvalidSignatureFailureJson(responseBody: string): string;
+  parseMatrixCrossSigningMissingTokenGateJson(responseBody: string): string;
+  parseMatrixWrongDeviceFailureGateJson(responseBody: string): string;
   parseMatrixLoginFlowsJson(responseBody: string): string;
   parseMatrixLoginSessionJson(responseBody: string): string;
   parseMatrixMediaContentUriJson(contentUri: string): string;
@@ -331,6 +339,73 @@ export interface MatrixFederationDestinationResolutionFailure {
   backoff_recorded: boolean;
 }
 
+export interface MatrixVerificationSasFlow {
+  transaction_id: string;
+  transport: string;
+  event_types: string[];
+  verified: boolean;
+  local_sas_allowed: boolean;
+  versions_advertisement_widened: boolean;
+}
+
+export interface MatrixVerificationCancel {
+  transaction_id: string;
+  code: string;
+  reason: string;
+  verified: boolean;
+  versions_advertisement_widened: boolean;
+}
+
+export interface MatrixCrossSigningKey {
+  user_id: string;
+  usage: string[];
+  keys: Record<string, string>;
+  signatures: Record<string, Record<string, string>>;
+}
+
+export interface MatrixCrossSigningDeviceSigningUpload {
+  master_key?: MatrixCrossSigningKey;
+  self_signing_key?: MatrixCrossSigningKey;
+  user_signing_key?: MatrixCrossSigningKey;
+}
+
+export interface MatrixCrossSigningSignatureUpload {
+  signed_objects: Record<string, Record<string, Record<string, unknown>>>;
+}
+
+export interface MatrixCrossSigningInvalidSignatureFailure {
+  status: number;
+  errcode: string;
+  error: string;
+}
+
+export interface MatrixCrossSigningMissingTokenGate {
+  protected_key_operations_require_token: boolean;
+  semantic_errors_suppressed_until_authenticated: boolean;
+  auth_precedes_signature_validation: boolean;
+  operations: string[];
+  errcode: string;
+}
+
+export interface MatrixWrongDeviceIdentity {
+  user_id: string;
+  device_id: string;
+  master_key: string;
+  device_key: string;
+}
+
+export interface MatrixWrongDeviceFailureGate {
+  trusted_identity: MatrixWrongDeviceIdentity;
+  observed_identity: MatrixWrongDeviceIdentity;
+  required_steps: string[];
+  required_evidence: string[];
+  cancel_code: string;
+  device_verified: boolean;
+  outbound_session_shared: boolean;
+  requires_user_reverification: boolean;
+  versions_advertisement_widened: boolean;
+}
+
 export interface ProtocolErrorEnvelope {
   code: string;
   message: string;
@@ -390,6 +465,27 @@ export interface HouraProtocolCoreFacade {
   parseMatrixFederationWellKnownServer(
     responseBody: string,
   ): ProtocolResult<MatrixFederationWellKnownServer>;
+  parseMatrixVerificationSasFlow(
+    responseBody: string,
+  ): ProtocolResult<MatrixVerificationSasFlow>;
+  parseMatrixVerificationCancel(
+    responseBody: string,
+  ): ProtocolResult<MatrixVerificationCancel>;
+  parseMatrixCrossSigningDeviceSigningUpload(
+    responseBody: string,
+  ): ProtocolResult<MatrixCrossSigningDeviceSigningUpload>;
+  parseMatrixCrossSigningSignatureUpload(
+    responseBody: string,
+  ): ProtocolResult<MatrixCrossSigningSignatureUpload>;
+  parseMatrixCrossSigningInvalidSignatureFailure(
+    responseBody: string,
+  ): ProtocolResult<MatrixCrossSigningInvalidSignatureFailure>;
+  parseMatrixCrossSigningMissingTokenGate(
+    responseBody: string,
+  ): ProtocolResult<MatrixCrossSigningMissingTokenGate>;
+  parseMatrixWrongDeviceFailureGate(
+    responseBody: string,
+  ): ProtocolResult<MatrixWrongDeviceFailureGate>;
   parseMatrixLoginFlows(responseBody: string): ProtocolResult<MatrixLoginFlows>;
   parseMatrixLoginSession(
     responseBody: string,
@@ -579,6 +675,55 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixFederationWellKnownServerEnvelope(envelope);
+    },
+    parseMatrixVerificationSasFlow(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixVerificationSasFlowJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixVerificationSasFlowEnvelope(envelope);
+    },
+    parseMatrixVerificationCancel(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixVerificationCancelJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixVerificationCancelEnvelope(envelope);
+    },
+    parseMatrixCrossSigningDeviceSigningUpload(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixCrossSigningDeviceSigningUploadJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixCrossSigningDeviceSigningUploadEnvelope(envelope);
+    },
+    parseMatrixCrossSigningSignatureUpload(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixCrossSigningSignatureUploadJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixCrossSigningSignatureUploadEnvelope(envelope);
+    },
+    parseMatrixCrossSigningInvalidSignatureFailure(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixCrossSigningInvalidSignatureFailureJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixCrossSigningInvalidSignatureFailureEnvelope(envelope);
+    },
+    parseMatrixCrossSigningMissingTokenGate(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixCrossSigningMissingTokenGateJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixCrossSigningMissingTokenGateEnvelope(envelope);
+    },
+    parseMatrixWrongDeviceFailureGate(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixWrongDeviceFailureGateJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixWrongDeviceFailureGateEnvelope(envelope);
     },
     parseMatrixLoginFlows(responseBody: string) {
       const envelope = parseJsonObject(
@@ -974,6 +1119,183 @@ function readMatrixFederationDestinationResolutionFailureEnvelope(
     federation_request_sent: readBoolean(value, "federation_request_sent"),
     backoff_recorded: readBoolean(value, "backoff_recorded"),
   }));
+}
+
+function readMatrixVerificationSasFlowEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixVerificationSasFlow> {
+  return readProtocolResult(envelope, (value) => {
+    const flow: MatrixVerificationSasFlow = {
+      transaction_id: readString(value, "transaction_id", "invalid_envelope"),
+      transport: readString(value, "transport", "invalid_envelope"),
+      event_types: readStringArray(value, "event_types", "invalid_envelope"),
+      verified: readBoolean(value, "verified"),
+      local_sas_allowed: readBoolean(value, "local_sas_allowed"),
+      versions_advertisement_widened: readBoolean(
+        value,
+        "versions_advertisement_widened",
+      ),
+    };
+    return flow;
+  });
+}
+
+function readMatrixVerificationCancelEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixVerificationCancel> {
+  return readProtocolResult(envelope, (value) => ({
+    transaction_id: readString(value, "transaction_id", "invalid_envelope"),
+    code: readString(value, "code", "invalid_envelope"),
+    reason: readString(value, "reason", "invalid_envelope"),
+    verified: readBoolean(value, "verified"),
+    versions_advertisement_widened: readBoolean(
+      value,
+      "versions_advertisement_widened",
+    ),
+  }));
+}
+
+function readMatrixCrossSigningDeviceSigningUploadEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixCrossSigningDeviceSigningUpload> {
+  return readProtocolResult(envelope, (value) => {
+    const upload: MatrixCrossSigningDeviceSigningUpload = {};
+    readOptionalRecord(value, "master_key", (key) => {
+      upload.master_key = readMatrixCrossSigningKey(key);
+    });
+    readOptionalRecord(value, "self_signing_key", (key) => {
+      upload.self_signing_key = readMatrixCrossSigningKey(key);
+    });
+    readOptionalRecord(value, "user_signing_key", (key) => {
+      upload.user_signing_key = readMatrixCrossSigningKey(key);
+    });
+    return upload;
+  });
+}
+
+function readMatrixCrossSigningSignatureUploadEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixCrossSigningSignatureUpload> {
+  return readProtocolResult(envelope, (value) => {
+    const signedObjects: [
+      string,
+      Record<string, Record<string, unknown>>,
+    ][] = [];
+    for (const [userId, devices] of Object.entries(
+      readRecord(value, "signed_objects", "cross signing signature upload"),
+    )) {
+      const deviceRecords: [string, Record<string, unknown>][] = [];
+      for (const [deviceId, signedObject] of Object.entries(
+        assertRecord(devices, `cross_signing.signatures_upload.${userId}`),
+      )) {
+        deviceRecords.push([
+          deviceId,
+          assertRecord(
+            signedObject,
+            `cross_signing.signatures_upload.${userId}.${deviceId}`,
+          ),
+        ]);
+      }
+      signedObjects.push([userId, Object.fromEntries(deviceRecords)]);
+    }
+    return { signed_objects: Object.fromEntries(signedObjects) };
+  });
+}
+
+function readMatrixCrossSigningInvalidSignatureFailureEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixCrossSigningInvalidSignatureFailure> {
+  return readProtocolResult(envelope, (value) => ({
+    status: readNumber(value, "status", "invalid_envelope"),
+    errcode: readString(value, "errcode", "invalid_envelope"),
+    error: readString(value, "error", "invalid_envelope"),
+  }));
+}
+
+function readMatrixCrossSigningMissingTokenGateEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixCrossSigningMissingTokenGate> {
+  return readProtocolResult(envelope, (value) => ({
+    protected_key_operations_require_token: readBoolean(
+      value,
+      "protected_key_operations_require_token",
+    ),
+    semantic_errors_suppressed_until_authenticated: readBoolean(
+      value,
+      "semantic_errors_suppressed_until_authenticated",
+    ),
+    auth_precedes_signature_validation: readBoolean(
+      value,
+      "auth_precedes_signature_validation",
+    ),
+    operations: readStringArray(value, "operations", "invalid_envelope"),
+    errcode: readString(value, "errcode", "invalid_envelope"),
+  }));
+}
+
+function readMatrixWrongDeviceFailureGateEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixWrongDeviceFailureGate> {
+  return readProtocolResult(envelope, (value) => ({
+    trusted_identity: readMatrixWrongDeviceIdentity(
+      readRecord(value, "trusted_identity", "wrong device gate"),
+    ),
+    observed_identity: readMatrixWrongDeviceIdentity(
+      readRecord(value, "observed_identity", "wrong device gate"),
+    ),
+    required_steps: readStringArray(value, "required_steps", "invalid_envelope"),
+    required_evidence: readStringArray(
+      value,
+      "required_evidence",
+      "invalid_envelope",
+    ),
+    cancel_code: readString(value, "cancel_code", "invalid_envelope"),
+    device_verified: readBoolean(value, "device_verified"),
+    outbound_session_shared: readBoolean(value, "outbound_session_shared"),
+    requires_user_reverification: readBoolean(
+      value,
+      "requires_user_reverification",
+    ),
+    versions_advertisement_widened: readBoolean(
+      value,
+      "versions_advertisement_widened",
+    ),
+  }));
+}
+
+function readMatrixCrossSigningKey(
+  value: Record<string, unknown>,
+): MatrixCrossSigningKey {
+  const signatures: [string, Record<string, string>][] = [];
+  for (const [userId, signatureMap] of Object.entries(
+    readRecord(value, "signatures", "cross signing key"),
+  )) {
+    signatures.push([
+      userId,
+      readKeyPreservingStringRecord(
+        assertRecord(signatureMap, `cross_signing.key.signatures.${userId}`),
+      ),
+    ]);
+  }
+  return {
+    user_id: readString(value, "user_id", "invalid_envelope"),
+    usage: readStringArray(value, "usage", "invalid_envelope"),
+    keys: readKeyPreservingStringRecord(
+      readRecord(value, "keys", "cross signing key"),
+    ),
+    signatures: Object.fromEntries(signatures),
+  };
+}
+
+function readMatrixWrongDeviceIdentity(
+  value: Record<string, unknown>,
+): MatrixWrongDeviceIdentity {
+  return {
+    user_id: readString(value, "user_id", "invalid_envelope"),
+    device_id: readString(value, "device_id", "invalid_envelope"),
+    master_key: readString(value, "master_key", "invalid_envelope"),
+    device_key: readString(value, "device_key", "invalid_envelope"),
+  };
 }
 
 function readMatrixLoginFlowsEnvelope(
@@ -1451,6 +1773,18 @@ function readRecord(
   return value;
 }
 
+function readOptionalRecord(
+  source: Record<string, unknown>,
+  field: string,
+  apply: (value: Record<string, unknown>) => void,
+): void {
+  const value = source[field];
+  if (value === null || value === undefined) {
+    return;
+  }
+  apply(assertRecord(value, field));
+}
+
 function assertRecord(
   value: unknown,
   context: string,
@@ -1773,6 +2107,22 @@ function readStringRecord(
     result[key] = value;
   }
   return result;
+}
+
+function readKeyPreservingStringRecord(
+  source: Record<string, unknown>,
+): Record<string, string> {
+  const entries: [string, string][] = [];
+  for (const [key, value] of Object.entries(source)) {
+    if (typeof value !== "string") {
+      throw new HouraProtocolCoreFacadeError(
+        "invalid_envelope",
+        `record.${key} must be a string`,
+      );
+    }
+    entries.push([key, value]);
+  }
+  return Object.fromEntries(entries);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

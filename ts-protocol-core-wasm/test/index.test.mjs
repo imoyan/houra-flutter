@@ -329,6 +329,151 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixVerificationSasFlowJson() {
+      return JSON.stringify(
+        overrides.verificationSasFlowEnvelope ?? {
+          ok: true,
+          value: {
+            transaction_id: "verif-txn-1",
+            transport: "to_device",
+            event_types: [
+              "m.key.verification.request",
+              "m.key.verification.ready",
+              "m.key.verification.start",
+              "m.key.verification.accept",
+              "m.key.verification.key",
+              "m.key.verification.mac",
+            ],
+            verified: true,
+            local_sas_allowed: false,
+            versions_advertisement_widened: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixVerificationCancelJson() {
+      return JSON.stringify(
+        overrides.verificationCancelEnvelope ?? {
+          ok: true,
+          value: {
+            transaction_id: "verif-txn-mismatch",
+            code: "m.mismatched_sas",
+            reason: "Short authentication string did not match",
+            verified: false,
+            versions_advertisement_widened: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixCrossSigningDeviceSigningUploadJson() {
+      return JSON.stringify(
+        overrides.crossSigningDeviceSigningUploadEnvelope ?? {
+          ok: true,
+          value: {
+            master_key: {
+              user_id: "@alice:example.test",
+              usage: ["master"],
+              keys: {
+                "ed25519:master-public": "master-public",
+              },
+              signatures: {
+                "@alice:example.test": {
+                  "ed25519:ALICE1": "signature-of-master-by-device",
+                },
+              },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixCrossSigningSignatureUploadJson() {
+      return JSON.stringify(
+        overrides.crossSigningSignatureUploadEnvelope ?? {
+          ok: true,
+          value: {
+            signed_objects: {
+              "@alice:example.test": {
+                ALICE2: {
+                  user_id: "@alice:example.test",
+                  device_id: "ALICE2",
+                },
+              },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixCrossSigningInvalidSignatureFailureJson() {
+      return JSON.stringify(
+        overrides.crossSigningInvalidSignatureFailureEnvelope ?? {
+          ok: true,
+          value: {
+            status: 400,
+            errcode: "M_INVALID_SIGNATURE",
+            error: "Invalid signature",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixCrossSigningMissingTokenGateJson() {
+      return JSON.stringify(
+        overrides.crossSigningMissingTokenGateEnvelope ?? {
+          ok: true,
+          value: {
+            protected_key_operations_require_token: true,
+            semantic_errors_suppressed_until_authenticated: true,
+            auth_precedes_signature_validation: true,
+            operations: [
+              "missing-token-device-signing-upload",
+              "missing-token-keys-query",
+              "missing-token-signatures-upload",
+            ],
+            errcode: "M_MISSING_TOKEN",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixWrongDeviceFailureGateJson() {
+      return JSON.stringify(
+        overrides.wrongDeviceFailureGateEnvelope ?? {
+          ok: true,
+          value: {
+            trusted_identity: {
+              user_id: "@bob:example.test",
+              device_id: "BOB1",
+              master_key: "trusted-master-public",
+              device_key: "trusted-ed25519-device-public",
+            },
+            observed_identity: {
+              user_id: "@bob:example.test",
+              device_id: "BOB1",
+              master_key: "unexpected-master-public",
+              device_key: "unexpected-ed25519-device-public",
+            },
+            required_steps: [
+              "load-established-trust-chain",
+              "observe-device-or-master-key-mismatch",
+              "refuse-to-mark-device-verified",
+              "refuse-outbound-session-share",
+              "record-verification-failure",
+            ],
+            required_evidence: ["trusted_fingerprint", "observed_fingerprint"],
+            cancel_code: "m.key_mismatch",
+            device_verified: false,
+            outbound_session_shared: false,
+            requires_user_reverification: true,
+            versions_advertisement_widened: false,
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixMessagesResponseJson() {
       return JSON.stringify(
         overrides.messagesResponseEnvelope ?? {
@@ -791,6 +936,167 @@ test("maps SPEC-055 federation discovery and signing-key envelopes", () => {
       },
       error: null,
     },
+  );
+});
+
+test("maps SPEC-054 verification and cross-signing envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const sas = readSpecVector(
+    "test-vectors/messaging/matrix-verification-sas-to-device-happy-path.json",
+  );
+  const cancel = readSpecVector(
+    "test-vectors/messaging/matrix-verification-sas-mismatch-cancel.json",
+  );
+  const lifecycle = readSpecVector(
+    "test-vectors/messaging/matrix-cross-signing-key-lifecycle.json",
+  );
+  const invalidSignature = readSpecVector(
+    "test-vectors/messaging/matrix-cross-signing-invalid-signature.json",
+  );
+  const missingToken = readSpecVector(
+    "test-vectors/messaging/matrix-cross-signing-missing-token.json",
+  );
+  const wrongDevice = readSpecVector(
+    "test-vectors/messaging/matrix-wrong-device-failure-gate.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-054"));
+  assert.equal(sas.contract, "SPEC-054");
+  assert.equal(cancel.contract, "SPEC-054");
+  assert.equal(lifecycle.contract, "SPEC-054");
+  assert.equal(invalidSignature.contract, "SPEC-054");
+  assert.equal(missingToken.contract, "SPEC-054");
+  assert.equal(wrongDevice.contract, "SPEC-054");
+  assert.deepEqual(core.parseMatrixVerificationSasFlow("{}"), {
+    ok: true,
+    value: {
+      transaction_id: "verif-txn-1",
+      transport: "to_device",
+      event_types: [
+        "m.key.verification.request",
+        "m.key.verification.ready",
+        "m.key.verification.start",
+        "m.key.verification.accept",
+        "m.key.verification.key",
+        "m.key.verification.mac",
+      ],
+      verified: true,
+      local_sas_allowed: false,
+      versions_advertisement_widened: false,
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixVerificationCancel("{}"), {
+    ok: true,
+    value: {
+      transaction_id: "verif-txn-mismatch",
+      code: "m.mismatched_sas",
+      reason: "Short authentication string did not match",
+      verified: false,
+      versions_advertisement_widened: false,
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixCrossSigningDeviceSigningUpload("{}"), {
+    ok: true,
+    value: {
+      master_key: {
+        user_id: "@alice:example.test",
+        usage: ["master"],
+        keys: {
+          "ed25519:master-public": "master-public",
+        },
+        signatures: {
+          "@alice:example.test": {
+            "ed25519:ALICE1": "signature-of-master-by-device",
+          },
+        },
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixCrossSigningSignatureUpload("{}"), {
+    ok: true,
+    value: {
+      signed_objects: {
+        "@alice:example.test": {
+          ALICE2: {
+            user_id: "@alice:example.test",
+            device_id: "ALICE2",
+          },
+        },
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(
+    core.parseMatrixCrossSigningInvalidSignatureFailure("{}"),
+    {
+      ok: true,
+      value: {
+        status: 400,
+        errcode: "M_INVALID_SIGNATURE",
+        error: "Invalid signature",
+      },
+      error: null,
+    },
+  );
+  assert.equal(
+    core.parseMatrixCrossSigningMissingTokenGate("{}").value.errcode,
+    "M_MISSING_TOKEN",
+  );
+  const parsedWrongDevice = core.parseMatrixWrongDeviceFailureGate("{}");
+  assert.equal(parsedWrongDevice.value.device_verified, false);
+  assert.equal(parsedWrongDevice.value.outbound_session_shared, false);
+  assert.equal(parsedWrongDevice.value.requires_user_reverification, true);
+
+  const protoKeyCore = createHouraProtocolCore(
+    binding({
+      crossSigningDeviceSigningUploadEnvelope: {
+        ok: true,
+        value: {
+          master_key: {
+            user_id: "@alice:example.test",
+            usage: ["master"],
+            keys: {
+              ["__proto__"]: "master-public",
+            },
+            signatures: {
+              ["__proto__"]: {
+                ["__proto__"]: "signature",
+              },
+            },
+          },
+        },
+        error: null,
+      },
+      crossSigningSignatureUploadEnvelope: {
+        ok: true,
+        value: {
+          signed_objects: {
+            ["__proto__"]: {
+              ["__proto__"]: {
+                user_id: "@alice:example.test",
+              },
+            },
+          },
+        },
+        error: null,
+      },
+    }),
+  );
+  const protoKeyUpload =
+    protoKeyCore.parseMatrixCrossSigningDeviceSigningUpload("{}");
+  assert.equal(protoKeyUpload.value.master_key.keys.__proto__, "master-public");
+  assert.equal(
+    protoKeyUpload.value.master_key.signatures.__proto__.__proto__,
+    "signature",
+  );
+  const protoSignatureUpload =
+    protoKeyCore.parseMatrixCrossSigningSignatureUpload("{}");
+  assert.equal(
+    protoSignatureUpload.value.signed_objects.__proto__.__proto__.user_id,
+    "@alice:example.test",
   );
 });
 

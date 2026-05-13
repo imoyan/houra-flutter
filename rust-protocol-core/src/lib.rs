@@ -24,7 +24,7 @@ pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
-    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-055", "SPEC-056",
+    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-054", "SPEC-055", "SPEC-056",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -367,6 +367,85 @@ pub struct MatrixFederationDestinationResolutionFailure {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixVerificationSasFlow {
+    pub transaction_id: String,
+    pub transport: String,
+    pub event_types: Vec<String>,
+    pub verified: bool,
+    pub local_sas_allowed: bool,
+    pub versions_advertisement_widened: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixVerificationCancel {
+    pub transaction_id: String,
+    pub code: String,
+    pub reason: String,
+    pub verified: bool,
+    pub versions_advertisement_widened: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCrossSigningKey {
+    pub user_id: String,
+    pub usage: Vec<String>,
+    pub keys: BTreeMap<String, String>,
+    pub signatures: BTreeMap<String, BTreeMap<String, String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCrossSigningDeviceSigningUpload {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub master_key: Option<MatrixCrossSigningKey>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub self_signing_key: Option<MatrixCrossSigningKey>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_signing_key: Option<MatrixCrossSigningKey>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixCrossSigningSignatureUpload {
+    pub signed_objects: BTreeMap<String, BTreeMap<String, Value>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCrossSigningInvalidSignatureFailure {
+    pub status: u64,
+    pub errcode: String,
+    pub error: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCrossSigningMissingTokenGate {
+    pub protected_key_operations_require_token: bool,
+    pub semantic_errors_suppressed_until_authenticated: bool,
+    pub auth_precedes_signature_validation: bool,
+    pub operations: Vec<String>,
+    pub errcode: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixWrongDeviceIdentity {
+    pub user_id: String,
+    pub device_id: String,
+    pub master_key: String,
+    pub device_key: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixWrongDeviceFailureGate {
+    pub trusted_identity: MatrixWrongDeviceIdentity,
+    pub observed_identity: MatrixWrongDeviceIdentity,
+    pub required_steps: Vec<String>,
+    pub required_evidence: Vec<String>,
+    pub cancel_code: String,
+    pub device_verified: bool,
+    pub outbound_session_shared: bool,
+    pub requires_user_reverification: bool,
+    pub versions_advertisement_widened: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ProtocolErrorEnvelope {
     pub code: String,
     pub message: String,
@@ -597,6 +676,55 @@ pub struct MatrixFederationDestinationResolutionFailureParseEnvelope {
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixVerificationSasFlowParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixVerificationSasFlow>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixVerificationCancelParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixVerificationCancel>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCrossSigningDeviceSigningUploadParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixCrossSigningDeviceSigningUpload>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixCrossSigningSignatureUploadParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixCrossSigningSignatureUpload>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCrossSigningInvalidSignatureFailureParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixCrossSigningInvalidSignatureFailure>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCrossSigningMissingTokenGateParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixCrossSigningMissingTokenGate>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixWrongDeviceFailureGateParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixWrongDeviceFailureGate>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProtocolError {
     Json(String),
@@ -613,6 +741,7 @@ pub enum ProtocolError {
     InvalidRoomField { field: String },
     InvalidMediaField { field: String },
     InvalidFederationField { field: String },
+    InvalidVerificationField { field: String },
 }
 
 impl ProtocolError {
@@ -634,6 +763,7 @@ impl ProtocolError {
             ProtocolError::InvalidRoomField { .. } => "invalid_room_field",
             ProtocolError::InvalidMediaField { .. } => "invalid_media_field",
             ProtocolError::InvalidFederationField { .. } => "invalid_federation_field",
+            ProtocolError::InvalidVerificationField { .. } => "invalid_verification_field",
         }
     }
 
@@ -668,6 +798,9 @@ impl ProtocolError {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidFederationField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidVerificationField { field } => {
                 details.insert("field".to_owned(), field.clone());
             }
             _ => {}
@@ -728,6 +861,12 @@ impl std::fmt::Display for ProtocolError {
             }
             ProtocolError::InvalidFederationField { field } => {
                 write!(formatter, "{field} is not a valid Matrix federation value")
+            }
+            ProtocolError::InvalidVerificationField { field } => {
+                write!(
+                    formatter,
+                    "{field} is not a valid Matrix verification value"
+                )
             }
         }
     }
@@ -1006,6 +1145,76 @@ struct MatrixFederationKeyQueryRequestWire {
 #[derive(Debug, Deserialize)]
 struct MatrixFederationKeyQueryResponseWire {
     server_keys: Option<Vec<MatrixFederationSigningKeyWire>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixVerificationEventWire {
+    #[serde(default)]
+    transport: Option<String>,
+    transaction_id: Option<String>,
+    steps: Option<Vec<MatrixVerificationStepWire>>,
+    auth_precedes_signature_validation: Option<bool>,
+    trusted_identity: Option<MatrixWrongDeviceIdentityWire>,
+    observed_identity: Option<MatrixWrongDeviceIdentityWire>,
+    required_evidence: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixVerificationStepWire {
+    id: Option<String>,
+    #[serde(rename = "type")]
+    event_type: Option<String>,
+    to_device: Option<bool>,
+    content: Option<MatrixVerificationContentWire>,
+    result: Option<MatrixVerificationResultWire>,
+    expected_status: Option<u64>,
+    expected_error: Option<MatrixErrorWire>,
+    cancel_code: Option<String>,
+    required: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixVerificationContentWire {
+    transaction_id: Option<String>,
+    code: Option<String>,
+    reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixVerificationResultWire {
+    verified: Option<bool>,
+    device_verified: Option<bool>,
+    outbound_session_shared: Option<bool>,
+    requires_user_reverification: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixCrossSigningKeyWire {
+    user_id: Option<String>,
+    usage: Option<Vec<String>>,
+    keys: Option<BTreeMap<String, String>>,
+    signatures: Option<BTreeMap<String, BTreeMap<String, String>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixCrossSigningDeviceSigningUploadWire {
+    master_key: Option<MatrixCrossSigningKeyWire>,
+    self_signing_key: Option<MatrixCrossSigningKeyWire>,
+    user_signing_key: Option<MatrixCrossSigningKeyWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixCrossSigningInvalidSignatureFailureWire {
+    status: Option<u64>,
+    error: Option<MatrixErrorWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixWrongDeviceIdentityWire {
+    user_id: Option<String>,
+    device_id: Option<String>,
+    master_key: Option<String>,
+    device_key: Option<String>,
 }
 
 pub fn abi_version() -> u32 {
@@ -2311,6 +2520,498 @@ pub fn parse_matrix_federation_destination_resolution_failure_json(bytes: &[u8])
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_verification_sas_flow(
+    bytes: &[u8],
+) -> Result<MatrixVerificationSasFlow, ProtocolError> {
+    let wire: MatrixVerificationEventWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let transaction_id =
+        required_verification_string(wire.transaction_id, "verification.transaction_id")?;
+    let transport = required_verification_string(wire.transport, "verification.transport")?;
+    let mut event_types = Vec::new();
+    let mut verified = false;
+    for (index, step) in verification_steps(wire.steps)?.into_iter().enumerate() {
+        if let Some(event_type) = step.event_type {
+            required_verification_borrowed_string(
+                &event_type,
+                &format!("verification.steps.{index}.type"),
+            )?;
+            if step.to_device != Some(true) {
+                return Err(invalid_verification_field(&format!(
+                    "verification.steps.{index}.to_device"
+                )));
+            }
+            let content = step.content.ok_or_else(|| {
+                invalid_verification_field(&format!("verification.steps.{index}.content"))
+            })?;
+            let step_transaction_id = required_verification_string(
+                content.transaction_id,
+                &format!("verification.steps.{index}.content.transaction_id"),
+            )?;
+            if step_transaction_id != transaction_id {
+                return Err(invalid_verification_field(&format!(
+                    "verification.steps.{index}.content.transaction_id"
+                )));
+            }
+            event_types.push(event_type);
+        }
+        if let Some(result) = step.result {
+            if result.verified == Some(true) {
+                verified = true;
+            }
+        }
+    }
+    if event_types.is_empty() {
+        return Err(invalid_verification_field("verification.steps.type"));
+    }
+
+    Ok(MatrixVerificationSasFlow {
+        transaction_id,
+        transport,
+        event_types,
+        verified,
+        local_sas_allowed: false,
+        versions_advertisement_widened: false,
+    })
+}
+
+pub fn parse_matrix_verification_sas_flow_envelope(
+    bytes: &[u8],
+) -> MatrixVerificationSasFlowParseEnvelope {
+    match parse_matrix_verification_sas_flow(bytes) {
+        Ok(value) => MatrixVerificationSasFlowParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixVerificationSasFlowParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_verification_sas_flow_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_verification_sas_flow_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_verification_cancel(
+    bytes: &[u8],
+) -> Result<MatrixVerificationCancel, ProtocolError> {
+    let wire: MatrixVerificationEventWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let transaction_id =
+        required_verification_string(wire.transaction_id, "verification.transaction_id")?;
+    let mut cancel_code = None;
+    let mut cancel_reason = None;
+    let mut verified = false;
+    for (index, step) in verification_steps(wire.steps)?.into_iter().enumerate() {
+        if step.event_type.as_deref() == Some("m.key.verification.cancel") {
+            if step.to_device != Some(true) {
+                return Err(invalid_verification_field(&format!(
+                    "verification.steps.{index}.to_device"
+                )));
+            }
+            let content = step.content.ok_or_else(|| {
+                invalid_verification_field(&format!("verification.steps.{index}.content"))
+            })?;
+            let step_transaction_id = required_verification_string(
+                content.transaction_id,
+                &format!("verification.steps.{index}.content.transaction_id"),
+            )?;
+            if step_transaction_id != transaction_id {
+                return Err(invalid_verification_field(&format!(
+                    "verification.steps.{index}.content.transaction_id"
+                )));
+            }
+            cancel_code = Some(required_verification_string(
+                content.code,
+                &format!("verification.steps.{index}.content.code"),
+            )?);
+            cancel_reason = Some(required_verification_string(
+                content.reason,
+                &format!("verification.steps.{index}.content.reason"),
+            )?);
+        }
+        if let Some(result) = step.result {
+            if result.verified == Some(false) {
+                verified = false;
+            }
+        }
+    }
+
+    Ok(MatrixVerificationCancel {
+        transaction_id,
+        code: cancel_code
+            .ok_or_else(|| invalid_verification_field("verification.steps.content.code"))?,
+        reason: cancel_reason
+            .ok_or_else(|| invalid_verification_field("verification.steps.content.reason"))?,
+        verified,
+        versions_advertisement_widened: false,
+    })
+}
+
+pub fn parse_matrix_verification_cancel_envelope(
+    bytes: &[u8],
+) -> MatrixVerificationCancelParseEnvelope {
+    match parse_matrix_verification_cancel(bytes) {
+        Ok(value) => MatrixVerificationCancelParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixVerificationCancelParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_verification_cancel_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_verification_cancel_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_cross_signing_device_signing_upload(
+    bytes: &[u8],
+) -> Result<MatrixCrossSigningDeviceSigningUpload, ProtocolError> {
+    let wire: MatrixCrossSigningDeviceSigningUploadWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let upload = MatrixCrossSigningDeviceSigningUpload {
+        master_key: optional_cross_signing_key(
+            wire.master_key,
+            "cross_signing.device_signing_upload.master_key",
+        )?,
+        self_signing_key: optional_cross_signing_key(
+            wire.self_signing_key,
+            "cross_signing.device_signing_upload.self_signing_key",
+        )?,
+        user_signing_key: optional_cross_signing_key(
+            wire.user_signing_key,
+            "cross_signing.device_signing_upload.user_signing_key",
+        )?,
+    };
+    if upload.master_key.is_none()
+        && upload.self_signing_key.is_none()
+        && upload.user_signing_key.is_none()
+    {
+        return Err(invalid_verification_field(
+            "cross_signing.device_signing_upload",
+        ));
+    }
+    Ok(upload)
+}
+
+pub fn parse_matrix_cross_signing_device_signing_upload_envelope(
+    bytes: &[u8],
+) -> MatrixCrossSigningDeviceSigningUploadParseEnvelope {
+    match parse_matrix_cross_signing_device_signing_upload(bytes) {
+        Ok(value) => MatrixCrossSigningDeviceSigningUploadParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixCrossSigningDeviceSigningUploadParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_cross_signing_device_signing_upload_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_cross_signing_device_signing_upload_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_cross_signing_signature_upload(
+    bytes: &[u8],
+) -> Result<MatrixCrossSigningSignatureUpload, ProtocolError> {
+    let signed_objects: BTreeMap<String, BTreeMap<String, Value>> =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    if signed_objects.is_empty() {
+        return Err(invalid_verification_field(
+            "cross_signing.signatures_upload",
+        ));
+    }
+    for (user_id, devices) in &signed_objects {
+        required_verification_borrowed_string(user_id, "cross_signing.signatures_upload.user_id")?;
+        if devices.is_empty() {
+            return Err(invalid_verification_field(
+                "cross_signing.signatures_upload.devices",
+            ));
+        }
+        for (device_id, object) in devices {
+            required_verification_borrowed_string(
+                device_id,
+                "cross_signing.signatures_upload.device_id",
+            )?;
+            if !object.is_object() {
+                return Err(invalid_verification_field(
+                    "cross_signing.signatures_upload.signed_object",
+                ));
+            }
+        }
+    }
+    Ok(MatrixCrossSigningSignatureUpload { signed_objects })
+}
+
+pub fn parse_matrix_cross_signing_signature_upload_envelope(
+    bytes: &[u8],
+) -> MatrixCrossSigningSignatureUploadParseEnvelope {
+    match parse_matrix_cross_signing_signature_upload(bytes) {
+        Ok(value) => MatrixCrossSigningSignatureUploadParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixCrossSigningSignatureUploadParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_cross_signing_signature_upload_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_cross_signing_signature_upload_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_cross_signing_invalid_signature_failure(
+    bytes: &[u8],
+) -> Result<MatrixCrossSigningInvalidSignatureFailure, ProtocolError> {
+    let wire: MatrixCrossSigningInvalidSignatureFailureWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let error = wire
+        .error
+        .ok_or_else(|| invalid_verification_field("cross_signing.invalid_signature.error"))?;
+    let status = wire
+        .status
+        .ok_or_else(|| invalid_verification_field("cross_signing.invalid_signature.status"))?;
+    if status != 400 {
+        return Err(invalid_verification_field(
+            "cross_signing.invalid_signature.status",
+        ));
+    }
+    let errcode =
+        required_verification_string(error.errcode, "cross_signing.invalid_signature.errcode")?;
+    if errcode != "M_INVALID_SIGNATURE" {
+        return Err(invalid_verification_field(
+            "cross_signing.invalid_signature.errcode",
+        ));
+    }
+    Ok(MatrixCrossSigningInvalidSignatureFailure {
+        status,
+        errcode,
+        error: required_verification_string(error.error, "cross_signing.invalid_signature.error")?,
+    })
+}
+
+pub fn parse_matrix_cross_signing_invalid_signature_failure_envelope(
+    bytes: &[u8],
+) -> MatrixCrossSigningInvalidSignatureFailureParseEnvelope {
+    match parse_matrix_cross_signing_invalid_signature_failure(bytes) {
+        Ok(value) => MatrixCrossSigningInvalidSignatureFailureParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixCrossSigningInvalidSignatureFailureParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_cross_signing_invalid_signature_failure_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_cross_signing_invalid_signature_failure_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_cross_signing_missing_token_gate(
+    bytes: &[u8],
+) -> Result<MatrixCrossSigningMissingTokenGate, ProtocolError> {
+    let wire: MatrixVerificationEventWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let mut operations = Vec::new();
+    let mut errcode = None;
+    for (index, step) in verification_steps(wire.steps)?.into_iter().enumerate() {
+        let id = required_verification_string(
+            step.id,
+            &format!("cross_signing.missing_token.steps.{index}.id"),
+        )?;
+        if step.expected_status != Some(401) {
+            return Err(invalid_verification_field(&format!(
+                "cross_signing.missing_token.steps.{index}.expected_status"
+            )));
+        }
+        let error = step.expected_error.ok_or_else(|| {
+            invalid_verification_field(&format!(
+                "cross_signing.missing_token.steps.{index}.expected_error"
+            ))
+        })?;
+        let step_errcode = required_verification_string(
+            error.errcode,
+            &format!("cross_signing.missing_token.steps.{index}.expected_error.errcode"),
+        )?;
+        if step_errcode != "M_MISSING_TOKEN" {
+            return Err(invalid_verification_field(&format!(
+                "cross_signing.missing_token.steps.{index}.expected_error.errcode"
+            )));
+        }
+        errcode = Some(step_errcode);
+        operations.push(id);
+    }
+
+    Ok(MatrixCrossSigningMissingTokenGate {
+        protected_key_operations_require_token: true,
+        semantic_errors_suppressed_until_authenticated: true,
+        auth_precedes_signature_validation: wire.auth_precedes_signature_validation == Some(true),
+        operations,
+        errcode: errcode.ok_or_else(|| {
+            invalid_verification_field("cross_signing.missing_token.expected_error.errcode")
+        })?,
+    })
+}
+
+pub fn parse_matrix_cross_signing_missing_token_gate_envelope(
+    bytes: &[u8],
+) -> MatrixCrossSigningMissingTokenGateParseEnvelope {
+    match parse_matrix_cross_signing_missing_token_gate(bytes) {
+        Ok(value) => MatrixCrossSigningMissingTokenGateParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixCrossSigningMissingTokenGateParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_cross_signing_missing_token_gate_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_cross_signing_missing_token_gate_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_wrong_device_failure_gate(
+    bytes: &[u8],
+) -> Result<MatrixWrongDeviceFailureGate, ProtocolError> {
+    let wire: MatrixVerificationEventWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let mut required_steps = Vec::new();
+    let mut cancel_code = None;
+    let mut device_verified = false;
+    let mut outbound_session_shared = false;
+    let mut requires_user_reverification = true;
+    for (index, step) in verification_steps(wire.steps)?.into_iter().enumerate() {
+        let step_id = step.id.clone();
+        if step.required == Some(true) {
+            required_steps.push(required_verification_string(
+                step_id.clone(),
+                &format!("wrong_device.steps.{index}.id"),
+            )?);
+        }
+        if step_id.as_deref() == Some("refuse-to-mark-device-verified") {
+            device_verified = false;
+        }
+        if step_id.as_deref() == Some("refuse-outbound-session-share") {
+            outbound_session_shared = false;
+        }
+        if step_id.as_deref() == Some("record-verification-failure") {
+            requires_user_reverification = true;
+        }
+        if let Some(code) = step.cancel_code {
+            cancel_code = Some(
+                required_verification_borrowed_string(
+                    &code,
+                    &format!("wrong_device.steps.{index}.cancel_code"),
+                )?
+                .to_owned(),
+            );
+        }
+        if let Some(result) = step.result {
+            if result.device_verified == Some(false) {
+                device_verified = false;
+            }
+            if result.outbound_session_shared == Some(false) {
+                outbound_session_shared = false;
+            }
+            if result.requires_user_reverification == Some(true) {
+                requires_user_reverification = true;
+            }
+        }
+    }
+    let expected_steps = [
+        "load-established-trust-chain",
+        "observe-device-or-master-key-mismatch",
+        "refuse-to-mark-device-verified",
+        "refuse-outbound-session-share",
+        "record-verification-failure",
+    ];
+    if !expected_steps
+        .iter()
+        .all(|step| required_steps.iter().any(|required| required == step))
+    {
+        return Err(invalid_verification_field("wrong_device.required_steps"));
+    }
+
+    Ok(MatrixWrongDeviceFailureGate {
+        trusted_identity: wrong_device_identity(
+            wire.trusted_identity,
+            "wrong_device.trusted_identity",
+        )?,
+        observed_identity: wrong_device_identity(
+            wire.observed_identity,
+            "wrong_device.observed_identity",
+        )?,
+        required_steps,
+        required_evidence: required_verification_string_array(
+            wire.required_evidence,
+            "wrong_device.required_evidence",
+        )?,
+        cancel_code: cancel_code
+            .ok_or_else(|| invalid_verification_field("wrong_device.cancel_code"))?,
+        device_verified,
+        outbound_session_shared,
+        requires_user_reverification,
+        versions_advertisement_widened: false,
+    })
+}
+
+pub fn parse_matrix_wrong_device_failure_gate_envelope(
+    bytes: &[u8],
+) -> MatrixWrongDeviceFailureGateParseEnvelope {
+    match parse_matrix_wrong_device_failure_gate(bytes) {
+        Ok(value) => MatrixWrongDeviceFailureGateParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixWrongDeviceFailureGateParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_wrong_device_failure_gate_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_wrong_device_failure_gate_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 fn required_non_empty(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
     match value {
         Some(value) if !value.is_empty() => Ok(value),
@@ -2653,6 +3354,131 @@ fn invalid_federation_field(field: &str) -> ProtocolError {
     }
 }
 
+fn invalid_verification_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidVerificationField {
+        field: field.to_owned(),
+    }
+}
+
+fn required_verification_borrowed_string<'a>(
+    value: &'a str,
+    field: &str,
+) -> Result<&'a str, ProtocolError> {
+    if value.is_empty() {
+        Err(invalid_verification_field(field))
+    } else {
+        Ok(value)
+    }
+}
+
+fn required_verification_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_verification_field(field)),
+    }
+}
+
+fn required_verification_string_array(
+    value: Option<Vec<String>>,
+    field: &str,
+) -> Result<Vec<String>, ProtocolError> {
+    let values = value.ok_or_else(|| invalid_verification_field(field))?;
+    if values.is_empty() || values.iter().any(String::is_empty) {
+        Err(invalid_verification_field(field))
+    } else {
+        Ok(values)
+    }
+}
+
+fn verification_steps(
+    value: Option<Vec<MatrixVerificationStepWire>>,
+) -> Result<Vec<MatrixVerificationStepWire>, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_verification_field("verification.steps")),
+    }
+}
+
+fn optional_cross_signing_key(
+    value: Option<MatrixCrossSigningKeyWire>,
+    field: &str,
+) -> Result<Option<MatrixCrossSigningKey>, ProtocolError> {
+    value
+        .map(|value| cross_signing_key(value, field))
+        .transpose()
+}
+
+fn cross_signing_key(
+    value: MatrixCrossSigningKeyWire,
+    field: &str,
+) -> Result<MatrixCrossSigningKey, ProtocolError> {
+    let usage = required_verification_string_array(value.usage, &format!("{field}.usage"))?;
+    let keys = verification_string_map(value.keys, &format!("{field}.keys"))?;
+    let signatures =
+        verification_nested_string_map(value.signatures, &format!("{field}.signatures"))?;
+
+    Ok(MatrixCrossSigningKey {
+        user_id: required_verification_string(value.user_id, &format!("{field}.user_id"))?,
+        usage,
+        keys,
+        signatures,
+    })
+}
+
+fn verification_string_map(
+    value: Option<BTreeMap<String, String>>,
+    field: &str,
+) -> Result<BTreeMap<String, String>, ProtocolError> {
+    let map = value.ok_or_else(|| invalid_verification_field(field))?;
+    if map.is_empty()
+        || map
+            .iter()
+            .any(|(key, value)| key.is_empty() || value.is_empty())
+    {
+        Err(invalid_verification_field(field))
+    } else {
+        Ok(map)
+    }
+}
+
+fn verification_nested_string_map(
+    value: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    field: &str,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, ProtocolError> {
+    let map = value.ok_or_else(|| invalid_verification_field(field))?;
+    if map.is_empty() {
+        return Err(invalid_verification_field(field));
+    }
+    for (outer_key, inner) in &map {
+        if outer_key.is_empty() || inner.is_empty() {
+            return Err(invalid_verification_field(field));
+        }
+        if inner
+            .iter()
+            .any(|(inner_key, value)| inner_key.is_empty() || value.is_empty())
+        {
+            return Err(invalid_verification_field(field));
+        }
+    }
+    Ok(map)
+}
+
+fn wrong_device_identity(
+    value: Option<MatrixWrongDeviceIdentityWire>,
+    field: &str,
+) -> Result<MatrixWrongDeviceIdentity, ProtocolError> {
+    let value = value.ok_or_else(|| invalid_verification_field(field))?;
+    Ok(MatrixWrongDeviceIdentity {
+        user_id: required_verification_string(value.user_id, &format!("{field}.user_id"))?,
+        device_id: required_verification_string(value.device_id, &format!("{field}.device_id"))?,
+        master_key: required_verification_string(value.master_key, &format!("{field}.master_key"))?,
+        device_key: required_verification_string(value.device_key, &format!("{field}.device_key"))?,
+    })
+}
+
 fn required_federation_borrowed_string<'a>(
     value: &'a str,
     field: &str,
@@ -2973,7 +3799,7 @@ mod tests {
             manifest.supported_specs,
             vec![
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
-                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-055", "SPEC-056"
+                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-054", "SPEC-055", "SPEC-056"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -3127,6 +3953,108 @@ mod tests {
                 "duplicate_auth_state_key",
             ]
         );
+    }
+
+    #[test]
+    fn parses_spec_054_verification_cross_signing_and_wrong_device_vectors() {
+        let sas = read_spec_vector(
+            "test-vectors/messaging/matrix-verification-sas-to-device-happy-path.json",
+        );
+        let parsed_sas = parse_matrix_verification_sas_flow(sas["event"].to_string().as_bytes())
+            .expect("SPEC-054 SAS verification flow should parse");
+        assert_eq!(sas["contract"], "SPEC-054");
+        assert_eq!(parsed_sas.transaction_id, "verif-txn-1");
+        assert_eq!(
+            parsed_sas.event_types,
+            vec![
+                "m.key.verification.request",
+                "m.key.verification.ready",
+                "m.key.verification.start",
+                "m.key.verification.accept",
+                "m.key.verification.key",
+                "m.key.verification.mac"
+            ]
+        );
+        assert!(parsed_sas.verified);
+        assert!(!parsed_sas.local_sas_allowed);
+        assert!(!parsed_sas.versions_advertisement_widened);
+
+        let cancel =
+            read_spec_vector("test-vectors/messaging/matrix-verification-sas-mismatch-cancel.json");
+        let parsed_cancel =
+            parse_matrix_verification_cancel(cancel["event"].to_string().as_bytes())
+                .expect("SPEC-054 verification cancel should parse");
+        assert_eq!(parsed_cancel.transaction_id, "verif-txn-mismatch");
+        assert_eq!(parsed_cancel.code, "m.mismatched_sas");
+        assert!(!parsed_cancel.verified);
+
+        let lifecycle =
+            read_spec_vector("test-vectors/messaging/matrix-cross-signing-key-lifecycle.json");
+        let steps = lifecycle["event"]["steps"]
+            .as_array()
+            .expect("cross-signing lifecycle should contain steps");
+        let parsed_upload = parse_matrix_cross_signing_device_signing_upload(
+            steps[0]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-054 cross-signing public keys should parse");
+        assert_eq!(
+            parsed_upload
+                .master_key
+                .as_ref()
+                .expect("master key should be present")
+                .usage,
+            vec!["master"]
+        );
+        assert!(parsed_upload.self_signing_key.is_some());
+        assert!(parsed_upload.user_signing_key.is_some());
+        let parsed_signatures =
+            parse_matrix_cross_signing_signature_upload(steps[2]["body"].to_string().as_bytes())
+                .expect("SPEC-054 cross-signing signature upload should parse");
+        assert!(parsed_signatures
+            .signed_objects
+            .get("@alice:example.test")
+            .expect("signed user should be present")
+            .contains_key("ALICE2"));
+
+        let invalid_signature =
+            read_spec_vector("test-vectors/messaging/matrix-cross-signing-invalid-signature.json");
+        let parsed_invalid_signature = parse_matrix_cross_signing_invalid_signature_failure(
+            invalid_signature["expected"].to_string().as_bytes(),
+        )
+        .expect("SPEC-054 invalid signature failure should parse");
+        assert_eq!(parsed_invalid_signature.status, 400);
+        assert_eq!(parsed_invalid_signature.errcode, "M_INVALID_SIGNATURE");
+
+        let missing_token =
+            read_spec_vector("test-vectors/messaging/matrix-cross-signing-missing-token.json");
+        let parsed_missing_token = parse_matrix_cross_signing_missing_token_gate(
+            missing_token["event"].to_string().as_bytes(),
+        )
+        .expect("SPEC-054 missing token gate should parse");
+        assert!(parsed_missing_token.protected_key_operations_require_token);
+        assert!(parsed_missing_token.semantic_errors_suppressed_until_authenticated);
+        assert!(parsed_missing_token.auth_precedes_signature_validation);
+        assert_eq!(parsed_missing_token.errcode, "M_MISSING_TOKEN");
+        assert_eq!(parsed_missing_token.operations.len(), 3);
+
+        let wrong_device =
+            read_spec_vector("test-vectors/messaging/matrix-wrong-device-failure-gate.json");
+        let parsed_wrong_device =
+            parse_matrix_wrong_device_failure_gate(wrong_device["event"].to_string().as_bytes())
+                .expect("SPEC-054 wrong-device gate should parse");
+        assert_eq!(parsed_wrong_device.cancel_code, "m.key_mismatch");
+        assert!(!parsed_wrong_device.device_verified);
+        assert!(!parsed_wrong_device.outbound_session_shared);
+        assert!(parsed_wrong_device.requires_user_reverification);
+        assert!(parsed_wrong_device
+            .required_evidence
+            .contains(&"trusted_fingerprint".to_owned()));
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-054"));
     }
 
     #[test]

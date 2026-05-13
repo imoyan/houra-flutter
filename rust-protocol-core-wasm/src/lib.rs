@@ -169,6 +169,47 @@ pub fn parse_matrix_federation_invite_response_json(response_body: &str) -> Stri
     houra_protocol_core::parse_matrix_federation_invite_response_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixVerificationSasFlowJson)]
+pub fn parse_matrix_verification_sas_flow_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_verification_sas_flow_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixVerificationCancelJson)]
+pub fn parse_matrix_verification_cancel_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_verification_cancel_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixCrossSigningDeviceSigningUploadJson)]
+pub fn parse_matrix_cross_signing_device_signing_upload_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_cross_signing_device_signing_upload_json(
+        response_body.as_bytes(),
+    )
+}
+
+#[wasm_bindgen(js_name = parseMatrixCrossSigningSignatureUploadJson)]
+pub fn parse_matrix_cross_signing_signature_upload_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_cross_signing_signature_upload_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixCrossSigningInvalidSignatureFailureJson)]
+pub fn parse_matrix_cross_signing_invalid_signature_failure_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_cross_signing_invalid_signature_failure_json(
+        response_body.as_bytes(),
+    )
+}
+
+#[wasm_bindgen(js_name = parseMatrixCrossSigningMissingTokenGateJson)]
+pub fn parse_matrix_cross_signing_missing_token_gate_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_cross_signing_missing_token_gate_json(
+        response_body.as_bytes(),
+    )
+}
+
+#[wasm_bindgen(js_name = parseMatrixWrongDeviceFailureGateJson)]
+pub fn parse_matrix_wrong_device_failure_gate_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_wrong_device_failure_gate_json(response_body.as_bytes())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -188,6 +229,11 @@ mod tests {
             .expect("supported_specs should be an array")
             .iter()
             .any(|spec| spec == "SPEC-040"));
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
+            .any(|spec| spec == "SPEC-054"));
         assert!(manifest["supported_specs"]
             .as_array()
             .expect("supported_specs should be an array")
@@ -341,6 +387,34 @@ mod tests {
                 "{\"event\":{\"type\":\"m.room.member\",\"content\":{\"membership\":\"invite\"}}}",
             ),
             "{\"ok\":true,\"value\":{\"event\":{\"content\":{\"membership\":\"invite\"},\"type\":\"m.room.member\"}},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_verification_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_verification_sas_flow_json(
+                "{\"transport\":\"to_device\",\"transaction_id\":\"verif-txn-1\",\"steps\":[{\"type\":\"m.key.verification.request\",\"to_device\":true,\"content\":{\"transaction_id\":\"verif-txn-1\"}},{\"required\":true,\"result\":{\"verified\":true}}]}"
+            ),
+            "{\"ok\":true,\"value\":{\"transaction_id\":\"verif-txn-1\",\"transport\":\"to_device\",\"event_types\":[\"m.key.verification.request\"],\"verified\":true,\"local_sas_allowed\":false,\"versions_advertisement_widened\":false},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_verification_cancel_json(
+                "{\"transaction_id\":\"verif-txn-mismatch\",\"steps\":[{\"type\":\"m.key.verification.cancel\",\"to_device\":true,\"content\":{\"code\":\"m.mismatched_sas\",\"reason\":\"Short authentication string did not match\",\"transaction_id\":\"verif-txn-mismatch\"}},{\"result\":{\"verified\":false}}]}"
+            ),
+            "{\"ok\":true,\"value\":{\"transaction_id\":\"verif-txn-mismatch\",\"code\":\"m.mismatched_sas\",\"reason\":\"Short authentication string did not match\",\"verified\":false,\"versions_advertisement_widened\":false},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_cross_signing_device_signing_upload_json(
+                "{\"master_key\":{\"user_id\":\"@alice:example.test\",\"usage\":[\"master\"],\"keys\":{\"ed25519:master\":\"master-public\"},\"signatures\":{\"@alice:example.test\":{\"ed25519:ALICE1\":\"signature\"}}}}"
+            ),
+            "{\"ok\":true,\"value\":{\"master_key\":{\"user_id\":\"@alice:example.test\",\"usage\":[\"master\"],\"keys\":{\"ed25519:master\":\"master-public\"},\"signatures\":{\"@alice:example.test\":{\"ed25519:ALICE1\":\"signature\"}}}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_cross_signing_invalid_signature_failure_json(
+                "{\"status\":400,\"error\":{\"errcode\":\"M_INVALID_SIGNATURE\",\"error\":\"Invalid signature\"}}"
+            ),
+            "{\"ok\":true,\"value\":{\"status\":400,\"errcode\":\"M_INVALID_SIGNATURE\",\"error\":\"Invalid signature\"},\"error\":null}"
         );
     }
 
