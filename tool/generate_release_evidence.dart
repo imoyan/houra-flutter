@@ -190,6 +190,43 @@ void main(List<String> args) {
         'owning production client UI lifecycle or secure storage policy',
       ],
     },
+    'node_napi_binding_candidate': {
+      'issue': 76,
+      'status': 'candidate-only-implementation-deferred',
+      'napi_use_cases': [
+        'Node or Next server hosts that need lower overhead than WASM',
+        'server hosts that need synchronous local artifact calls',
+        'deployment targets where native artifact operations are acceptable',
+      ],
+      'wasm_fallback_use_cases': [
+        'Next server experiments that can use the existing TypeScript facade',
+        'package validation and tests that do not need a native artifact',
+        'hosts where generated WASM module loading is operationally simpler',
+      ],
+      'host_owned_boundaries': [
+        'Node server transport',
+        'request lifecycle',
+        'retry and cancellation policy',
+        'tenant context',
+        'storage policy',
+        'secret redaction and logging policy',
+      ],
+      'blocked_until': [
+        'platform matrix is confirmed',
+        'prebuild policy is confirmed',
+        'native rebuild trigger is defined',
+        'binary size threshold is confirmed per target family',
+        'p95 binding overhead threshold is measured against WASM fallback',
+        'CI runtime impact is measured',
+        'fallback behavior is decided for hosts without native artifacts',
+      ],
+      'out_of_scope': [
+        'publishing a N-API package from this issue',
+        'moving Node transport or request lifecycle into the binding',
+        'owning host storage or tenant policy',
+        'claiming server behavior or Matrix compatibility from the binding',
+      ],
+    },
     'checks': [
       {
         'name': 'spec-sync',
