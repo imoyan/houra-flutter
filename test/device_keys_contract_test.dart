@@ -82,20 +82,20 @@ void main() {
     ]);
   });
 
-  test('queryDeviceKeys rejects invalid request descriptors locally', () {
+  test('queryDeviceKeys rejects invalid request descriptors locally', () async {
     final client = HouraClient(
       serverBaseUri: Uri.parse('https://example.test'),
       httpClient: MockClient((_) async => http.Response('{}', 200)),
     );
 
-    expectLater(
+    await expectLater(
       client.deviceKeys.queryDeviceKeys(
         accessToken: 'token-bob-device1',
         deviceKeys: const {},
       ),
       throwsA(isA<HouraTransportException>()),
     );
-    expectLater(
+    await expectLater(
       client.deviceKeys.queryDeviceKeys(
         accessToken: 'token-bob-device1',
         deviceKeys: const {'@alice:example.test': []},
@@ -103,7 +103,7 @@ void main() {
       ),
       throwsA(isA<HouraTransportException>()),
     );
-    expectLater(
+    await expectLater(
       client.deviceKeys.queryDeviceKeys(
         accessToken: 'token-bob-device1',
         deviceKeys: const {
@@ -112,7 +112,7 @@ void main() {
       ),
       throwsA(isA<HouraTransportException>()),
     );
-    expectLater(
+    await expectLater(
       client.deviceKeys.queryDeviceKeys(
         accessToken: 'token-bob-device1',
         deviceKeys: const {'@alice:example.test': []},
