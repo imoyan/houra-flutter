@@ -34,10 +34,7 @@ final class HouraAuthClient {
         pathSegments: const ['_houra', 'client', 'login'],
         body: {
           'type': houraPasswordLoginType,
-          'identifier': {
-            'type': houraUserIdentifierType,
-            'user': username,
-          },
+          'identifier': {'type': houraUserIdentifierType, 'user': username},
           'password': password,
           if (deviceId != null) 'device_id': deviceId,
           if (initialDeviceDisplayName != null)

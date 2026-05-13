@@ -370,7 +370,8 @@ void checkSpec040ProtocolCoreGate(List<String> failures) {
       validEvent['matrix_spec_version'] != 'v1.18' ||
       validEvent['room_version'] != '12') {
     failures.add(
-        'SPEC-040 valid vector is missing Matrix v1.18 room v12 metadata.');
+      'SPEC-040 valid vector is missing Matrix v1.18 room v12 metadata.',
+    );
   }
   if (invalidEvent is! Map<String, Object?> ||
       invalidEvent['matrix_spec_version'] != 'v1.18') {

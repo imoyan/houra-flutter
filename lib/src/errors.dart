@@ -11,11 +11,7 @@ abstract class HouraException implements Exception {
 
 /// Thrown when a request fails before an HTTP response is received.
 final class HouraTransportException extends HouraException {
-  const HouraTransportException(
-    super.message, {
-    this.cause,
-    this.stackTrace,
-  });
+  const HouraTransportException(super.message, {this.cause, this.stackTrace});
 
   /// Original transport-layer cause, when available.
   final Object? cause;
@@ -32,9 +28,7 @@ final class HouraHttpException extends HouraException {
     required this.responseBody,
     this.code,
     this.serverMessage,
-  }) : super(
-          _httpMessage(statusCode, uri, code, serverMessage),
-        );
+  }) : super(_httpMessage(statusCode, uri, code, serverMessage));
 
   /// HTTP status code returned by the server.
   final int statusCode;

@@ -150,10 +150,7 @@ void main() {
     final client = HouraClient(
       serverBaseUri: Uri.parse('https://example.test'),
       httpClient: MockClient(
-        (_) async => http.Response(
-          jsonEncode(body),
-          response['status'] as int,
-        ),
+        (_) async => http.Response(jsonEncode(body), response['status'] as int),
       ),
     );
 

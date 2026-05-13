@@ -7,7 +7,9 @@ The name comes from horagai, a conch shell used to signal over distance.
 
 Draft. The current implementation covers the MVP client profiles from
 SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
-SPEC-010, SPEC-011, and SPEC-020.
+SPEC-010, SPEC-011, and SPEC-020. It also includes query-only Dart SDK coverage
+for SPEC-069 Matrix device key query request descriptors and public response
+parsing without claiming Matrix E2EE support.
 
 ## Repository Role
 
@@ -257,6 +259,16 @@ TypeScript facade expose this as metadata coverage; room storage, full
 authorization decisions, state resolution, federation, event signing/hash
 verification, host persistence, and Matrix full compliance stay outside this
 repository.
+
+SPEC-069 Dart SDK adoption record for issue #99: the Flutter SDK prototype now
+consumes the sibling `houra-spec` `SPEC-069` device key query vectors for
+`POST /_matrix/client/v3/keys/query` request descriptor construction, public
+device-key response parsing, remote-failure field preservation, unknown
+user/device omission behavior, and Matrix `M_*` error-envelope mapping. This is
+query-only parser coverage; access-token persistence, transport retry policy,
+signature verification, trust UI, secure storage, Olm/Megolm sessions,
+encrypted-room behavior, key backup, verification UX, and Matrix E2EE support
+advertisement stay outside this repository.
 
 Shared-core artifact gate adoption record for issue #74: the TypeScript facade
 now fails closed when the Rust artifact manifest has an unexpected manifest

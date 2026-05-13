@@ -24,8 +24,9 @@ void main(List<String> args) {
     File('rust-protocol-core-wasm/Cargo.toml'),
   );
   final tsPackage = _readJsonObject(File('ts-protocol-core-wasm/package.json'));
-  final tsConstants =
-      _readTsConstants(File('ts-protocol-core-wasm/src/index.ts'));
+  final tsConstants = _readTsConstants(
+    File('ts-protocol-core-wasm/src/index.ts'),
+  );
 
   _expect(
     failures,
@@ -384,7 +385,7 @@ void main(List<String> args) {
         'head_sha',
         'commands',
         'result',
-        'spec_snapshot_ref'
+        'spec_snapshot_ref',
       ],
       'allowed_only_when': [
         'the recorded head_sha matches the PR head SHA',
@@ -493,20 +494,23 @@ String? _readTomlStringOrNull(String source, String key) {
 }
 
 List<String> _readTomlStringListOrEmpty(String source, String key) {
-  final match =
-      RegExp('^$key = \\[(.*?)\\]', multiLine: true).firstMatch(source);
+  final match = RegExp(
+    '^$key = \\[(.*?)\\]',
+    multiLine: true,
+  ).firstMatch(source);
   if (match == null) {
     return [];
   }
-  return RegExp('"([^"]+)"')
-      .allMatches(match.group(1)!)
-      .map((match) => match.group(1)!)
-      .toList();
+  return RegExp(
+    '"([^"]+)"',
+  ).allMatches(match.group(1)!).map((match) => match.group(1)!).toList();
 }
 
 bool _readTomlBool(String source, String key) {
-  final match =
-      RegExp('^$key = (true|false)', multiLine: true).firstMatch(source);
+  final match = RegExp(
+    '^$key = (true|false)',
+    multiLine: true,
+  ).firstMatch(source);
   if (match == null) {
     throw FormatException('Missing TOML boolean key: $key');
   }
@@ -514,8 +518,10 @@ bool _readTomlBool(String source, String key) {
 }
 
 bool? _readTomlBoolOrNull(String source, String key) {
-  final match =
-      RegExp('^$key = (true|false)', multiLine: true).firstMatch(source);
+  final match = RegExp(
+    '^$key = (true|false)',
+    multiLine: true,
+  ).firstMatch(source);
   if (match == null) {
     return null;
   }
@@ -546,10 +552,9 @@ List<String> _readTsStringArray(String source, String name) {
   if (match == null) {
     throw FormatException('Missing TypeScript string array constant: $name');
   }
-  return RegExp('"([^"]+)"')
-      .allMatches(match.group(1)!)
-      .map((match) => match.group(1)!)
-      .toList();
+  return RegExp(
+    '"([^"]+)"',
+  ).allMatches(match.group(1)!).map((match) => match.group(1)!).toList();
 }
 
 Directory _canonicalSpecRoot() {
@@ -562,10 +567,12 @@ Directory _canonicalSpecRoot() {
 
 String? _gitRevParse(String workingDirectory) {
   final result = Process.runSync(
-    'git',
-    ['rev-parse', 'HEAD'],
-    workingDirectory: workingDirectory,
-  );
+      'git',
+      [
+        'rev-parse',
+        'HEAD',
+      ],
+      workingDirectory: workingDirectory);
   if (result.exitCode != 0) {
     return null;
   }

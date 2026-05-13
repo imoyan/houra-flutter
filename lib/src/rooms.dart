@@ -16,9 +16,7 @@ final class HouraRoomsClient {
         method: 'POST',
         pathSegments: const ['_houra', 'client', 'rooms'],
         accessToken: accessToken,
-        body: {
-          if (name != null) 'name': name,
-        },
+        body: {if (name != null) 'name': name},
       ),
     );
     return HouraRoom.fromJson(response.jsonObject);

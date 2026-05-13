@@ -63,6 +63,8 @@ The current package implements:
 - SPEC-010 Timeline
 - SPEC-011 Basic Sync
 - SPEC-020 Media
+- SPEC-069 Matrix Device Key Query request descriptor and public response
+  parser only
 
 Do not add storage, encryption, federation, push gateway compatibility, or full
 Matrix compatibility without a matching contract and test-vector update.

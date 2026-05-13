@@ -33,8 +33,9 @@ void main() {
   });
 
   test('getMetadata follows SPEC-020 vector', () async {
-    final vector =
-        readVector('test-vectors/media/download-metadata-basic.json');
+    final vector = readVector(
+      'test-vectors/media/download-metadata-basic.json',
+    );
     late http.Request observed;
     final client = _client((request) async {
       observed = request;

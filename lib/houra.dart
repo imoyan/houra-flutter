@@ -13,6 +13,7 @@ library houra;
 
 export 'src/auth.dart';
 export 'src/client.dart';
+export 'src/device_keys.dart';
 export 'src/discovery.dart';
 export 'src/errors.dart';
 export 'src/flutter_theme.dart';

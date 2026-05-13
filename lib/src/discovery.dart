@@ -9,9 +9,11 @@ final class HouraDiscoveryClient {
 
   /// Fetches SPEC-001 server discovery metadata.
   Future<HouraServerVersions> fetchVersions() async {
-    final json = await _transport.getJsonObject(
-      const ['_houra', 'client', 'versions'],
-    );
+    final json = await _transport.getJsonObject(const [
+      '_houra',
+      'client',
+      'versions',
+    ]);
     return HouraServerVersions.fromJson(json);
   }
 }
