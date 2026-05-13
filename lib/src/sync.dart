@@ -104,4 +104,27 @@ final class HouraSyncClient {
     await tokenStore.write(batch.nextBatch);
     return batch;
   }
+
+  /// Performs one Matrix Client-Server sync request.
+  ///
+  /// This parser surface is for SPEC-052 to-device envelope delivery. Host
+  /// applications still own sync token persistence and decryption.
+  Future<HouraMatrixSyncBatch> matrixSync({
+    required String accessToken,
+    String? since,
+    Duration? timeout,
+  }) async {
+    final response = await _transport.send(
+      HouraRequest(
+        method: 'GET',
+        pathSegments: const ['_matrix', 'client', 'v3', 'sync'],
+        accessToken: accessToken,
+        queryParameters: {
+          if (since != null) 'since': since,
+          if (timeout != null) 'timeout': '${timeout.inMilliseconds}',
+        },
+      ),
+    );
+    return HouraMatrixSyncBatch.fromJson(response.jsonObject);
+  }
 }

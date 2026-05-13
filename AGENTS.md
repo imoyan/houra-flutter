@@ -65,6 +65,8 @@ The current package implements:
 - SPEC-020 Media
 - SPEC-051 Matrix Key Upload / Claim request descriptors and public response
   parsers only
+- SPEC-052 Matrix To-Device / Encrypted Room request descriptors and public
+  envelope parsers only
 - SPEC-069 Matrix Device Key Query request descriptor and public response
   parser only
 

@@ -191,6 +191,13 @@ final class HouraEvent {
       body: _requiredString(content, 'body'),
     );
   }
+
+  HouraEncryptedPayload? get encryptedPayload {
+    if (type != 'm.room.encrypted') {
+      return null;
+    }
+    return HouraEncryptedPayload.fromJson(content);
+  }
 }
 
 /// Typed view of a SPEC-007 text message event.
@@ -291,6 +298,160 @@ final class HouraSyncTimeline {
   factory HouraSyncTimeline.fromJson(Map<String, Object?> json) {
     return HouraSyncTimeline(events: _requiredEventList(json, 'events'));
   }
+}
+
+/// SPEC-052 Matrix sync response subset for to-device delivery.
+final class HouraMatrixSyncBatch {
+  const HouraMatrixSyncBatch({
+    required this.nextBatch,
+    required this.toDeviceEvents,
+  });
+
+  final String nextBatch;
+  final List<HouraMatrixToDeviceEvent> toDeviceEvents;
+
+  factory HouraMatrixSyncBatch.fromJson(Map<String, Object?> json) {
+    return HouraMatrixSyncBatch(
+      nextBatch: _requiredString(json, 'next_batch'),
+      toDeviceEvents: _optionalToDeviceEvents(json),
+    );
+  }
+}
+
+/// SPEC-052 Matrix to-device event envelope.
+final class HouraMatrixToDeviceEvent {
+  const HouraMatrixToDeviceEvent({
+    required this.sender,
+    required this.type,
+    required this.content,
+    required this.raw,
+  });
+
+  final String sender;
+  final String type;
+  final Map<String, Object?> content;
+  final Map<String, Object?> raw;
+
+  factory HouraMatrixToDeviceEvent.fromJson(Map<String, Object?> json) {
+    return HouraMatrixToDeviceEvent(
+      sender: _requiredString(json, 'sender'),
+      type: _requiredString(json, 'type'),
+      content: _requiredJsonObject(json, 'content'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+
+  HouraEncryptedPayload? get encryptedPayload {
+    if (type != 'm.room.encrypted') {
+      return null;
+    }
+    return HouraEncryptedPayload.fromJson(content);
+  }
+}
+
+/// SPEC-052 Matrix encrypted event payload envelope.
+final class HouraEncryptedPayload {
+  const HouraEncryptedPayload({
+    required this.algorithm,
+    required this.raw,
+    this.senderKey,
+    this.megolmCiphertext,
+    this.sessionId,
+    this.deviceId,
+    this.olmCiphertext,
+  });
+
+  final String algorithm;
+  final String? senderKey;
+  final String? megolmCiphertext;
+  final String? sessionId;
+  final String? deviceId;
+  final Map<String, HouraOlmCiphertext>? olmCiphertext;
+  final Map<String, Object?> raw;
+
+  factory HouraEncryptedPayload.fromJson(Map<String, Object?> json) {
+    final algorithm = _requiredString(json, 'algorithm');
+    if (algorithm == 'm.megolm.v1.aes-sha2') {
+      return HouraEncryptedPayload(
+        algorithm: algorithm,
+        senderKey: _requiredString(json, 'sender_key'),
+        megolmCiphertext: _requiredString(json, 'ciphertext'),
+        sessionId: _requiredString(json, 'session_id'),
+        deviceId: _requiredString(json, 'device_id'),
+        raw: Map<String, Object?>.unmodifiable(json),
+      );
+    }
+    if (algorithm == 'm.olm.v1.curve25519-aes-sha2') {
+      return HouraEncryptedPayload(
+        algorithm: algorithm,
+        senderKey: _requiredString(json, 'sender_key'),
+        olmCiphertext: _requiredOlmCiphertextMap(json, 'ciphertext'),
+        raw: Map<String, Object?>.unmodifiable(json),
+      );
+    }
+    throw HouraResponseFormatException(
+      'Unsupported encrypted payload algorithm "$algorithm".',
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    if (algorithm == 'm.megolm.v1.aes-sha2') {
+      return {
+        ...raw,
+        'algorithm': algorithm,
+        'sender_key': _requiredToJsonString(senderKey, 'sender_key'),
+        'ciphertext': _requiredToJsonString(megolmCiphertext, 'ciphertext'),
+        'session_id': _requiredToJsonString(sessionId, 'session_id'),
+        'device_id': _requiredToJsonString(deviceId, 'device_id'),
+      };
+    }
+    if (algorithm == 'm.olm.v1.curve25519-aes-sha2') {
+      final ciphertext = olmCiphertext;
+      if (ciphertext == null || ciphertext.isEmpty) {
+        throw HouraResponseFormatException(
+          'Expected non-empty encrypted payload "ciphertext".',
+        );
+      }
+      return {
+        ...raw,
+        'algorithm': algorithm,
+        'sender_key': _requiredToJsonString(senderKey, 'sender_key'),
+        'ciphertext': ciphertext.map(
+          (key, value) => MapEntry(key, value.toJson()),
+        ),
+      };
+    }
+    throw HouraResponseFormatException(
+      'Unsupported encrypted payload algorithm "$algorithm".',
+    );
+  }
+}
+
+/// One recipient-key-indexed Olm ciphertext object.
+final class HouraOlmCiphertext {
+  const HouraOlmCiphertext({
+    required this.type,
+    required this.body,
+    required this.raw,
+  });
+
+  final int type;
+  final String body;
+  final Map<String, Object?> raw;
+
+  factory HouraOlmCiphertext.fromJson(Map<String, Object?> json) {
+    final type = _requiredInt(json, 'type');
+    if (type < 0) {
+      throw HouraResponseFormatException('Expected non-negative "type".');
+    }
+    return HouraOlmCiphertext(
+      type: type,
+      body: _requiredString(json, 'body'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+
+  Map<String, Object?> toJson() => {...raw, 'type': type, 'body': body};
 }
 
 /// SPEC-020 media upload response.
@@ -470,6 +631,13 @@ final class HouraMatrixSignedKey {
 String _requiredString(Map<String, Object?> json, String key) {
   final value = json[key];
   if (value is String && value.isNotEmpty) {
+    return value;
+  }
+  throw HouraResponseFormatException('Expected non-empty string "$key".');
+}
+
+String _requiredToJsonString(String? value, String key) {
+  if (value != null && value.isNotEmpty) {
     return value;
   }
   throw HouraResponseFormatException('Expected non-empty string "$key".');
@@ -658,6 +826,55 @@ Map<String, Map<String, HouraMatrixDeviceKey>> _requiredDeviceKeyUsers(
       return MapEntry(
         userId,
         Map<String, HouraMatrixDeviceKey>.unmodifiable(devices),
+      );
+    }),
+  );
+}
+
+List<HouraMatrixToDeviceEvent> _optionalToDeviceEvents(
+    Map<String, Object?> json) {
+  final toDevice = json['to_device'];
+  if (toDevice == null) {
+    return const [];
+  }
+  if (toDevice is! Map) {
+    throw HouraResponseFormatException('Expected object "to_device".');
+  }
+  final events = toDevice.cast<String, Object?>()['events'];
+  if (events == null) {
+    return const [];
+  }
+  if (events is! List) {
+    throw HouraResponseFormatException('Expected object array "events".');
+  }
+  return List<HouraMatrixToDeviceEvent>.unmodifiable(
+    events.map((event) {
+      if (event is Map) {
+        return HouraMatrixToDeviceEvent.fromJson(event.cast<String, Object?>());
+      }
+      throw HouraResponseFormatException('Expected object array "events".');
+    }),
+  );
+}
+
+Map<String, HouraOlmCiphertext> _requiredOlmCiphertextMap(
+  Map<String, Object?> json,
+  String key,
+) {
+  final value = json[key];
+  if (value is! Map) {
+    throw HouraResponseFormatException('Expected Olm ciphertext map "$key".');
+  }
+  return Map<String, HouraOlmCiphertext>.unmodifiable(
+    value.cast<String, Object?>().map((recipientKey, ciphertextValue) {
+      if (ciphertextValue is! Map) {
+        throw HouraResponseFormatException(
+          'Expected Olm ciphertext object "$key".',
+        );
+      }
+      return MapEntry(
+        recipientKey,
+        HouraOlmCiphertext.fromJson(ciphertextValue.cast<String, Object?>()),
       );
     }),
   );

@@ -8,9 +8,9 @@ The name comes from horagai, a conch shell used to signal over distance.
 Draft. The current implementation covers the MVP client profiles from
 SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
 SPEC-010, SPEC-011, and SPEC-020. It also includes parser-only Dart SDK
-coverage for SPEC-051 Matrix key upload / claim and SPEC-069 Matrix device key
-query request descriptors and public response parsing without claiming Matrix
-E2EE support.
+coverage for SPEC-051 Matrix key upload / claim, SPEC-052 Matrix to-device /
+encrypted-room envelopes, and SPEC-069 Matrix device key query request
+descriptors and public response parsing without claiming Matrix E2EE support.
 
 ## Repository Role
 
@@ -299,6 +299,17 @@ This is parser-only coverage; key generation, key storage, claim lifecycle,
 signature verification, trust UI, secure storage, Olm/Megolm sessions,
 encrypted-room behavior, key backup, verification UX, and Matrix E2EE support
 advertisement stay outside this repository.
+
+SPEC-052 Dart SDK adoption record for issue #67: the Flutter SDK prototype now
+consumes the sibling `houra-spec` `SPEC-052` to-device and encrypted-room
+vectors for `PUT /_matrix/client/v3/sendToDevice/m.room.encrypted/{txnId}`,
+`PUT /_matrix/client/v3/rooms/{roomId}/state/m.room.encryption/`,
+`PUT /_matrix/client/v3/rooms/{roomId}/send/m.room.encrypted/{txnId}`, and
+`GET /_matrix/client/v3/sync` request descriptor / public envelope parsing.
+This is envelope-only coverage; Olm/Megolm encryption or decryption, device
+trust, key backup, verification UX, secret storage, room-session lifecycle,
+federation to-device delivery, and Matrix E2EE support advertisement stay
+outside this repository.
 
 Shared-core artifact gate adoption record for issue #74: the TypeScript facade
 now fails closed when the Rust artifact manifest has an unexpected manifest
