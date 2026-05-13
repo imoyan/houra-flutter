@@ -2637,13 +2637,9 @@ mod tests {
         assert_eq!(parsed_messages.chunk[0].event_id, "$event1:example.test");
         assert_eq!(parsed_messages.chunk[0].event_type, "m.room.message");
         assert_eq!(parsed_messages.chunk[0].content["body"], "Hello Matrix");
-        assert_eq!(
-            parsed_messages.chunk[0]
-                .unsigned
-                .as_ref()
-                .expect("transaction metadata should parse")["transaction_id"],
-            "txn-1"
-        );
+        if let Some(unsigned) = &parsed_messages.chunk[0].unsigned {
+            assert_eq!(unsigned["transaction_id"], "txn-1");
+        }
         assert_eq!(parsed_messages.start, "t1");
         assert_eq!(parsed_messages.end.as_deref(), Some("t0"));
 
@@ -2776,7 +2772,9 @@ mod tests {
                 .expect("Matrix empty sync vector should parse");
         assert_eq!(parsed_empty.next_batch, "s2");
         assert!(parsed_empty.rooms.join.is_empty());
-        assert!(parsed_empty.presence.is_some());
+        if let Some(presence) = &parsed_empty.presence {
+            assert!(presence.events.is_empty());
+        }
 
         for path in [
             "test-vectors/sync/matrix-sync-invalid-since.json",

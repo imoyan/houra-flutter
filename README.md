@@ -119,6 +119,21 @@ runtime target; Next and Vue are supported at the facade boundary; Node remains
 test/package-validation only until a separate Node or N-API binding issue
 adopts a runtime package.
 
+Shared-core parity / performance evidence gate for issue #81: CI keeps Flutter
+SDK, Rust protocol core, WASM wrapper, and TypeScript facade checks separate,
+then runs `dart run tool/generate_release_evidence.dart` after those gates pass.
+The generated evidence records only metadata: head SHA, `houra-spec` snapshot,
+covered `SPEC-*` IDs, crate/package versions, ABI and manifest schema versions,
+binding kind, package artifact policy, candidate size/performance/runtime
+thresholds, and `local-ci` status requirements. It must not store raw requests,
+queries, prompts, tokens, or secrets. The gate fails if Rust crate metadata,
+TypeScript facade constants, supported `SPEC-*` coverage, or private package
+policy drift from the expected release boundary. Current candidate thresholds
+are 256 KiB for a future generated WASM binary, 64 KiB for the TypeScript
+package tarball, 5 ms p95 parse/validation overhead, and CI runtime targets of
+10 minutes for Flutter, 10 minutes for Rust/WASM, 5 minutes for TypeScript, and
+2 minutes for the release evidence job.
+
 SPEC-031 adoption record for issue #31: the Rust prototype now consumes the
 `houra-spec` `v0.2.0-pre.23` Matrix foundation vectors for Matrix error
 envelope parsing and identifier validation only. The WASM wrapper and
@@ -175,8 +190,8 @@ transport, media storage, persistence, crypto, retries, secure storage, or UI
 behavior.
 
 SPEC-039 adoption record: the Rust prototype now consumes the
-`houra-spec` snapshot `413a3025a32521e4a707d9dd890a10b56328154e`
-(`v0.2.0-pre.58-3-g413a302`) `SPEC-039` Matrix Client-Server MVP live e2e gate
+`houra-spec` snapshot `b174d1f4efff37902996d95122f1115e72284d75`
+(`v0.2.0-pre.58-13-gb174d1f`) `SPEC-039` Matrix Client-Server MVP live e2e gate
 vector as a repo-local integration gate over the existing `SPEC-030` through
 `SPEC-038` parser and binding surfaces. CI pins the Flutter, Rust, and
 TypeScript jobs to that same snapshot. The WASM wrapper and TypeScript facade
@@ -358,6 +373,19 @@ npm run typecheck
 npm test
 npm run pack:dry-run
 ```
+
+For shared-core release evidence, run from the repository root after the local
+checks above:
+
+```bash
+HOURA_SPEC_ROOT=../houra-spec dart run tool/generate_release_evidence.dart \
+  --output build/release-evidence/houra-labs-release-evidence.json
+```
+
+Treat the generated JSON as CI/release metadata, not a behavior contract. When
+using a `local-ci` status instead of repeating heavy GitHub checks, record the
+exact head SHA, commands, success result, and spec snapshot in the PR body or
+handoff.
 
 If Rust is not installed locally, the same checks can run in a Rust Docker image
 with this repository and `houra-spec` mounted into the container. The official
