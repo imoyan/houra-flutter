@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+Map<String, Object?>? _releaseEvidenceCache;
+bool _releaseEvidenceReadAttempted = false;
+
 void main() {
   final failures = <String>[];
   checkSdkBoundary(failures);
@@ -440,15 +443,34 @@ void checkSpec049ProtocolCoreGate(List<String> failures) {
           .add('SPEC-049 vector has an unexpected contract id: $vectorPath');
     }
   }
+  checkReleaseEvidenceAdoption(
+    failures,
+    blockName: 'moderation_reporting_parser_adoption',
+    issue: 64,
+    specId: 'SPEC-049',
+    parityVectors: vectors,
+    parserOnlySurfaces: [
+      'kick/ban/unban request descriptor',
+      'redaction request descriptor',
+      'redaction response envelope',
+      'room/event/user report request descriptor',
+      'account moderation capability envelope',
+      'admin lock/suspend request and status envelope',
+      'moderation Matrix error envelope',
+    ],
+    outOfScope: [
+      'authorization decisions',
+      'policy enforcement',
+      'appeal process',
+      'moderation queue UI',
+      'audit logging',
+      'federation enforcement',
+      'Matrix moderation support advertisement',
+    ],
+  );
 
   final requiredFragmentsByFile = {
     'AGENTS.md': ['SPEC-049'],
-    'README.md': ['SPEC-049', 'parser-only moderation/reporting/admin'],
-    'tool/generate_release_evidence.dart': [
-      "'SPEC-049'",
-      'moderation_reporting_parser_adoption',
-      'matrix-room-redaction-forbidden.json',
-    ],
     'rust-protocol-core/src/lib.rs': [
       '"SPEC-049"',
       'parse_matrix_moderation_request',
@@ -534,15 +556,34 @@ void checkSpec048ProtocolCoreGate(List<String> failures) {
           .add('SPEC-048 vector has an unexpected contract id: $vectorPath');
     }
   }
+  checkReleaseEvidenceAdoption(
+    failures,
+    blockName: 'room_directory_parser_adoption',
+    issue: 63,
+    specId: 'SPEC-048',
+    parityVectors: vectors,
+    parserOnlySurfaces: [
+      'public room directory request descriptor',
+      'public room directory response envelope',
+      'directory visibility envelope',
+      'room alias list envelope',
+      'invite request descriptor',
+      'stripped invite state envelope',
+      'room directory Matrix error envelope',
+    ],
+    outOfScope: [
+      'directory storage',
+      'visibility policy',
+      'federation invite signing',
+      'remote public room federation',
+      'third-party invite behavior',
+      'spaces hierarchy traversal',
+      'Matrix room directory support advertisement',
+    ],
+  );
 
   final requiredFragmentsByFile = {
     'AGENTS.md': ['SPEC-048'],
-    'README.md': ['SPEC-048', 'directory/alias/invite surface'],
-    'tool/generate_release_evidence.dart': [
-      "'SPEC-048'",
-      'room_directory_parser_adoption',
-      'matrix-room-invite-forbidden.json',
-    ],
     'rust-protocol-core/src/lib.rs': [
       '"SPEC-048"',
       'parse_matrix_public_rooms_request',
@@ -593,6 +634,112 @@ void checkSpec048ProtocolCoreGate(List<String> failures) {
         failures
             .add('${entry.key} is missing SPEC-048 gate fragment: $fragment');
       }
+    }
+  }
+}
+
+void checkReleaseEvidenceAdoption(
+  List<String> failures, {
+  required String blockName,
+  required int issue,
+  required String specId,
+  required List<String> parityVectors,
+  required List<String> parserOnlySurfaces,
+  required List<String> outOfScope,
+}) {
+  final evidence = readGeneratedReleaseEvidence(failures);
+  if (evidence == null) {
+    return;
+  }
+  final coveredSpecIds = evidence['covered_spec_ids'];
+  if (coveredSpecIds is! List || !coveredSpecIds.contains(specId)) {
+    failures.add('Release evidence covered_spec_ids is missing $specId.');
+  }
+
+  final adoption = evidence[blockName];
+  if (adoption is! Map<String, Object?>) {
+    failures.add('Release evidence is missing adoption block: $blockName');
+    return;
+  }
+  if (adoption['issue'] != issue) {
+    failures.add('$blockName issue must be $issue.');
+  }
+  if (adoption['status'] != 'parser-only-adopted') {
+    failures.add('$blockName status must be parser-only-adopted.');
+  }
+  final specIds = adoption['spec_ids'];
+  if (specIds is! List || !orderedListEquals(specIds, [specId])) {
+    failures.add('$blockName spec_ids must be [$specId].');
+  }
+  requireListContainsAll(
+    failures,
+    adoption['parity_vectors'],
+    parityVectors,
+    '$blockName parity_vectors',
+  );
+  requireListContainsAll(
+    failures,
+    adoption['parser_only_surfaces'],
+    parserOnlySurfaces,
+    '$blockName parser_only_surfaces',
+  );
+  requireListContainsAll(
+    failures,
+    adoption['out_of_scope'],
+    outOfScope,
+    '$blockName out_of_scope',
+  );
+}
+
+Map<String, Object?>? readGeneratedReleaseEvidence(List<String> failures) {
+  if (_releaseEvidenceReadAttempted) {
+    return _releaseEvidenceCache;
+  }
+  _releaseEvidenceReadAttempted = true;
+  final tempRoot = Directory.systemTemp.createTempSync(
+    'houra-labs-release-evidence-',
+  );
+  final output = File('${tempRoot.path}/release-evidence.json');
+  try {
+    final result = Process.runSync('dart', [
+      'run',
+      'tool/generate_release_evidence.dart',
+      '--output',
+      output.path,
+    ]);
+    if (result.exitCode != 0) {
+      failures.add(
+        'Release evidence generation failed: dart run tool/generate_release_evidence.dart --output ${output.path}',
+      );
+      addCommandOutput('stdout', result.stdout, failures);
+      addCommandOutput('stderr', result.stderr, failures);
+      return null;
+    }
+    final decoded = jsonDecode(output.readAsStringSync());
+    if (decoded is Map<String, Object?>) {
+      _releaseEvidenceCache = decoded;
+      return decoded;
+    }
+    failures.add('Release evidence output must be a JSON object.');
+    return null;
+  } finally {
+    tempRoot.deleteSync(recursive: true);
+  }
+}
+
+void requireListContainsAll(
+  List<String> failures,
+  Object? actual,
+  List<String> expected,
+  String label,
+) {
+  if (actual is! List) {
+    failures.add('$label must be a list.');
+    return;
+  }
+  for (final value in expected) {
+    if (!actual.contains(value)) {
+      failures.add('$label is missing: $value');
     }
   }
 }
