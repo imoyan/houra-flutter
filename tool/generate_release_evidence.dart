@@ -14,6 +14,7 @@ const expectedSpecIds = [
   'SPEC-039',
   'SPEC-040',
   'SPEC-045',
+  'SPEC-046',
   'SPEC-048',
   'SPEC-049',
   'SPEC-051',
@@ -191,6 +192,36 @@ void main(List<String> args) {
         'authorization decisions',
         'room tag UI policy',
         'Matrix profile/account-data/tag support advertisement',
+      ],
+    },
+    'receipts_typing_parser_adoption': {
+      'issue': 61,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-046'],
+      'parity_vectors': [
+        'test-vectors/sync/matrix-receipt-basic.json',
+        'test-vectors/sync/matrix-receipt-invalid-thread.json',
+        'test-vectors/sync/matrix-typing-basic.json',
+        'test-vectors/sync/matrix-typing-missing-token.json',
+        'test-vectors/sync/matrix-read-markers-basic.json',
+        'test-vectors/sync/matrix-read-marker-direct-account-data-forbidden.json',
+      ],
+      'parser_only_surfaces': [
+        'typing request descriptor',
+        'typing ephemeral content envelope',
+        'receipt request descriptor',
+        'receipt ephemeral content envelope',
+        'read markers request descriptor',
+        'fully read account-data content envelope',
+      ],
+      'out_of_scope': [
+        'typing delivery',
+        'receipt delivery',
+        'unread UI policy',
+        'storage persistence',
+        'retry policy',
+        'federation EDU delivery',
+        'Matrix receipts/typing/read-marker support advertisement',
       ],
     },
     'room_directory_parser_adoption': {
@@ -562,7 +593,7 @@ void main(List<String> args) {
         'command': 'cargo test --locked',
         'guards': [
           'artifact manifest serializes stably',
-          'covered SPEC ids include SPEC-030 through SPEC-040, SPEC-045, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, and SPEC-069',
+          'covered SPEC ids include SPEC-030 through SPEC-040, SPEC-045, SPEC-046, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, and SPEC-069',
         ],
       },
       {

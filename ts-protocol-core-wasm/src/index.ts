@@ -17,6 +17,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-039",
   "SPEC-040",
   "SPEC-045",
+  "SPEC-046",
   "SPEC-048",
   "SPEC-049",
   "SPEC-051",
@@ -92,6 +93,12 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixAccountDataContentJson(responseBody: string): string;
   parseMatrixRoomTagJson(responseBody: string): string;
   parseMatrixRoomTagsJson(responseBody: string): string;
+  parseMatrixTypingRequestJson(responseBody: string): string;
+  parseMatrixTypingContentJson(responseBody: string): string;
+  parseMatrixReceiptRequestJson(responseBody: string): string;
+  parseMatrixReceiptContentJson(responseBody: string): string;
+  parseMatrixReadMarkersRequestJson(responseBody: string): string;
+  parseMatrixFullyReadContentJson(responseBody: string): string;
   parseMatrixSyncResponseJson(responseBody: string): string;
   parseMatrixRegistrationAvailabilityJson(responseBody: string): string;
   parseMatrixRegistrationSessionJson(responseBody: string): string;
@@ -300,6 +307,41 @@ export interface MatrixRoomTag {
 
 export interface MatrixRoomTags {
   tags: Record<string, MatrixRoomTag>;
+}
+
+export interface MatrixTypingRequest {
+  typing: boolean;
+  timeout?: number;
+}
+
+export interface MatrixTypingContent {
+  user_ids: string[];
+}
+
+export interface MatrixReceiptRequest {
+  thread_id?: string;
+}
+
+export interface MatrixReceiptMetadata {
+  ts?: number;
+  thread_id?: string;
+}
+
+export interface MatrixReceiptContent {
+  receipts: Record<
+    string,
+    Record<string, Record<string, MatrixReceiptMetadata>>
+  >;
+}
+
+export interface MatrixReadMarkersRequest {
+  "m.fully_read"?: string;
+  "m.read"?: string;
+  "m.read.private"?: string;
+}
+
+export interface MatrixFullyReadContent {
+  event_id: string;
 }
 
 export interface MatrixMediaContentUri {
@@ -848,6 +890,24 @@ export interface HouraProtocolCoreFacade {
   ): ProtocolResult<MatrixAccountDataContent>;
   parseMatrixRoomTag(responseBody: string): ProtocolResult<MatrixRoomTag>;
   parseMatrixRoomTags(responseBody: string): ProtocolResult<MatrixRoomTags>;
+  parseMatrixTypingRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixTypingRequest>;
+  parseMatrixTypingContent(
+    responseBody: string,
+  ): ProtocolResult<MatrixTypingContent>;
+  parseMatrixReceiptRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixReceiptRequest>;
+  parseMatrixReceiptContent(
+    responseBody: string,
+  ): ProtocolResult<MatrixReceiptContent>;
+  parseMatrixReadMarkersRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixReadMarkersRequest>;
+  parseMatrixFullyReadContent(
+    responseBody: string,
+  ): ProtocolResult<MatrixFullyReadContent>;
   parseMatrixSyncResponse(
     responseBody: string,
   ): ProtocolResult<MatrixSyncResponse>;
@@ -1339,6 +1399,48 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixRoomTagsEnvelope(envelope);
+    },
+    parseMatrixTypingRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixTypingRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixTypingRequestEnvelope(envelope);
+    },
+    parseMatrixTypingContent(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixTypingContentJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixTypingContentEnvelope(envelope);
+    },
+    parseMatrixReceiptRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixReceiptRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixReceiptRequestEnvelope(envelope);
+    },
+    parseMatrixReceiptContent(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixReceiptContentJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixReceiptContentEnvelope(envelope);
+    },
+    parseMatrixReadMarkersRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixReadMarkersRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixReadMarkersRequestEnvelope(envelope);
+    },
+    parseMatrixFullyReadContent(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFullyReadContentJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFullyReadContentEnvelope(envelope);
     },
     parseMatrixSyncResponse(responseBody: string) {
       const envelope = parseJsonObject(
@@ -2644,6 +2746,103 @@ function readMatrixRoomTag(value: Record<string, unknown>): MatrixRoomTag {
     tag.order = order;
   });
   return tag;
+}
+
+function readMatrixTypingRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixTypingRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const request: MatrixTypingRequest = {
+      typing: readBoolean(value, "typing"),
+    };
+    readOptionalNumber(value, "timeout", (timeout) => {
+      request.timeout = timeout;
+    });
+    return request;
+  });
+}
+
+function readMatrixTypingContentEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixTypingContent> {
+  return readProtocolResult(envelope, (value) => ({
+    user_ids: readStringArray(value, "user_ids", "invalid_envelope"),
+  }));
+}
+
+function readMatrixReceiptRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixReceiptRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const request: MatrixReceiptRequest = {};
+    readOptionalString(value, "thread_id", (threadId) => {
+      request.thread_id = threadId;
+    });
+    return request;
+  });
+}
+
+function readMatrixReceiptContentEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixReceiptContent> {
+  return readProtocolResult(envelope, (value) => ({
+    receipts: readReceiptContent(readRecord(value, "receipts", "receipt content")),
+  }));
+}
+
+function readReceiptContent(
+  value: Record<string, unknown>,
+): MatrixReceiptContent["receipts"] {
+  const receipts: MatrixReceiptContent["receipts"] = {};
+  for (const [eventId, receiptTypes] of Object.entries(value)) {
+    const receiptTypeRecord = assertRecord(receiptTypes, `receipts.${eventId}`);
+    receipts[eventId] = {};
+    for (const [receiptType, users] of Object.entries(receiptTypeRecord)) {
+      const userRecord = assertRecord(users, `receipts.${eventId}.${receiptType}`);
+      receipts[eventId][receiptType] = {};
+      for (const [userId, metadata] of Object.entries(userRecord)) {
+        const metadataRecord = assertRecord(
+          metadata,
+          `receipts.${eventId}.${receiptType}.${userId}`,
+        );
+        const parsed: MatrixReceiptMetadata = {};
+        readOptionalNumber(metadataRecord, "ts", (ts) => {
+          parsed.ts = ts;
+        });
+        readOptionalString(metadataRecord, "thread_id", (threadId) => {
+          parsed.thread_id = threadId;
+        });
+        receipts[eventId][receiptType][userId] = parsed;
+      }
+    }
+  }
+  return receipts;
+}
+
+function readMatrixReadMarkersRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixReadMarkersRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const request: MatrixReadMarkersRequest = {};
+    readOptionalString(value, "m.fully_read", (eventId) => {
+      request["m.fully_read"] = eventId;
+    });
+    readOptionalString(value, "m.read", (eventId) => {
+      request["m.read"] = eventId;
+    });
+    readOptionalString(value, "m.read.private", (eventId) => {
+      request["m.read.private"] = eventId;
+    });
+    return request;
+  });
+}
+
+function readMatrixFullyReadContentEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFullyReadContent> {
+  return readProtocolResult(envelope, (value) => ({
+    event_id: readString(value, "event_id", "invalid_envelope"),
+  }));
 }
 
 function readMatrixMediaContentUriEnvelope(

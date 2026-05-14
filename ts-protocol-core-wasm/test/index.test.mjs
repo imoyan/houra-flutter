@@ -1036,6 +1036,84 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixTypingRequestJson() {
+      return JSON.stringify(
+        overrides.typingRequestEnvelope ?? {
+          ok: true,
+          value: {
+            typing: true,
+            timeout: 30000,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixTypingContentJson() {
+      return JSON.stringify(
+        overrides.typingContentEnvelope ?? {
+          ok: true,
+          value: {
+            user_ids: ["@alice:example.test"],
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixReceiptRequestJson() {
+      return JSON.stringify(
+        overrides.receiptRequestEnvelope ?? {
+          ok: true,
+          value: {
+            thread_id: "main",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixReceiptContentJson() {
+      return JSON.stringify(
+        overrides.receiptContentEnvelope ?? {
+          ok: true,
+          value: {
+            receipts: {
+              "$event1:example.test": {
+                "m.read": {
+                  "@alice:example.test": {
+                    ts: 1710000001000,
+                    thread_id: "main",
+                  },
+                },
+              },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixReadMarkersRequestJson() {
+      return JSON.stringify(
+        overrides.readMarkersRequestEnvelope ?? {
+          ok: true,
+          value: {
+            "m.fully_read": "$event1:example.test",
+            "m.read": "$event2:example.test",
+            "m.read.private": "$event2:example.test",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFullyReadContentJson() {
+      return JSON.stringify(
+        overrides.fullyReadContentEnvelope ?? {
+          ok: true,
+          value: {
+            event_id: "$event1:example.test",
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixSyncResponseJson() {
       return JSON.stringify(
         overrides.syncResponseEnvelope ?? {
@@ -1866,6 +1944,63 @@ test("maps SPEC-045 profile, account data, and room tag envelopes", () => {
     }),
   );
   assert.deepEqual(deletedTagsCore.parseMatrixRoomTags("{}").value.tags, {});
+});
+
+test("maps SPEC-046 receipts, typing, and read marker envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const receipt = readSpecVector("test-vectors/sync/matrix-receipt-basic.json");
+  const invalidThread = readSpecVector(
+    "test-vectors/sync/matrix-receipt-invalid-thread.json",
+  );
+  const typing = readSpecVector("test-vectors/sync/matrix-typing-basic.json");
+  const missingToken = readSpecVector(
+    "test-vectors/sync/matrix-typing-missing-token.json",
+  );
+  const readMarkers = readSpecVector(
+    "test-vectors/sync/matrix-read-markers-basic.json",
+  );
+  const directForbidden = readSpecVector(
+    "test-vectors/sync/matrix-read-marker-direct-account-data-forbidden.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-046"));
+  for (const vector of [
+    receipt,
+    invalidThread,
+    typing,
+    missingToken,
+    readMarkers,
+    directForbidden,
+  ]) {
+    assert.equal(vector.contract, "SPEC-046");
+  }
+
+  assert.deepEqual(core.parseMatrixTypingRequest("{}"), {
+    ok: true,
+    value: {
+      typing: true,
+      timeout: 30000,
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixTypingContent("{}").value.user_ids, [
+    "@alice:example.test",
+  ]);
+  assert.equal(core.parseMatrixReceiptRequest("{}").value.thread_id, "main");
+  assert.equal(
+    core.parseMatrixReceiptContent("{}").value.receipts["$event1:example.test"][
+      "m.read"
+    ]["@alice:example.test"].thread_id,
+    "main",
+  );
+  assert.equal(
+    core.parseMatrixReadMarkersRequest("{}").value["m.read.private"],
+    "$event2:example.test",
+  );
+  assert.equal(
+    core.parseMatrixFullyReadContent("{}").value.event_id,
+    "$event1:example.test",
+  );
 });
 
 test("maps SPEC-049 moderation, reporting, and admin envelopes", () => {
