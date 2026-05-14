@@ -24,7 +24,7 @@ pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
-    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056",
+    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -446,6 +446,57 @@ pub struct MatrixWrongDeviceFailureGate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDeviceKeysUploadDevice {
+    pub user_id: String,
+    pub device_id: String,
+    pub algorithms: Vec<String>,
+    pub keys: BTreeMap<String, String>,
+    pub signatures: BTreeMap<String, BTreeMap<String, String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixSignedCurve25519Key {
+    pub key: String,
+    pub fallback: bool,
+    pub signatures: BTreeMap<String, BTreeMap<String, String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysUploadRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub device_keys: Option<MatrixDeviceKeysUploadDevice>,
+    pub one_time_keys: BTreeMap<String, MatrixSignedCurve25519Key>,
+    pub fallback_keys: BTreeMap<String, MatrixSignedCurve25519Key>,
+    pub private_key_material_returned: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysUploadResponse {
+    pub one_time_key_counts: BTreeMap<String, u64>,
+    pub private_key_material_returned: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysClaimRequest {
+    pub one_time_keys: BTreeMap<String, BTreeMap<String, String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysClaimResponse {
+    pub failures: BTreeMap<String, BTreeMap<String, String>>,
+    pub one_time_keys:
+        BTreeMap<String, BTreeMap<String, BTreeMap<String, MatrixSignedCurve25519Key>>>,
+    pub fallback_key_returned: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDeviceKeyError {
+    pub status: u64,
+    pub errcode: String,
+    pub error: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixKeyBackupAuthData {
     pub public_key: String,
     pub signatures: BTreeMap<String, BTreeMap<String, String>>,
@@ -786,6 +837,41 @@ pub struct MatrixWrongDeviceFailureGateParseEnvelope {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysUploadRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeysUploadRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysUploadResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeysUploadResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysClaimRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeysClaimRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysClaimResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeysClaimResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDeviceKeyErrorParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixDeviceKeyError>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixKeyBackupVersionCreateResponseParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixKeyBackupVersionCreateResponse>,
@@ -851,6 +937,7 @@ pub enum ProtocolError {
     InvalidMediaField { field: String },
     InvalidFederationField { field: String },
     InvalidVerificationField { field: String },
+    InvalidDeviceKeyField { field: String },
     InvalidKeyBackupField { field: String },
 }
 
@@ -874,6 +961,7 @@ impl ProtocolError {
             ProtocolError::InvalidMediaField { .. } => "invalid_media_field",
             ProtocolError::InvalidFederationField { .. } => "invalid_federation_field",
             ProtocolError::InvalidVerificationField { .. } => "invalid_verification_field",
+            ProtocolError::InvalidDeviceKeyField { .. } => "invalid_device_key_field",
             ProtocolError::InvalidKeyBackupField { .. } => "invalid_key_backup_field",
         }
     }
@@ -912,6 +1000,9 @@ impl ProtocolError {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidVerificationField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidDeviceKeyField { field } => {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidKeyBackupField { field } => {
@@ -981,6 +1072,9 @@ impl std::fmt::Display for ProtocolError {
                     formatter,
                     "{field} is not a valid Matrix verification value"
                 )
+            }
+            ProtocolError::InvalidDeviceKeyField { field } => {
+                write!(formatter, "{field} is not a valid Matrix device key value")
             }
             ProtocolError::InvalidKeyBackupField { field } => {
                 write!(formatter, "{field} is not a valid Matrix key backup value")
@@ -1327,6 +1421,54 @@ struct MatrixKeyBackupGateStepWire {
     expected_error: Option<MatrixErrorWire>,
     must_not_disclose_protected_backup: Option<bool>,
     must_not_mutate_protected_backup: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixDeviceKeysUploadDeviceWire {
+    user_id: Option<String>,
+    device_id: Option<String>,
+    algorithms: Option<Vec<String>>,
+    keys: Option<BTreeMap<String, String>>,
+    signatures: Option<BTreeMap<String, BTreeMap<String, String>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixSignedCurve25519KeyWire {
+    key: Option<String>,
+    fallback: Option<bool>,
+    signatures: Option<BTreeMap<String, BTreeMap<String, String>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeysUploadRequestWire {
+    device_keys: Option<MatrixDeviceKeysUploadDeviceWire>,
+    #[serde(default)]
+    one_time_keys: BTreeMap<String, MatrixSignedCurve25519KeyWire>,
+    #[serde(default)]
+    fallback_keys: BTreeMap<String, MatrixSignedCurve25519KeyWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeysUploadResponseWire {
+    one_time_key_counts: Option<BTreeMap<String, i64>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeysClaimRequestWire {
+    one_time_keys: Option<BTreeMap<String, BTreeMap<String, String>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeysClaimResponseWire {
+    failures: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    one_time_keys:
+        Option<BTreeMap<String, BTreeMap<String, BTreeMap<String, MatrixSignedCurve25519KeyWire>>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixDeviceKeyErrorWire {
+    status: Option<i64>,
+    error: Option<MatrixErrorWire>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -3182,6 +3324,214 @@ pub fn parse_matrix_wrong_device_failure_gate_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_keys_upload_request(
+    bytes: &[u8],
+) -> Result<MatrixKeysUploadRequest, ProtocolError> {
+    let wire: MatrixKeysUploadRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    if wire.device_keys.is_none() && wire.one_time_keys.is_empty() && wire.fallback_keys.is_empty()
+    {
+        return Err(invalid_device_key_field("keys_upload"));
+    }
+    let device_keys = wire
+        .device_keys
+        .map(|device_keys| device_keys_from_wire(device_keys, "keys_upload.device_keys"))
+        .transpose()?;
+    let one_time_keys =
+        signed_key_map_from_wire(wire.one_time_keys, "keys_upload.one_time_keys", false)?;
+    let fallback_keys =
+        signed_key_map_from_wire(wire.fallback_keys, "keys_upload.fallback_keys", true)?;
+    Ok(MatrixKeysUploadRequest {
+        device_keys,
+        one_time_keys,
+        fallback_keys,
+        private_key_material_returned: false,
+    })
+}
+
+pub fn parse_matrix_keys_upload_request_envelope(
+    bytes: &[u8],
+) -> MatrixKeysUploadRequestParseEnvelope {
+    match parse_matrix_keys_upload_request(bytes) {
+        Ok(value) => MatrixKeysUploadRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeysUploadRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_keys_upload_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_keys_upload_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_keys_upload_response(
+    bytes: &[u8],
+) -> Result<MatrixKeysUploadResponse, ProtocolError> {
+    let wire: MatrixKeysUploadResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let counts = wire
+        .one_time_key_counts
+        .ok_or_else(|| invalid_device_key_field("keys_upload_response.one_time_key_counts"))?;
+    if counts.is_empty() {
+        return Err(invalid_device_key_field(
+            "keys_upload_response.one_time_key_counts",
+        ));
+    }
+    let mut one_time_key_counts = BTreeMap::new();
+    for (algorithm, count) in counts {
+        required_device_key_borrowed_string(
+            &algorithm,
+            "keys_upload_response.one_time_key_counts.algorithm",
+        )?;
+        if count < 0 {
+            return Err(invalid_device_key_field(
+                "keys_upload_response.one_time_key_counts.count",
+            ));
+        }
+        one_time_key_counts.insert(algorithm, count as u64);
+    }
+    Ok(MatrixKeysUploadResponse {
+        one_time_key_counts,
+        private_key_material_returned: false,
+    })
+}
+
+pub fn parse_matrix_keys_upload_response_envelope(
+    bytes: &[u8],
+) -> MatrixKeysUploadResponseParseEnvelope {
+    match parse_matrix_keys_upload_response(bytes) {
+        Ok(value) => MatrixKeysUploadResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeysUploadResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_keys_upload_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_keys_upload_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_keys_claim_request(
+    bytes: &[u8],
+) -> Result<MatrixKeysClaimRequest, ProtocolError> {
+    let wire: MatrixKeysClaimRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let one_time_keys =
+        device_algorithm_map_from_wire(wire.one_time_keys, "keys_claim_request.one_time_keys")?;
+    Ok(MatrixKeysClaimRequest { one_time_keys })
+}
+
+pub fn parse_matrix_keys_claim_request_envelope(
+    bytes: &[u8],
+) -> MatrixKeysClaimRequestParseEnvelope {
+    match parse_matrix_keys_claim_request(bytes) {
+        Ok(value) => MatrixKeysClaimRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeysClaimRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_keys_claim_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_keys_claim_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_keys_claim_response(
+    bytes: &[u8],
+) -> Result<MatrixKeysClaimResponse, ProtocolError> {
+    let wire: MatrixKeysClaimResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let one_time_keys =
+        claimed_keys_from_wire(wire.one_time_keys, "keys_claim_response.one_time_keys")?;
+    let fallback_key_returned = one_time_keys.values().any(|devices| {
+        devices.values().any(|keys| {
+            keys.values()
+                .any(|key| key.fallback || key.key.contains("fallback"))
+        })
+    });
+    Ok(MatrixKeysClaimResponse {
+        failures: wire.failures.unwrap_or_default(),
+        one_time_keys,
+        fallback_key_returned,
+    })
+}
+
+pub fn parse_matrix_keys_claim_response_envelope(
+    bytes: &[u8],
+) -> MatrixKeysClaimResponseParseEnvelope {
+    match parse_matrix_keys_claim_response(bytes) {
+        Ok(value) => MatrixKeysClaimResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeysClaimResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_keys_claim_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_keys_claim_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_device_key_error(bytes: &[u8]) -> Result<MatrixDeviceKeyError, ProtocolError> {
+    let wire: MatrixDeviceKeyErrorWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let error = wire
+        .error
+        .ok_or_else(|| invalid_device_key_field("device_key_error.error"))?;
+    Ok(MatrixDeviceKeyError {
+        status: required_device_key_non_negative_i64(wire.status, "device_key_error.status")?,
+        errcode: required_device_key_string(error.errcode, "device_key_error.errcode")?,
+        error: required_device_key_string(error.error, "device_key_error.error")?,
+    })
+}
+
+pub fn parse_matrix_device_key_error_envelope(bytes: &[u8]) -> MatrixDeviceKeyErrorParseEnvelope {
+    match parse_matrix_device_key_error(bytes) {
+        Ok(value) => MatrixDeviceKeyErrorParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixDeviceKeyErrorParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_device_key_error_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_device_key_error_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 pub fn parse_matrix_key_backup_version_create_response(
     bytes: &[u8],
 ) -> Result<MatrixKeyBackupVersionCreateResponse, ProtocolError> {
@@ -3825,6 +4175,208 @@ fn invalid_verification_field(field: &str) -> ProtocolError {
     }
 }
 
+fn invalid_device_key_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidDeviceKeyField {
+        field: field.to_owned(),
+    }
+}
+
+fn required_device_key_borrowed_string<'a>(
+    value: &'a str,
+    field: &str,
+) -> Result<&'a str, ProtocolError> {
+    if value.is_empty() {
+        Err(invalid_device_key_field(field))
+    } else {
+        Ok(value)
+    }
+}
+
+fn required_device_key_string(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_device_key_field(field)),
+    }
+}
+
+fn required_device_key_non_negative_i64(
+    value: Option<i64>,
+    field: &str,
+) -> Result<u64, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(value as u64),
+        _ => Err(invalid_device_key_field(field)),
+    }
+}
+
+fn required_device_key_string_array(
+    value: Option<Vec<String>>,
+    field: &str,
+) -> Result<Vec<String>, ProtocolError> {
+    let values = value.ok_or_else(|| invalid_device_key_field(field))?;
+    if values.is_empty() || values.iter().any(String::is_empty) {
+        Err(invalid_device_key_field(field))
+    } else {
+        Ok(values)
+    }
+}
+
+fn device_keys_from_wire(
+    wire: MatrixDeviceKeysUploadDeviceWire,
+    context: &str,
+) -> Result<MatrixDeviceKeysUploadDevice, ProtocolError> {
+    Ok(MatrixDeviceKeysUploadDevice {
+        user_id: required_device_key_string(wire.user_id, &format!("{context}.user_id"))?,
+        device_id: required_device_key_string(wire.device_id, &format!("{context}.device_id"))?,
+        algorithms: required_device_key_string_array(
+            wire.algorithms,
+            &format!("{context}.algorithms"),
+        )?,
+        keys: device_key_string_map(wire.keys, &format!("{context}.keys"))?,
+        signatures: device_key_nested_string_map(
+            wire.signatures,
+            &format!("{context}.signatures"),
+        )?,
+    })
+}
+
+fn signed_key_map_from_wire(
+    map: BTreeMap<String, MatrixSignedCurve25519KeyWire>,
+    context: &str,
+    fallback_required: bool,
+) -> Result<BTreeMap<String, MatrixSignedCurve25519Key>, ProtocolError> {
+    let mut signed_keys = BTreeMap::new();
+    for (key_id, key) in map {
+        required_device_key_borrowed_string(&key_id, &format!("{context}.key_id"))?;
+        if !key_id.starts_with("signed_curve25519:") {
+            return Err(invalid_device_key_field(&format!("{context}.key_id")));
+        }
+        signed_keys.insert(
+            key_id,
+            signed_key_from_wire(key, context, fallback_required)?,
+        );
+    }
+    Ok(signed_keys)
+}
+
+fn signed_key_from_wire(
+    wire: MatrixSignedCurve25519KeyWire,
+    context: &str,
+    fallback_required: bool,
+) -> Result<MatrixSignedCurve25519Key, ProtocolError> {
+    let fallback = wire.fallback.unwrap_or(false);
+    if fallback_required && !fallback {
+        return Err(invalid_device_key_field(&format!("{context}.fallback")));
+    }
+    Ok(MatrixSignedCurve25519Key {
+        key: required_device_key_string(wire.key, &format!("{context}.key"))?,
+        fallback,
+        signatures: device_key_nested_string_map(
+            wire.signatures,
+            &format!("{context}.signatures"),
+        )?,
+    })
+}
+
+fn device_algorithm_map_from_wire(
+    value: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    field: &str,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, ProtocolError> {
+    let map = value.ok_or_else(|| invalid_device_key_field(field))?;
+    if map.is_empty() {
+        return Err(invalid_device_key_field(field));
+    }
+    for (user_id, devices) in &map {
+        if user_id.is_empty() || devices.is_empty() {
+            return Err(invalid_device_key_field(field));
+        }
+        for (device_id, algorithm) in devices {
+            if device_id.is_empty() || algorithm != "signed_curve25519" {
+                return Err(invalid_device_key_field(field));
+            }
+        }
+    }
+    Ok(map)
+}
+
+fn claimed_keys_from_wire(
+    value: Option<
+        BTreeMap<String, BTreeMap<String, BTreeMap<String, MatrixSignedCurve25519KeyWire>>>,
+    >,
+    field: &str,
+) -> Result<
+    BTreeMap<String, BTreeMap<String, BTreeMap<String, MatrixSignedCurve25519Key>>>,
+    ProtocolError,
+> {
+    let map = value.ok_or_else(|| invalid_device_key_field(field))?;
+    if map.is_empty() {
+        return Err(invalid_device_key_field(field));
+    }
+    let mut users = BTreeMap::new();
+    for (user_id, devices) in map {
+        required_device_key_borrowed_string(&user_id, &format!("{field}.user_id"))?;
+        if devices.is_empty() {
+            return Err(invalid_device_key_field(&format!("{field}.devices")));
+        }
+        let mut device_map = BTreeMap::new();
+        for (device_id, keys) in devices {
+            required_device_key_borrowed_string(&device_id, &format!("{field}.device_id"))?;
+            if keys.is_empty() {
+                return Err(invalid_device_key_field(&format!("{field}.keys")));
+            }
+            let mut key_map = BTreeMap::new();
+            for (key_id, key) in keys {
+                required_device_key_borrowed_string(&key_id, &format!("{field}.key_id"))?;
+                if !key_id.starts_with("signed_curve25519:") {
+                    return Err(invalid_device_key_field(&format!("{field}.key_id")));
+                }
+                let fallback = key.fallback == Some(true) || key_id.contains(":fb");
+                key_map.insert(key_id, signed_key_from_wire(key, field, fallback)?);
+            }
+            device_map.insert(device_id, key_map);
+        }
+        users.insert(user_id, device_map);
+    }
+    Ok(users)
+}
+
+fn device_key_string_map(
+    value: Option<BTreeMap<String, String>>,
+    field: &str,
+) -> Result<BTreeMap<String, String>, ProtocolError> {
+    let map = value.ok_or_else(|| invalid_device_key_field(field))?;
+    if map.is_empty()
+        || map
+            .iter()
+            .any(|(key_id, value)| key_id.is_empty() || value.is_empty())
+    {
+        return Err(invalid_device_key_field(field));
+    }
+    Ok(map)
+}
+
+fn device_key_nested_string_map(
+    value: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    field: &str,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, ProtocolError> {
+    let map = value.ok_or_else(|| invalid_device_key_field(field))?;
+    if map.is_empty() {
+        return Err(invalid_device_key_field(field));
+    }
+    for (outer_key, inner) in &map {
+        if outer_key.is_empty() || inner.is_empty() {
+            return Err(invalid_device_key_field(field));
+        }
+        if inner
+            .iter()
+            .any(|(inner_key, value)| inner_key.is_empty() || value.is_empty())
+        {
+            return Err(invalid_device_key_field(field));
+        }
+    }
+    Ok(map)
+}
+
 fn invalid_key_backup_field(field: &str) -> ProtocolError {
     ProtocolError::InvalidKeyBackupField {
         field: field.to_owned(),
@@ -4403,8 +4955,8 @@ mod tests {
             manifest.supported_specs,
             vec![
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
-                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-053", "SPEC-054", "SPEC-055",
-                "SPEC-056"
+                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-051", "SPEC-053", "SPEC-054",
+                "SPEC-055", "SPEC-056"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -4660,6 +5212,114 @@ mod tests {
             .supported_specs
             .iter()
             .any(|spec| spec == "SPEC-054"));
+    }
+
+    #[test]
+    fn parses_spec_051_device_one_time_and_fallback_key_vectors() {
+        let upload = read_spec_vector(
+            "test-vectors/auth/matrix-keys-upload-device-one-time-fallback-basic.json",
+        );
+        assert_eq!(upload["contract"], "SPEC-051");
+        let parsed_upload_request =
+            parse_matrix_keys_upload_request(upload["request"]["body"].to_string().as_bytes())
+                .expect("SPEC-051 key upload request should parse");
+        let device_keys = parsed_upload_request
+            .device_keys
+            .as_ref()
+            .expect("device keys should be present");
+        assert_eq!(device_keys.user_id, "@alice:example.test");
+        assert_eq!(device_keys.device_id, "DEVICE1");
+        assert!(device_keys
+            .algorithms
+            .contains(&"m.olm.v1.curve25519-aes-sha2".to_owned()));
+        assert!(parsed_upload_request
+            .one_time_keys
+            .contains_key("signed_curve25519:otk1"));
+        assert!(
+            parsed_upload_request
+                .fallback_keys
+                .get("signed_curve25519:fb1")
+                .expect("fallback key should parse")
+                .fallback
+        );
+        assert!(!parsed_upload_request.private_key_material_returned);
+
+        let parsed_upload_response = parse_matrix_keys_upload_response(
+            upload["expected"]["body_contains"].to_string().as_bytes(),
+        )
+        .expect("SPEC-051 key upload response should parse");
+        assert_eq!(
+            parsed_upload_response
+                .one_time_key_counts
+                .get("signed_curve25519"),
+            Some(&1)
+        );
+        assert!(!parsed_upload_response.private_key_material_returned);
+
+        let claim =
+            read_spec_vector("test-vectors/auth/matrix-keys-claim-one-time-fallback-basic.json");
+        assert_eq!(claim["contract"], "SPEC-051");
+        let steps = claim["event"]["steps"]
+            .as_array()
+            .expect("claim vector should contain steps");
+        let parsed_claim_request =
+            parse_matrix_keys_claim_request(steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-051 one-time key claim request should parse");
+        assert_eq!(
+            parsed_claim_request
+                .one_time_keys
+                .get("@alice:example.test")
+                .and_then(|devices| devices.get("DEVICE1"))
+                .map(String::as_str),
+            Some("signed_curve25519")
+        );
+        let parsed_one_time_response = parse_matrix_keys_claim_response(
+            steps[0]["expected_body_contains"].to_string().as_bytes(),
+        )
+        .expect("SPEC-051 one-time key claim response should parse");
+        assert!(!parsed_one_time_response.fallback_key_returned);
+        assert_eq!(
+            parsed_one_time_response.one_time_keys["@alice:example.test"]["DEVICE1"]
+                ["signed_curve25519:otk1"]
+                .key,
+            "one-time-public-key-1"
+        );
+        let parsed_fallback_response = parse_matrix_keys_claim_response(
+            steps[1]["expected_body_contains"].to_string().as_bytes(),
+        )
+        .expect("SPEC-051 fallback key claim response should parse");
+        assert!(parsed_fallback_response.fallback_key_returned);
+        assert!(
+            parsed_fallback_response.one_time_keys["@alice:example.test"]["DEVICE1"]
+                ["signed_curve25519:fb1"]
+                .fallback
+        );
+
+        let invalid_algorithm =
+            read_spec_vector("test-vectors/auth/matrix-keys-claim-invalid-algorithm.json");
+        assert!(parse_matrix_keys_claim_request(
+            invalid_algorithm["request"]["body"].to_string().as_bytes()
+        )
+        .is_err());
+        let parsed_invalid_algorithm =
+            parse_matrix_device_key_error(invalid_algorithm["expected"].to_string().as_bytes())
+                .expect("SPEC-051 invalid algorithm error should parse");
+        assert_eq!(parsed_invalid_algorithm.status, 400);
+        assert_eq!(parsed_invalid_algorithm.errcode, "M_INVALID_PARAM");
+
+        let malformed_upload =
+            read_spec_vector("test-vectors/auth/matrix-keys-upload-malformed-device-keys.json");
+        let parsed_malformed_upload =
+            parse_matrix_device_key_error(malformed_upload["expected"].to_string().as_bytes())
+                .expect("SPEC-051 malformed upload error should parse");
+        assert_eq!(parsed_malformed_upload.status, 400);
+        assert_eq!(parsed_malformed_upload.errcode, "M_INVALID_PARAM");
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-051"));
     }
 
     #[test]

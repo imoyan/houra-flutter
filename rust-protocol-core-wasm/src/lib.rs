@@ -210,6 +210,31 @@ pub fn parse_matrix_wrong_device_failure_gate_json(response_body: &str) -> Strin
     houra_protocol_core::parse_matrix_wrong_device_failure_gate_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixKeysUploadRequestJson)]
+pub fn parse_matrix_keys_upload_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_keys_upload_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeysUploadResponseJson)]
+pub fn parse_matrix_keys_upload_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_keys_upload_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeysClaimRequestJson)]
+pub fn parse_matrix_keys_claim_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_keys_claim_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeysClaimResponseJson)]
+pub fn parse_matrix_keys_claim_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_keys_claim_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixDeviceKeyErrorJson)]
+pub fn parse_matrix_device_key_error_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_device_key_error_json(response_body.as_bytes())
+}
+
 #[wasm_bindgen(js_name = parseMatrixKeyBackupVersionCreateResponseJson)]
 pub fn parse_matrix_key_backup_version_create_response_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_key_backup_version_create_response_json(
@@ -268,6 +293,11 @@ mod tests {
             .expect("supported_specs should be an array")
             .iter()
             .any(|spec| spec == "SPEC-040"));
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
+            .any(|spec| spec == "SPEC-051"));
         assert!(manifest["supported_specs"]
             .as_array()
             .expect("supported_specs should be an array")
@@ -459,6 +489,40 @@ mod tests {
                 "{\"status\":400,\"error\":{\"errcode\":\"M_INVALID_SIGNATURE\",\"error\":\"Invalid signature\"}}"
             ),
             "{\"ok\":true,\"value\":{\"status\":400,\"errcode\":\"M_INVALID_SIGNATURE\",\"error\":\"Invalid signature\"},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_device_key_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_keys_upload_request_json(
+                "{\"device_keys\":{\"user_id\":\"@alice:example.test\",\"device_id\":\"DEVICE1\",\"algorithms\":[\"m.olm.v1.curve25519-aes-sha2\",\"m.megolm.v1.aes-sha2\"],\"keys\":{\"curve25519:DEVICE1\":\"curve25519-public-device1\",\"ed25519:DEVICE1\":\"ed25519-public-device1\"},\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-device1\"}}},\"one_time_keys\":{\"signed_curve25519:otk1\":{\"key\":\"one-time-public-key-1\",\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-otk1\"}}}},\"fallback_keys\":{\"signed_curve25519:fb1\":{\"key\":\"fallback-public-key-1\",\"fallback\":true,\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-fb1\"}}}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"device_keys\":{\"user_id\":\"@alice:example.test\",\"device_id\":\"DEVICE1\",\"algorithms\":[\"m.olm.v1.curve25519-aes-sha2\",\"m.megolm.v1.aes-sha2\"],\"keys\":{\"curve25519:DEVICE1\":\"curve25519-public-device1\",\"ed25519:DEVICE1\":\"ed25519-public-device1\"},\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-device1\"}}},\"one_time_keys\":{\"signed_curve25519:otk1\":{\"key\":\"one-time-public-key-1\",\"fallback\":false,\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-otk1\"}}}},\"fallback_keys\":{\"signed_curve25519:fb1\":{\"key\":\"fallback-public-key-1\",\"fallback\":true,\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-fb1\"}}}},\"private_key_material_returned\":false},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_keys_upload_response_json(
+                "{\"one_time_key_counts\":{\"signed_curve25519\":1}}"
+            ),
+            "{\"ok\":true,\"value\":{\"one_time_key_counts\":{\"signed_curve25519\":1},\"private_key_material_returned\":false},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_keys_claim_request_json(
+                "{\"one_time_keys\":{\"@alice:example.test\":{\"DEVICE1\":\"signed_curve25519\"}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"one_time_keys\":{\"@alice:example.test\":{\"DEVICE1\":\"signed_curve25519\"}}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_keys_claim_response_json(
+                "{\"failures\":{},\"one_time_keys\":{\"@alice:example.test\":{\"DEVICE1\":{\"signed_curve25519:fb1\":{\"key\":\"fallback-public-key-1\",\"fallback\":true,\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-fb1\"}}}}}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"failures\":{},\"one_time_keys\":{\"@alice:example.test\":{\"DEVICE1\":{\"signed_curve25519:fb1\":{\"key\":\"fallback-public-key-1\",\"fallback\":true,\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-fb1\"}}}}}},\"fallback_key_returned\":true},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_device_key_error_json(
+                "{\"status\":400,\"error\":{\"errcode\":\"M_INVALID_PARAM\",\"error\":\"Unsupported one-time key algorithm.\"}}",
+            ),
+            "{\"ok\":true,\"value\":{\"status\":400,\"errcode\":\"M_INVALID_PARAM\",\"error\":\"Unsupported one-time key algorithm.\"},\"error\":null}"
         );
     }
 

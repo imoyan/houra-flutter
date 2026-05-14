@@ -474,6 +474,125 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixKeysUploadRequestJson() {
+      return JSON.stringify(
+        overrides.keysUploadRequestEnvelope ?? {
+          ok: true,
+          value: {
+            device_keys: {
+              user_id: "@alice:example.test",
+              device_id: "DEVICE1",
+              algorithms: [
+                "m.olm.v1.curve25519-aes-sha2",
+                "m.megolm.v1.aes-sha2",
+              ],
+              keys: {
+                "curve25519:DEVICE1": "curve25519-public-device1",
+                "ed25519:DEVICE1": "ed25519-public-device1",
+              },
+              signatures: {
+                "@alice:example.test": {
+                  "ed25519:DEVICE1": "signature-device1",
+                },
+              },
+            },
+            one_time_keys: {
+              "signed_curve25519:otk1": {
+                key: "one-time-public-key-1",
+                fallback: false,
+                signatures: {
+                  "@alice:example.test": {
+                    "ed25519:DEVICE1": "signature-otk1",
+                  },
+                },
+              },
+            },
+            fallback_keys: {
+              "signed_curve25519:fb1": {
+                key: "fallback-public-key-1",
+                fallback: true,
+                signatures: {
+                  "@alice:example.test": {
+                    "ed25519:DEVICE1": "signature-fb1",
+                  },
+                },
+              },
+            },
+            private_key_material_returned: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeysUploadResponseJson() {
+      return JSON.stringify(
+        overrides.keysUploadResponseEnvelope ?? {
+          ok: true,
+          value: {
+            one_time_key_counts: {
+              signed_curve25519: 1,
+            },
+            private_key_material_returned: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeysClaimRequestJson() {
+      return JSON.stringify(
+        overrides.keysClaimRequestEnvelope ?? {
+          ok: true,
+          value: {
+            one_time_keys: {
+              "@alice:example.test": {
+                DEVICE1: "signed_curve25519",
+              },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeysClaimResponseJson() {
+      return JSON.stringify(
+        overrides.keysClaimResponseEnvelope ?? {
+          ok: true,
+          value: {
+            failures: {},
+            one_time_keys: {
+              "@alice:example.test": {
+                DEVICE1: {
+                  "signed_curve25519:fb1": {
+                    key: "fallback-public-key-1",
+                    fallback: true,
+                    signatures: {
+                      "@alice:example.test": {
+                        "ed25519:DEVICE1": "signature-fb1",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            fallback_key_returned: true,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixDeviceKeyErrorJson() {
+      return JSON.stringify(
+        overrides.deviceKeyErrorEnvelope ?? {
+          ok: true,
+          value: {
+            status: 400,
+            errcode: "M_INVALID_PARAM",
+            error: "Unsupported one-time key algorithm.",
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixKeyBackupVersionCreateResponseJson() {
       return JSON.stringify(
         overrides.keyBackupVersionCreateResponseEnvelope ?? {
@@ -1214,6 +1333,128 @@ test("maps SPEC-054 verification and cross-signing envelopes", () => {
   assert.equal(
     protoSignatureUpload.value.signed_objects.__proto__.__proto__.user_id,
     "@alice:example.test",
+  );
+});
+
+test("maps SPEC-051 device, one-time, and fallback key envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const upload = readSpecVector(
+    "test-vectors/auth/matrix-keys-upload-device-one-time-fallback-basic.json",
+  );
+  const claim = readSpecVector(
+    "test-vectors/auth/matrix-keys-claim-one-time-fallback-basic.json",
+  );
+  const malformedUpload = readSpecVector(
+    "test-vectors/auth/matrix-keys-upload-malformed-device-keys.json",
+  );
+  const invalidClaim = readSpecVector(
+    "test-vectors/auth/matrix-keys-claim-invalid-algorithm.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-051"));
+  for (const vector of [upload, claim, malformedUpload, invalidClaim]) {
+    assert.equal(vector.contract, "SPEC-051");
+  }
+  assert.deepEqual(core.parseMatrixKeysUploadRequest("{}"), {
+    ok: true,
+    value: {
+      device_keys: {
+        user_id: "@alice:example.test",
+        device_id: "DEVICE1",
+        algorithms: [
+          "m.olm.v1.curve25519-aes-sha2",
+          "m.megolm.v1.aes-sha2",
+        ],
+        keys: {
+          "curve25519:DEVICE1": "curve25519-public-device1",
+          "ed25519:DEVICE1": "ed25519-public-device1",
+        },
+        signatures: {
+          "@alice:example.test": {
+            "ed25519:DEVICE1": "signature-device1",
+          },
+        },
+      },
+      one_time_keys: {
+        "signed_curve25519:otk1": {
+          key: "one-time-public-key-1",
+          fallback: false,
+          signatures: {
+            "@alice:example.test": {
+              "ed25519:DEVICE1": "signature-otk1",
+            },
+          },
+        },
+      },
+      fallback_keys: {
+        "signed_curve25519:fb1": {
+          key: "fallback-public-key-1",
+          fallback: true,
+          signatures: {
+            "@alice:example.test": {
+              "ed25519:DEVICE1": "signature-fb1",
+            },
+          },
+        },
+      },
+      private_key_material_returned: false,
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixKeysUploadResponse("{}"), {
+    ok: true,
+    value: {
+      one_time_key_counts: {
+        signed_curve25519: 1,
+      },
+      private_key_material_returned: false,
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixKeysClaimRequest("{}"), {
+    ok: true,
+    value: {
+      one_time_keys: {
+        "@alice:example.test": {
+          DEVICE1: "signed_curve25519",
+        },
+      },
+    },
+    error: null,
+  });
+  assert.equal(
+    core.parseMatrixKeysClaimResponse("{}").value.fallback_key_returned,
+    true,
+  );
+  assert.equal(core.parseMatrixDeviceKeyError("{}").value.errcode, "M_INVALID_PARAM");
+
+  const protoKeyCore = createHouraProtocolCore(
+    binding({
+      keysUploadRequestEnvelope: {
+        ok: true,
+        value: {
+          one_time_keys: {
+            ["__proto__"]: {
+              key: "one-time-public-key-1",
+              fallback: false,
+              signatures: {
+                ["__proto__"]: {
+                  ["__proto__"]: "signature",
+                },
+              },
+            },
+          },
+          fallback_keys: {},
+          private_key_material_returned: false,
+        },
+        error: null,
+      },
+    }),
+  );
+  assert.equal(
+    protoKeyCore.parseMatrixKeysUploadRequest("{}").value.one_time_keys.__proto__
+      .signatures.__proto__.__proto__,
+    "signature",
   );
 });
 
