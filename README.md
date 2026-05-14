@@ -261,6 +261,17 @@ authorization decisions, state resolution, federation, event signing/hash
 verification, host persistence, and Matrix full compliance stay outside this
 repository.
 
+SPEC-051 shared-core adoption record for issue #66: the Rust prototype now
+consumes the `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
+(`v0.2.0-pre.58-43-g395c400`) SPEC-051 device key upload, one-time key upload,
+fallback key upload, one-time/fallback claim, malformed upload, and invalid
+algorithm vectors for parser-only device key surface adoption. The WASM wrapper
+and TypeScript facade expose key upload request/response, key claim
+request/response, and Matrix error JSON envelopes without taking ownership of
+Olm/Megolm key generation, private key storage, signature verification, trust
+policy decisions, claim lifecycle enforcement, token persistence, or Matrix
+E2EE support advertisement.
+
 SPEC-054 adoption record for issue #69: the Rust prototype now consumes the
 `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
 (`v0.2.0-pre.58-43-g395c400`) SPEC-054 SAS verification, cross-signing key
@@ -664,6 +675,8 @@ External registration order:
 
 Current package-specific follow-ups:
 
+- #66: SPEC-051 device / one-time / fallback keys parser adoption. Completed as
+  parser-only shared-core adoption.
 - #68: SPEC-053 key backup metadata parser adoption. Completed as parser-only
   shared-core adoption.
 - #69: SPEC-054 verification / cross-signing / wrong-device parser adoption.

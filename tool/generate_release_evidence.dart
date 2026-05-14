@@ -13,6 +13,7 @@ const expectedSpecIds = [
   'SPEC-038',
   'SPEC-039',
   'SPEC-040',
+  'SPEC-051',
   'SPEC-053',
   'SPEC-054',
   'SPEC-055',
@@ -160,6 +161,34 @@ void main(List<String> args) {
       'primary_runtime_target': 'browser-esm',
       'secondary_facade_targets': ['next', 'vue'],
       'node_runtime_status': 'package-validation-and-tests-only',
+    },
+    'device_key_parser_adoption': {
+      'issue': 66,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-051'],
+      'parity_vectors': [
+        'test-vectors/auth/matrix-keys-upload-device-one-time-fallback-basic.json',
+        'test-vectors/auth/matrix-keys-upload-malformed-device-keys.json',
+        'test-vectors/auth/matrix-keys-claim-one-time-fallback-basic.json',
+        'test-vectors/auth/matrix-keys-claim-invalid-algorithm.json',
+      ],
+      'parser_only_surfaces': [
+        'device key upload request',
+        'one-time key upload request',
+        'fallback key upload request',
+        'one-time key count upload response',
+        'one-time/fallback key claim request',
+        'one-time/fallback key claim response',
+        'device-key Matrix error envelope',
+      ],
+      'out_of_scope': [
+        'Olm or Megolm key generation',
+        'private key storage',
+        'signature verification',
+        'trust policy decisions',
+        'claim lifecycle enforcement',
+        'Matrix E2EE support advertisement',
+      ],
     },
     'key_backup_parser_adoption': {
       'issue': 68,
@@ -411,7 +440,7 @@ void main(List<String> args) {
         'command': 'cargo test --locked',
         'guards': [
           'artifact manifest serializes stably',
-          'covered SPEC ids include SPEC-030 through SPEC-040 and SPEC-053 through SPEC-056',
+          'covered SPEC ids include SPEC-030 through SPEC-040, SPEC-051, and SPEC-053 through SPEC-056',
         ],
       },
       {
