@@ -24,8 +24,8 @@ pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
-    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055",
-    "SPEC-056", "SPEC-069",
+    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-048", "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054",
+    "SPEC-055", "SPEC-056", "SPEC-069",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -513,6 +513,93 @@ pub struct MatrixDeviceKeyQueryResponse {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPublicRoomsRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub since: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub server: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub generic_search_term: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_all_networks: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub third_party_instance_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPublicRoom {
+    pub room_id: String,
+    pub num_joined_members: u64,
+    pub world_readable: bool,
+    pub guest_can_join: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub topic: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub canonical_alias: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub join_rule: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub room_type: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPublicRoomsResponse {
+    pub chunk: Vec<MatrixPublicRoom>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_batch: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prev_batch: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_room_count_estimate: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDirectoryVisibility {
+    pub visibility: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRoomAliases {
+    pub aliases: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixInviteRequest {
+    pub user_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixInviteStateEvent {
+    #[serde(rename = "type")]
+    pub event_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sender: Option<String>,
+    pub state_key: String,
+    pub content: BTreeMap<String, Value>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixInviteRoom {
+    pub room_id: String,
+    pub events: Vec<MatrixInviteStateEvent>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRoomDirectoryError {
+    pub status: u64,
+    pub errcode: String,
+    pub error: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixModerationRequest {
     pub user_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -947,6 +1034,55 @@ pub struct MatrixDeviceKeyQueryResponseParseEnvelope {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPublicRoomsRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixPublicRoomsRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPublicRoomsResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixPublicRoomsResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDirectoryVisibilityParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixDirectoryVisibility>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRoomAliasesParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRoomAliases>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixInviteRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixInviteRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixInviteRoomParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixInviteRoom>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRoomDirectoryErrorParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRoomDirectoryError>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixModerationRequestParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixModerationRequest>,
@@ -1062,6 +1198,7 @@ pub enum ProtocolError {
     InvalidFederationField { field: String },
     InvalidVerificationField { field: String },
     InvalidDeviceKeyField { field: String },
+    InvalidRoomDirectoryField { field: String },
     InvalidModerationField { field: String },
     InvalidKeyBackupField { field: String },
 }
@@ -1087,6 +1224,7 @@ impl ProtocolError {
             ProtocolError::InvalidFederationField { .. } => "invalid_federation_field",
             ProtocolError::InvalidVerificationField { .. } => "invalid_verification_field",
             ProtocolError::InvalidDeviceKeyField { .. } => "invalid_device_key_field",
+            ProtocolError::InvalidRoomDirectoryField { .. } => "invalid_room_directory_field",
             ProtocolError::InvalidModerationField { .. } => "invalid_moderation_field",
             ProtocolError::InvalidKeyBackupField { .. } => "invalid_key_backup_field",
         }
@@ -1129,6 +1267,9 @@ impl ProtocolError {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidDeviceKeyField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidRoomDirectoryField { field } => {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidModerationField { field } => {
@@ -1204,6 +1345,12 @@ impl std::fmt::Display for ProtocolError {
             }
             ProtocolError::InvalidDeviceKeyField { field } => {
                 write!(formatter, "{field} is not a valid Matrix device key value")
+            }
+            ProtocolError::InvalidRoomDirectoryField { field } => {
+                write!(
+                    formatter,
+                    "{field} is not a valid Matrix room directory value"
+                )
             }
             ProtocolError::InvalidModerationField { field } => {
                 write!(
@@ -1616,6 +1763,85 @@ struct MatrixDeviceKeyQueryRequestWire {
 struct MatrixDeviceKeyQueryResponseWire {
     failures: Option<BTreeMap<String, BTreeMap<String, String>>>,
     device_keys: Option<BTreeMap<String, BTreeMap<String, MatrixDeviceKeysUploadDeviceWire>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixPublicRoomsRequestWire {
+    limit: Option<i64>,
+    since: Option<String>,
+    server: Option<String>,
+    filter: Option<MatrixPublicRoomsFilterWire>,
+    include_all_networks: Option<bool>,
+    third_party_instance_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixPublicRoomsFilterWire {
+    generic_search_term: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixPublicRoomsResponseWire {
+    chunk: Option<Vec<MatrixPublicRoomWire>>,
+    next_batch: Option<String>,
+    prev_batch: Option<String>,
+    total_room_count_estimate: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixPublicRoomWire {
+    room_id: Option<String>,
+    num_joined_members: Option<i64>,
+    world_readable: Option<bool>,
+    guest_can_join: Option<bool>,
+    name: Option<String>,
+    topic: Option<String>,
+    canonical_alias: Option<String>,
+    avatar_url: Option<String>,
+    join_rule: Option<String>,
+    room_type: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixDirectoryVisibilityWire {
+    visibility: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRoomAliasesWire {
+    aliases: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixInviteRequestWire {
+    user_id: Option<String>,
+    reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixInviteRoomWire {
+    room_id: Option<String>,
+    invite_state: Option<MatrixInviteStateWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixInviteStateWire {
+    events: Option<Vec<MatrixInviteStateEventWire>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixInviteStateEventWire {
+    #[serde(rename = "type")]
+    event_type: Option<String>,
+    sender: Option<String>,
+    state_key: Option<String>,
+    content: Option<BTreeMap<String, Value>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRoomDirectoryErrorWire {
+    status: Option<i64>,
+    error: Option<MatrixErrorWire>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -3820,6 +4046,278 @@ pub fn parse_matrix_device_key_query_response_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_public_rooms_request(
+    bytes: &[u8],
+) -> Result<MatrixPublicRoomsRequest, ProtocolError> {
+    let wire: MatrixPublicRoomsRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixPublicRoomsRequest {
+        limit: optional_room_directory_non_negative_i64(wire.limit, "public_rooms_request.limit")?,
+        since: optional_room_directory_string(wire.since, "public_rooms_request.since")?,
+        server: optional_room_directory_string(wire.server, "public_rooms_request.server")?,
+        generic_search_term: match wire.filter {
+            Some(filter) => optional_room_directory_string(
+                filter.generic_search_term,
+                "public_rooms_request.filter.generic_search_term",
+            )?,
+            None => None,
+        },
+        include_all_networks: wire.include_all_networks,
+        third_party_instance_id: optional_room_directory_string(
+            wire.third_party_instance_id,
+            "public_rooms_request.third_party_instance_id",
+        )?,
+    })
+}
+
+pub fn parse_matrix_public_rooms_request_envelope(
+    bytes: &[u8],
+) -> MatrixPublicRoomsRequestParseEnvelope {
+    match parse_matrix_public_rooms_request(bytes) {
+        Ok(value) => MatrixPublicRoomsRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixPublicRoomsRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_public_rooms_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_public_rooms_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_public_rooms_response(
+    bytes: &[u8],
+) -> Result<MatrixPublicRoomsResponse, ProtocolError> {
+    let wire: MatrixPublicRoomsResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let rooms = wire
+        .chunk
+        .ok_or_else(|| invalid_room_directory_field("public_rooms_response.chunk"))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, room)| public_room_from_wire(room, &format!("public_rooms.{index}")))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(MatrixPublicRoomsResponse {
+        chunk: rooms,
+        next_batch: optional_room_directory_string(
+            wire.next_batch,
+            "public_rooms_response.next_batch",
+        )?,
+        prev_batch: optional_room_directory_string(
+            wire.prev_batch,
+            "public_rooms_response.prev_batch",
+        )?,
+        total_room_count_estimate: optional_room_directory_non_negative_i64(
+            wire.total_room_count_estimate,
+            "public_rooms_response.total_room_count_estimate",
+        )?,
+    })
+}
+
+pub fn parse_matrix_public_rooms_response_envelope(
+    bytes: &[u8],
+) -> MatrixPublicRoomsResponseParseEnvelope {
+    match parse_matrix_public_rooms_response(bytes) {
+        Ok(value) => MatrixPublicRoomsResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixPublicRoomsResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_public_rooms_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_public_rooms_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_directory_visibility(
+    bytes: &[u8],
+) -> Result<MatrixDirectoryVisibility, ProtocolError> {
+    let wire: MatrixDirectoryVisibilityWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let visibility =
+        required_room_directory_string(wire.visibility, "directory_visibility.visibility")?;
+    if visibility != "public" && visibility != "private" {
+        return Err(invalid_room_directory_field(
+            "directory_visibility.visibility",
+        ));
+    }
+    Ok(MatrixDirectoryVisibility { visibility })
+}
+
+pub fn parse_matrix_directory_visibility_envelope(
+    bytes: &[u8],
+) -> MatrixDirectoryVisibilityParseEnvelope {
+    match parse_matrix_directory_visibility(bytes) {
+        Ok(value) => MatrixDirectoryVisibilityParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixDirectoryVisibilityParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_directory_visibility_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_directory_visibility_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_room_aliases(bytes: &[u8]) -> Result<MatrixRoomAliases, ProtocolError> {
+    let wire: MatrixRoomAliasesWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixRoomAliases {
+        aliases: room_directory_string_array(wire.aliases, "room_aliases.aliases")?,
+    })
+}
+
+pub fn parse_matrix_room_aliases_envelope(bytes: &[u8]) -> MatrixRoomAliasesParseEnvelope {
+    match parse_matrix_room_aliases(bytes) {
+        Ok(value) => MatrixRoomAliasesParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRoomAliasesParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_room_aliases_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_room_aliases_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_invite_request(bytes: &[u8]) -> Result<MatrixInviteRequest, ProtocolError> {
+    let wire: MatrixInviteRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixInviteRequest {
+        user_id: required_room_directory_string(wire.user_id, "invite_request.user_id")?,
+        reason: optional_room_directory_string(wire.reason, "invite_request.reason")?,
+    })
+}
+
+pub fn parse_matrix_invite_request_envelope(bytes: &[u8]) -> MatrixInviteRequestParseEnvelope {
+    match parse_matrix_invite_request(bytes) {
+        Ok(value) => MatrixInviteRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixInviteRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_invite_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_invite_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_invite_room(bytes: &[u8]) -> Result<MatrixInviteRoom, ProtocolError> {
+    let wire: MatrixInviteRoomWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let invite_state = wire
+        .invite_state
+        .ok_or_else(|| invalid_room_directory_field("invite_room.invite_state"))?;
+    let events = invite_state
+        .events
+        .ok_or_else(|| invalid_room_directory_field("invite_room.invite_state.events"))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, event)| {
+            invite_state_event_from_wire(event, &format!("invite_room.events.{index}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(MatrixInviteRoom {
+        room_id: required_room_directory_string(wire.room_id, "invite_room.room_id")?,
+        events,
+    })
+}
+
+pub fn parse_matrix_invite_room_envelope(bytes: &[u8]) -> MatrixInviteRoomParseEnvelope {
+    match parse_matrix_invite_room(bytes) {
+        Ok(value) => MatrixInviteRoomParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixInviteRoomParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_invite_room_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_invite_room_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_room_directory_error(
+    bytes: &[u8],
+) -> Result<MatrixRoomDirectoryError, ProtocolError> {
+    let wire: MatrixRoomDirectoryErrorWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let error = wire
+        .error
+        .ok_or_else(|| invalid_room_directory_field("room_directory_error.error"))?;
+    Ok(MatrixRoomDirectoryError {
+        status: required_room_directory_non_negative_i64(
+            wire.status,
+            "room_directory_error.status",
+        )?,
+        errcode: required_room_directory_string(error.errcode, "room_directory_error.errcode")?,
+        error: required_room_directory_string(error.error, "room_directory_error.error")?,
+    })
+}
+
+pub fn parse_matrix_room_directory_error_envelope(
+    bytes: &[u8],
+) -> MatrixRoomDirectoryErrorParseEnvelope {
+    match parse_matrix_room_directory_error(bytes) {
+        Ok(value) => MatrixRoomDirectoryErrorParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRoomDirectoryErrorParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_room_directory_error_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_room_directory_error_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 pub fn parse_matrix_moderation_request(
     bytes: &[u8],
 ) -> Result<MatrixModerationRequest, ProtocolError> {
@@ -4706,6 +5204,12 @@ fn invalid_device_key_field(field: &str) -> ProtocolError {
     }
 }
 
+fn invalid_room_directory_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidRoomDirectoryField {
+        field: field.to_owned(),
+    }
+}
+
 fn invalid_moderation_field(field: &str) -> ProtocolError {
     ProtocolError::InvalidModerationField {
         field: field.to_owned(),
@@ -4727,6 +5231,26 @@ fn required_device_key_string(value: Option<String>, field: &str) -> Result<Stri
     match value {
         Some(value) if !value.is_empty() => Ok(value),
         _ => Err(invalid_device_key_field(field)),
+    }
+}
+
+fn required_room_directory_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_room_directory_field(field)),
+    }
+}
+
+fn optional_room_directory_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<Option<String>, ProtocolError> {
+    match value {
+        Some(value) if value.is_empty() => Err(invalid_room_directory_field(field)),
+        value => Ok(value),
     }
 }
 
@@ -4757,6 +5281,27 @@ fn required_device_key_non_negative_i64(
     }
 }
 
+fn required_room_directory_non_negative_i64(
+    value: Option<i64>,
+    field: &str,
+) -> Result<u64, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(value as u64),
+        _ => Err(invalid_room_directory_field(field)),
+    }
+}
+
+fn optional_room_directory_non_negative_i64(
+    value: Option<i64>,
+    field: &str,
+) -> Result<Option<u64>, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(Some(value as u64)),
+        Some(_) => Err(invalid_room_directory_field(field)),
+        None => Ok(None),
+    }
+}
+
 fn required_moderation_non_negative_i64(
     value: Option<i64>,
     field: &str,
@@ -4777,6 +5322,65 @@ fn required_device_key_string_array(
     } else {
         Ok(values)
     }
+}
+
+fn room_directory_string_array(
+    value: Option<Vec<String>>,
+    field: &str,
+) -> Result<Vec<String>, ProtocolError> {
+    let values = value.ok_or_else(|| invalid_room_directory_field(field))?;
+    if values.iter().any(String::is_empty) {
+        Err(invalid_room_directory_field(field))
+    } else {
+        Ok(values)
+    }
+}
+
+fn public_room_from_wire(
+    wire: MatrixPublicRoomWire,
+    context: &str,
+) -> Result<MatrixPublicRoom, ProtocolError> {
+    Ok(MatrixPublicRoom {
+        room_id: required_room_directory_string(wire.room_id, &format!("{context}.room_id"))?,
+        num_joined_members: required_room_directory_non_negative_i64(
+            wire.num_joined_members,
+            &format!("{context}.num_joined_members"),
+        )?,
+        world_readable: wire
+            .world_readable
+            .ok_or_else(|| invalid_room_directory_field(&format!("{context}.world_readable")))?,
+        guest_can_join: wire
+            .guest_can_join
+            .ok_or_else(|| invalid_room_directory_field(&format!("{context}.guest_can_join")))?,
+        name: optional_room_directory_string(wire.name, &format!("{context}.name"))?,
+        topic: optional_room_directory_string(wire.topic, &format!("{context}.topic"))?,
+        canonical_alias: optional_room_directory_string(
+            wire.canonical_alias,
+            &format!("{context}.canonical_alias"),
+        )?,
+        avatar_url: optional_room_directory_string(
+            wire.avatar_url,
+            &format!("{context}.avatar_url"),
+        )?,
+        join_rule: optional_room_directory_string(wire.join_rule, &format!("{context}.join_rule"))?,
+        room_type: optional_room_directory_string(wire.room_type, &format!("{context}.room_type"))?,
+    })
+}
+
+fn invite_state_event_from_wire(
+    wire: MatrixInviteStateEventWire,
+    context: &str,
+) -> Result<MatrixInviteStateEvent, ProtocolError> {
+    Ok(MatrixInviteStateEvent {
+        event_type: required_room_directory_string(wire.event_type, &format!("{context}.type"))?,
+        sender: optional_room_directory_string(wire.sender, &format!("{context}.sender"))?,
+        state_key: wire
+            .state_key
+            .ok_or_else(|| invalid_room_directory_field(&format!("{context}.state_key")))?,
+        content: wire
+            .content
+            .ok_or_else(|| invalid_room_directory_field(&format!("{context}.content")))?,
+    })
 }
 
 fn device_keys_from_wire(
@@ -5529,8 +6133,8 @@ mod tests {
             manifest.supported_specs,
             vec![
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
-                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-049", "SPEC-051", "SPEC-053",
-                "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-069"
+                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-048", "SPEC-049", "SPEC-051",
+                "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-069"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -6076,6 +6680,105 @@ mod tests {
             .supported_specs
             .iter()
             .any(|spec| spec == "SPEC-049"));
+    }
+
+    #[test]
+    fn parses_spec_048_room_directory_alias_and_invite_vectors() {
+        let public_rooms = read_spec_vector("test-vectors/rooms/matrix-public-rooms-basic.json");
+        assert_eq!(public_rooms["contract"], "SPEC-048");
+        let parsed_public_rooms = parse_matrix_public_rooms_response(
+            public_rooms["expected"]["body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-048 public room response should parse");
+        assert_eq!(parsed_public_rooms.chunk[0].room_id, "!room:example.test");
+        assert_eq!(
+            parsed_public_rooms.chunk[0].canonical_alias.as_deref(),
+            Some("#project:example.test")
+        );
+        assert_eq!(parsed_public_rooms.total_room_count_estimate, Some(1));
+
+        let filtered = read_spec_vector("test-vectors/rooms/matrix-public-rooms-filter-basic.json");
+        let parsed_filter =
+            parse_matrix_public_rooms_request(filtered["request"]["body"].to_string().as_bytes())
+                .expect("SPEC-048 public room filter should parse");
+        assert_eq!(parsed_filter.limit, Some(10));
+        assert_eq!(
+            parsed_filter.generic_search_term.as_deref(),
+            Some("project")
+        );
+        assert_eq!(parsed_filter.include_all_networks, Some(false));
+
+        let visibility =
+            read_spec_vector("test-vectors/rooms/matrix-room-directory-visibility-basic.json");
+        let visibility_steps = visibility["event"]["steps"]
+            .as_array()
+            .expect("visibility vector should list steps");
+        let parsed_visibility =
+            parse_matrix_directory_visibility(visibility_steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-048 visibility request should parse");
+        assert_eq!(parsed_visibility.visibility, "public");
+        let parsed_visibility_response = parse_matrix_directory_visibility(
+            visibility_steps[1]["expected_body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-048 visibility response should parse");
+        assert_eq!(parsed_visibility_response.visibility, "public");
+
+        let aliases = read_spec_vector("test-vectors/rooms/matrix-room-aliases-basic.json");
+        let parsed_aliases =
+            parse_matrix_room_aliases(aliases["expected"]["body_contains"].to_string().as_bytes())
+                .expect("SPEC-048 alias list should parse");
+        assert_eq!(parsed_aliases.aliases.len(), 2);
+        assert!(parsed_aliases
+            .aliases
+            .contains(&"#project-alt:example.test".to_owned()));
+
+        let invite = read_spec_vector("test-vectors/rooms/matrix-room-invite-basic.json");
+        let invite_steps = invite["event"]["steps"]
+            .as_array()
+            .expect("invite vector should list steps");
+        let parsed_invite =
+            parse_matrix_invite_request(invite_steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-048 invite request should parse");
+        assert_eq!(parsed_invite.user_id, "@bob:example.test");
+        assert_eq!(
+            parsed_invite.reason.as_deref(),
+            Some("Join the project room")
+        );
+        let parsed_invite_room = parse_matrix_invite_room(
+            invite_steps[1]["expected_invite_room"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-048 stripped invite state should parse");
+        assert_eq!(parsed_invite_room.room_id, "!room:example.test");
+        assert_eq!(parsed_invite_room.events[0].event_type, "m.room.member");
+        assert_eq!(
+            parsed_invite_room.events[0].content["membership"],
+            serde_json::json!("invite")
+        );
+
+        let alias_forbidden =
+            read_spec_vector("test-vectors/rooms/matrix-room-alias-update-forbidden.json");
+        let parsed_alias_error =
+            parse_matrix_room_directory_error(alias_forbidden["expected"].to_string().as_bytes())
+                .expect("SPEC-048 alias forbidden error should parse");
+        assert_eq!(parsed_alias_error.status, 403);
+        assert_eq!(parsed_alias_error.errcode, "M_FORBIDDEN");
+        let invite_forbidden =
+            read_spec_vector("test-vectors/rooms/matrix-room-invite-forbidden.json");
+        let parsed_invite_error =
+            parse_matrix_room_directory_error(invite_forbidden["expected"].to_string().as_bytes())
+                .expect("SPEC-048 invite forbidden error should parse");
+        assert_eq!(parsed_invite_error.status, 403);
+        assert_eq!(parsed_invite_error.errcode, "M_FORBIDDEN");
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-048"));
     }
 
     #[test]

@@ -261,6 +261,18 @@ authorization decisions, state resolution, federation, event signing/hash
 verification, host persistence, and Matrix full compliance stay outside this
 repository.
 
+SPEC-048 shared-core adoption record for issue #63: the Rust prototype now
+consumes the `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
+(`v0.2.0-pre.58-43-g395c400`) SPEC-048 public room directory, filtered public
+room search, directory visibility, alias list, invite, stripped invite state,
+and representative forbidden-error vectors for parser-only room
+directory/alias/invite surface adoption. The WASM wrapper and TypeScript facade
+expose request descriptors, public response envelopes, stripped invite state,
+and Matrix error JSON envelopes without taking ownership of directory storage,
+visibility policy, federation invite signing, remote public room federation,
+third-party invite behavior, spaces hierarchy traversal, token persistence, or
+Matrix room directory support advertisement.
+
 SPEC-049 shared-core adoption record for issue #64: the Rust prototype now
 consumes the `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
 (`v0.2.0-pre.58-43-g395c400`) SPEC-049 kick, ban, unban, redaction,
@@ -696,6 +708,8 @@ External registration order:
 
 Current package-specific follow-ups:
 
+- #63: SPEC-048 room directory / aliases / invites parser adoption. Completed
+  as parser-only shared-core adoption.
 - #64: SPEC-049 moderation / reporting / admin controls parser adoption.
   Completed as parser-only shared-core adoption.
 - #65: SPEC-069 device key query parser/request descriptor adoption. Completed

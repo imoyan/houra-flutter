@@ -10,6 +10,7 @@ void main() {
   checkDocReferences(failures);
   checkSpec039ProtocolCoreGate(failures);
   checkSpec040ProtocolCoreGate(failures);
+  checkSpec048ProtocolCoreGate(failures);
   checkSpec049ProtocolCoreGate(failures);
 
   if (failures.isNotEmpty) {
@@ -498,6 +499,99 @@ void checkSpec049ProtocolCoreGate(List<String> failures) {
       if (!source.contains(fragment)) {
         failures
             .add('${entry.key} is missing SPEC-049 gate fragment: $fragment');
+      }
+    }
+  }
+}
+
+void checkSpec048ProtocolCoreGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final contract = File(
+    '${specRoot.path}/contracts/SPEC-048-matrix-room-directory-aliases-invites.md',
+  );
+  final vectors = [
+    'test-vectors/rooms/matrix-public-rooms-basic.json',
+    'test-vectors/rooms/matrix-public-rooms-filter-basic.json',
+    'test-vectors/rooms/matrix-room-directory-visibility-basic.json',
+    'test-vectors/rooms/matrix-room-aliases-basic.json',
+    'test-vectors/rooms/matrix-room-alias-update-forbidden.json',
+    'test-vectors/rooms/matrix-room-invite-basic.json',
+    'test-vectors/rooms/matrix-room-invite-forbidden.json',
+  ];
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-048 contract: ${contract.path}');
+    return;
+  }
+  for (final vectorPath in vectors) {
+    final vector = File('${specRoot.path}/$vectorPath');
+    if (!vector.existsSync()) {
+      failures.add('Missing SPEC-048 canonical vector: ${vector.path}');
+      continue;
+    }
+    final decoded = jsonDecode(vector.readAsStringSync());
+    if (decoded is! Map<String, Object?> || decoded['contract'] != 'SPEC-048') {
+      failures
+          .add('SPEC-048 vector has an unexpected contract id: $vectorPath');
+    }
+  }
+
+  final requiredFragmentsByFile = {
+    'AGENTS.md': ['SPEC-048'],
+    'README.md': ['SPEC-048', 'directory/alias/invite surface'],
+    'tool/generate_release_evidence.dart': [
+      "'SPEC-048'",
+      'room_directory_parser_adoption',
+      'matrix-room-invite-forbidden.json',
+    ],
+    'rust-protocol-core/src/lib.rs': [
+      '"SPEC-048"',
+      'parse_matrix_public_rooms_request',
+      'parse_matrix_public_rooms_response',
+      'parse_matrix_directory_visibility',
+      'parse_matrix_room_aliases',
+      'parse_matrix_invite_request',
+      'parse_matrix_invite_room',
+      'parse_matrix_room_directory_error',
+      'matrix-room-invite-forbidden.json',
+    ],
+    'rust-protocol-core-wasm/src/lib.rs': [
+      'parseMatrixPublicRoomsRequestJson',
+      'parseMatrixPublicRoomsResponseJson',
+      'parseMatrixDirectoryVisibilityJson',
+      'parseMatrixRoomAliasesJson',
+      'parseMatrixInviteRequestJson',
+      'parseMatrixInviteRoomJson',
+      'parseMatrixRoomDirectoryErrorJson',
+    ],
+    'ts-protocol-core-wasm/src/index.ts': [
+      '"SPEC-048"',
+      'parseMatrixPublicRoomsRequest',
+      'parseMatrixPublicRoomsResponse',
+      'parseMatrixDirectoryVisibility',
+      'parseMatrixRoomAliases',
+      'parseMatrixInviteRequest',
+      'parseMatrixInviteRoom',
+      'parseMatrixRoomDirectoryError',
+    ],
+    'ts-protocol-core-wasm/test/index.test.mjs': [
+      'SPEC-048',
+      'matrix-public-rooms-basic.json',
+      'matrix-public-rooms-filter-basic.json',
+      'matrix-room-aliases-basic.json',
+      'matrix-room-invite-basic.json',
+    ],
+  };
+  for (final entry in requiredFragmentsByFile.entries) {
+    final file = File(entry.key);
+    if (!file.existsSync()) {
+      failures.add('Missing SPEC-048 gate file: ${entry.key}');
+      continue;
+    }
+    final source = file.readAsStringSync();
+    for (final fragment in entry.value) {
+      if (!source.contains(fragment)) {
+        failures
+            .add('${entry.key} is missing SPEC-048 gate fragment: $fragment');
       }
     }
   }
