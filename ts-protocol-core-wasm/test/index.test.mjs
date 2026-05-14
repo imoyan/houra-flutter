@@ -641,6 +641,108 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixPublicRoomsRequestJson() {
+      return JSON.stringify(
+        overrides.publicRoomsRequestEnvelope ?? {
+          ok: true,
+          value: {
+            limit: 10,
+            generic_search_term: "project",
+            include_all_networks: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixPublicRoomsResponseJson() {
+      return JSON.stringify(
+        overrides.publicRoomsResponseEnvelope ?? {
+          ok: true,
+          value: {
+            chunk: [
+              {
+                room_id: "!room:example.test",
+                num_joined_members: 2,
+                world_readable: false,
+                guest_can_join: false,
+                canonical_alias: "#project:example.test",
+                join_rule: "public",
+              },
+            ],
+            total_room_count_estimate: 1,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixDirectoryVisibilityJson() {
+      return JSON.stringify(
+        overrides.directoryVisibilityEnvelope ?? {
+          ok: true,
+          value: {
+            visibility: "public",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRoomAliasesJson() {
+      return JSON.stringify(
+        overrides.roomAliasesEnvelope ?? {
+          ok: true,
+          value: {
+            aliases: ["#project:example.test", "#project-alt:example.test"],
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixInviteRequestJson() {
+      return JSON.stringify(
+        overrides.inviteRequestEnvelope ?? {
+          ok: true,
+          value: {
+            user_id: "@bob:example.test",
+            reason: "Join the project room",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixInviteRoomJson() {
+      return JSON.stringify(
+        overrides.inviteRoomEnvelope ?? {
+          ok: true,
+          value: {
+            room_id: "!room:example.test",
+            events: [
+              {
+                type: "m.room.member",
+                sender: "@alice:example.test",
+                state_key: "@bob:example.test",
+                content: {
+                  membership: "invite",
+                },
+              },
+            ],
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRoomDirectoryErrorJson() {
+      return JSON.stringify(
+        overrides.roomDirectoryErrorEnvelope ?? {
+          ok: true,
+          value: {
+            status: 403,
+            errcode: "M_FORBIDDEN",
+            error: "User cannot invite others to this room.",
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixModerationRequestJson() {
       return JSON.stringify(
         overrides.moderationRequestEnvelope ?? {
@@ -1695,6 +1797,47 @@ test("maps SPEC-049 moderation, reporting, and admin envelopes", () => {
     locked: true,
   });
   assert.equal(core.parseMatrixModerationError("{}").value.errcode, "M_FORBIDDEN");
+});
+
+test("maps SPEC-048 room directory, alias, and invite envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const publicRooms = readSpecVector(
+    "test-vectors/rooms/matrix-public-rooms-basic.json",
+  );
+  const filtered = readSpecVector(
+    "test-vectors/rooms/matrix-public-rooms-filter-basic.json",
+  );
+  const aliases = readSpecVector(
+    "test-vectors/rooms/matrix-room-aliases-basic.json",
+  );
+  const invite = readSpecVector("test-vectors/rooms/matrix-room-invite-basic.json");
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-048"));
+  for (const vector of [publicRooms, filtered, aliases, invite]) {
+    assert.equal(vector.contract, "SPEC-048");
+  }
+  assert.equal(core.parseMatrixPublicRoomsRequest("{}").value.limit, 10);
+  assert.equal(
+    core.parseMatrixPublicRoomsResponse("{}").value.chunk[0].canonical_alias,
+    "#project:example.test",
+  );
+  assert.equal(
+    core.parseMatrixDirectoryVisibility("{}").value.visibility,
+    "public",
+  );
+  assert.deepEqual(core.parseMatrixRoomAliases("{}").value.aliases, [
+    "#project:example.test",
+    "#project-alt:example.test",
+  ]);
+  assert.equal(core.parseMatrixInviteRequest("{}").value.user_id, "@bob:example.test");
+  assert.equal(
+    core.parseMatrixInviteRoom("{}").value.events[0].content.membership,
+    "invite",
+  );
+  assert.equal(
+    core.parseMatrixRoomDirectoryError("{}").value.errcode,
+    "M_FORBIDDEN",
+  );
 });
 
 test("maps SPEC-053 key backup metadata envelopes", () => {

@@ -87,6 +87,41 @@ pub fn parse_matrix_room_state_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_room_state_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixPublicRoomsRequestJson)]
+pub fn parse_matrix_public_rooms_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_public_rooms_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixPublicRoomsResponseJson)]
+pub fn parse_matrix_public_rooms_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_public_rooms_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixDirectoryVisibilityJson)]
+pub fn parse_matrix_directory_visibility_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_directory_visibility_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixRoomAliasesJson)]
+pub fn parse_matrix_room_aliases_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_room_aliases_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixInviteRequestJson)]
+pub fn parse_matrix_invite_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_invite_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixInviteRoomJson)]
+pub fn parse_matrix_invite_room_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_invite_room_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixRoomDirectoryErrorJson)]
+pub fn parse_matrix_room_directory_error_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_room_directory_error_json(response_body.as_bytes())
+}
+
 #[wasm_bindgen(js_name = parseMatrixMessagesResponseJson)]
 pub fn parse_matrix_messages_response_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_messages_response_json(response_body.as_bytes())
@@ -584,6 +619,48 @@ mod tests {
     }
 
     #[test]
+    fn matrix_room_directory_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_public_rooms_request_json(
+                "{\"limit\":10,\"filter\":{\"generic_search_term\":\"project\"},\"include_all_networks\":false}",
+            ),
+            "{\"ok\":true,\"value\":{\"limit\":10,\"generic_search_term\":\"project\",\"include_all_networks\":false},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_public_rooms_response_json(
+                "{\"chunk\":[{\"room_id\":\"!room:example.test\",\"num_joined_members\":2,\"world_readable\":false,\"guest_can_join\":false,\"canonical_alias\":\"#project:example.test\",\"join_rule\":\"public\"}],\"total_room_count_estimate\":1}",
+            ),
+            "{\"ok\":true,\"value\":{\"chunk\":[{\"room_id\":\"!room:example.test\",\"num_joined_members\":2,\"world_readable\":false,\"guest_can_join\":false,\"canonical_alias\":\"#project:example.test\",\"join_rule\":\"public\"}],\"total_room_count_estimate\":1},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_directory_visibility_json("{\"visibility\":\"public\"}"),
+            "{\"ok\":true,\"value\":{\"visibility\":\"public\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_room_aliases_json("{\"aliases\":[\"#project:example.test\"]}"),
+            "{\"ok\":true,\"value\":{\"aliases\":[\"#project:example.test\"]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_invite_request_json(
+                "{\"user_id\":\"@bob:example.test\",\"reason\":\"Join the project room\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"user_id\":\"@bob:example.test\",\"reason\":\"Join the project room\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_invite_room_json(
+                "{\"room_id\":\"!room:example.test\",\"invite_state\":{\"events\":[{\"type\":\"m.room.member\",\"sender\":\"@alice:example.test\",\"state_key\":\"@bob:example.test\",\"content\":{\"membership\":\"invite\"}}]}}",
+            ),
+            "{\"ok\":true,\"value\":{\"room_id\":\"!room:example.test\",\"events\":[{\"type\":\"m.room.member\",\"sender\":\"@alice:example.test\",\"state_key\":\"@bob:example.test\",\"content\":{\"membership\":\"invite\"}}]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_room_directory_error_json(
+                "{\"status\":403,\"error\":{\"errcode\":\"M_FORBIDDEN\",\"error\":\"No permission\"}}",
+            ),
+            "{\"ok\":true,\"value\":{\"status\":403,\"errcode\":\"M_FORBIDDEN\",\"error\":\"No permission\"},\"error\":null}"
+        );
+    }
+
+    #[test]
     fn matrix_moderation_parsers_delegate_to_core_json_envelopes() {
         assert_eq!(
             parse_matrix_moderation_request_json(
@@ -722,6 +799,46 @@ mod tests {
                 "[{\"event_id\":\"$name:example.test\",\"room_id\":\"!room:example.test\",\"sender\":\"@alice:example.test\",\"origin_server_ts\":1710000000000,\"type\":\"m.room.name\",\"state_key\":\"\",\"content\":{\"name\":\"General\"}}]",
             ),
             "{\"ok\":true,\"value\":{\"events\":[{\"content\":{\"name\":\"General\"},\"event_id\":\"$name:example.test\",\"origin_server_ts\":1710000000000,\"room_id\":\"!room:example.test\",\"sender\":\"@alice:example.test\",\"state_key\":\"\",\"type\":\"m.room.name\"}]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_public_rooms_request_json(
+                "{\"limit\":10,\"filter\":{\"generic_search_term\":\"project\"},\"include_all_networks\":false}",
+            ),
+            "{\"ok\":true,\"value\":{\"limit\":10,\"generic_search_term\":\"project\",\"include_all_networks\":false},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_public_rooms_response_json(
+                "{\"chunk\":[{\"room_id\":\"!room:example.test\",\"num_joined_members\":3,\"world_readable\":true,\"guest_can_join\":false,\"canonical_alias\":\"#project:example.test\"}],\"total_room_count_estimate\":1}",
+            ),
+            "{\"ok\":true,\"value\":{\"chunk\":[{\"room_id\":\"!room:example.test\",\"num_joined_members\":3,\"world_readable\":true,\"guest_can_join\":false,\"canonical_alias\":\"#project:example.test\"}],\"total_room_count_estimate\":1},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_directory_visibility_json("{\"visibility\":\"public\"}"),
+            "{\"ok\":true,\"value\":{\"visibility\":\"public\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_room_aliases_json(
+                "{\"aliases\":[\"#project:example.test\",\"#project-alt:example.test\"]}",
+            ),
+            "{\"ok\":true,\"value\":{\"aliases\":[\"#project:example.test\",\"#project-alt:example.test\"]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_invite_request_json(
+                "{\"user_id\":\"@bob:example.test\",\"reason\":\"Join the project room\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"user_id\":\"@bob:example.test\",\"reason\":\"Join the project room\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_invite_room_json(
+                "{\"room_id\":\"!room:example.test\",\"invite_state\":{\"events\":[{\"type\":\"m.room.member\",\"sender\":\"@alice:example.test\",\"state_key\":\"@bob:example.test\",\"content\":{\"membership\":\"invite\"}}]}}",
+            ),
+            "{\"ok\":true,\"value\":{\"room_id\":\"!room:example.test\",\"events\":[{\"type\":\"m.room.member\",\"sender\":\"@alice:example.test\",\"state_key\":\"@bob:example.test\",\"content\":{\"membership\":\"invite\"}}]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_room_directory_error_json(
+                "{\"status\":403,\"error\":{\"errcode\":\"M_FORBIDDEN\",\"error\":\"User cannot invite others to this room.\"}}",
+            ),
+            "{\"ok\":true,\"value\":{\"status\":403,\"errcode\":\"M_FORBIDDEN\",\"error\":\"User cannot invite others to this room.\"},\"error\":null}"
         );
     }
 

@@ -16,6 +16,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-038",
   "SPEC-039",
   "SPEC-040",
+  "SPEC-048",
   "SPEC-049",
   "SPEC-051",
   "SPEC-053",
@@ -59,6 +60,13 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixDeviceKeyErrorJson(responseBody: string): string;
   parseMatrixDeviceKeyQueryRequestJson(responseBody: string): string;
   parseMatrixDeviceKeyQueryResponseJson(responseBody: string): string;
+  parseMatrixPublicRoomsRequestJson(responseBody: string): string;
+  parseMatrixPublicRoomsResponseJson(responseBody: string): string;
+  parseMatrixDirectoryVisibilityJson(responseBody: string): string;
+  parseMatrixRoomAliasesJson(responseBody: string): string;
+  parseMatrixInviteRequestJson(responseBody: string): string;
+  parseMatrixInviteRoomJson(responseBody: string): string;
+  parseMatrixRoomDirectoryErrorJson(responseBody: string): string;
   parseMatrixModerationRequestJson(responseBody: string): string;
   parseMatrixRedactionRequestJson(responseBody: string): string;
   parseMatrixRedactionResponseJson(responseBody: string): string;
@@ -488,6 +496,66 @@ export interface MatrixDeviceKeyQueryResponse {
   trust_decision_made: boolean;
 }
 
+export interface MatrixPublicRoomsRequest {
+  limit?: number;
+  since?: string;
+  server?: string;
+  generic_search_term?: string;
+  include_all_networks?: boolean;
+  third_party_instance_id?: string;
+}
+
+export interface MatrixPublicRoom {
+  room_id: string;
+  num_joined_members: number;
+  world_readable: boolean;
+  guest_can_join: boolean;
+  name?: string;
+  topic?: string;
+  canonical_alias?: string;
+  avatar_url?: string;
+  join_rule?: string;
+  room_type?: string;
+}
+
+export interface MatrixPublicRoomsResponse {
+  chunk: MatrixPublicRoom[];
+  next_batch?: string;
+  prev_batch?: string;
+  total_room_count_estimate?: number;
+}
+
+export interface MatrixDirectoryVisibility {
+  visibility: string;
+}
+
+export interface MatrixRoomAliases {
+  aliases: string[];
+}
+
+export interface MatrixInviteRequest {
+  user_id: string;
+  reason?: string;
+}
+
+export interface MatrixInviteStateEvent {
+  type: string;
+  sender?: string;
+  state_key: string;
+  content: Record<string, unknown>;
+}
+
+export interface MatrixInviteRoom {
+  room_id: string;
+  events: MatrixInviteStateEvent[];
+}
+
+export interface MatrixRoomDirectoryError {
+  status: number;
+  errcode: string;
+  error: string;
+}
+
 export interface MatrixModerationRequest {
   user_id: string;
   reason?: string;
@@ -672,6 +740,23 @@ export interface HouraProtocolCoreFacade {
   parseMatrixDeviceKeyQueryResponse(
     responseBody: string,
   ): ProtocolResult<MatrixDeviceKeyQueryResponse>;
+  parseMatrixPublicRoomsRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixPublicRoomsRequest>;
+  parseMatrixPublicRoomsResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixPublicRoomsResponse>;
+  parseMatrixDirectoryVisibility(
+    responseBody: string,
+  ): ProtocolResult<MatrixDirectoryVisibility>;
+  parseMatrixRoomAliases(responseBody: string): ProtocolResult<MatrixRoomAliases>;
+  parseMatrixInviteRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixInviteRequest>;
+  parseMatrixInviteRoom(responseBody: string): ProtocolResult<MatrixInviteRoom>;
+  parseMatrixRoomDirectoryError(
+    responseBody: string,
+  ): ProtocolResult<MatrixRoomDirectoryError>;
   parseMatrixModerationRequest(
     responseBody: string,
   ): ProtocolResult<MatrixModerationRequest>;
@@ -999,6 +1084,55 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixDeviceKeyQueryResponseEnvelope(envelope);
+    },
+    parseMatrixPublicRoomsRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixPublicRoomsRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixPublicRoomsRequestEnvelope(envelope);
+    },
+    parseMatrixPublicRoomsResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixPublicRoomsResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixPublicRoomsResponseEnvelope(envelope);
+    },
+    parseMatrixDirectoryVisibility(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixDirectoryVisibilityJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixDirectoryVisibilityEnvelope(envelope);
+    },
+    parseMatrixRoomAliases(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRoomAliasesJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRoomAliasesEnvelope(envelope);
+    },
+    parseMatrixInviteRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixInviteRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixInviteRequestEnvelope(envelope);
+    },
+    parseMatrixInviteRoom(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixInviteRoomJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixInviteRoomEnvelope(envelope);
+    },
+    parseMatrixRoomDirectoryError(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRoomDirectoryErrorJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRoomDirectoryErrorEnvelope(envelope);
     },
     parseMatrixModerationRequest(responseBody: string) {
       const envelope = parseJsonObject(
@@ -1724,6 +1858,136 @@ function readMatrixDeviceKeyQueryResponseEnvelope(
       "private_key_material_returned",
     ),
     trust_decision_made: readBoolean(value, "trust_decision_made"),
+  }));
+}
+
+function readMatrixPublicRoomsRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixPublicRoomsRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixPublicRoomsRequest = {};
+    readOptionalNumber(value, "limit", (limit) => {
+      result.limit = limit;
+    });
+    readOptionalString(value, "since", (since) => {
+      result.since = since;
+    });
+    readOptionalString(value, "server", (server) => {
+      result.server = server;
+    });
+    readOptionalString(value, "generic_search_term", (term) => {
+      result.generic_search_term = term;
+    });
+    readOptionalBoolean(value, "include_all_networks", (includeAllNetworks) => {
+      result.include_all_networks = includeAllNetworks;
+    });
+    readOptionalString(value, "third_party_instance_id", (id) => {
+      result.third_party_instance_id = id;
+    });
+    return result;
+  });
+}
+
+function readMatrixPublicRoomsResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixPublicRoomsResponse> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixPublicRoomsResponse = {
+      chunk: readRecordArray(value, "chunk", "invalid_envelope").map((room) => {
+        const publicRoom: MatrixPublicRoom = {
+          room_id: readString(room, "room_id", "invalid_envelope"),
+          num_joined_members: readNumber(
+            room,
+            "num_joined_members",
+            "invalid_envelope",
+          ),
+          world_readable: readBoolean(room, "world_readable"),
+          guest_can_join: readBoolean(room, "guest_can_join"),
+        };
+        for (const field of [
+          "name",
+          "topic",
+          "canonical_alias",
+          "avatar_url",
+          "join_rule",
+          "room_type",
+        ] as const) {
+          readOptionalString(room, field, (entry) => {
+            publicRoom[field] = entry;
+          });
+        }
+        return publicRoom;
+      }),
+    };
+    readOptionalString(value, "next_batch", (token) => {
+      result.next_batch = token;
+    });
+    readOptionalString(value, "prev_batch", (token) => {
+      result.prev_batch = token;
+    });
+    readOptionalNumber(value, "total_room_count_estimate", (count) => {
+      result.total_room_count_estimate = count;
+    });
+    return result;
+  });
+}
+
+function readMatrixDirectoryVisibilityEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixDirectoryVisibility> {
+  return readProtocolResult(envelope, (value) => ({
+    visibility: readString(value, "visibility", "invalid_envelope"),
+  }));
+}
+
+function readMatrixRoomAliasesEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRoomAliases> {
+  return readProtocolResult(envelope, (value) => ({
+    aliases: readStringArray(value, "aliases", "invalid_envelope"),
+  }));
+}
+
+function readMatrixInviteRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixInviteRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixInviteRequest = {
+      user_id: readString(value, "user_id", "invalid_envelope"),
+    };
+    readOptionalString(value, "reason", (reason) => {
+      result.reason = reason;
+    });
+    return result;
+  });
+}
+
+function readMatrixInviteRoomEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixInviteRoom> {
+  return readProtocolResult(envelope, (value) => ({
+    room_id: readString(value, "room_id", "invalid_envelope"),
+    events: readRecordArray(value, "events", "invalid_envelope").map((event) => {
+      const result: MatrixInviteStateEvent = {
+        type: readString(event, "type", "invalid_envelope"),
+        state_key: readString(event, "state_key", "invalid_envelope"),
+        content: readRecord(event, "content", "invite state event"),
+      };
+      readOptionalString(event, "sender", (sender) => {
+        result.sender = sender;
+      });
+      return result;
+    }),
+  }));
+}
+
+function readMatrixRoomDirectoryErrorEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRoomDirectoryError> {
+  return readProtocolResult(envelope, (value) => ({
+    status: readNumber(value, "status", "invalid_envelope"),
+    errcode: readString(value, "errcode", "invalid_envelope"),
+    error: readString(value, "error", "invalid_envelope"),
   }));
 }
 
