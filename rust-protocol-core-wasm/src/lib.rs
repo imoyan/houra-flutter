@@ -210,6 +210,45 @@ pub fn parse_matrix_wrong_device_failure_gate_json(response_body: &str) -> Strin
     houra_protocol_core::parse_matrix_wrong_device_failure_gate_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixKeyBackupVersionCreateResponseJson)]
+pub fn parse_matrix_key_backup_version_create_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_key_backup_version_create_response_json(
+        response_body.as_bytes(),
+    )
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeyBackupVersionJson)]
+pub fn parse_matrix_key_backup_version_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_key_backup_version_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeyBackupSessionJson)]
+pub fn parse_matrix_key_backup_session_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_key_backup_session_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeyBackupSessionUploadResponseJson)]
+pub fn parse_matrix_key_backup_session_upload_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_key_backup_session_upload_response_json(
+        response_body.as_bytes(),
+    )
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeyBackupErrorJson)]
+pub fn parse_matrix_key_backup_error_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_key_backup_error_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeyBackupOwnerScopeGateJson)]
+pub fn parse_matrix_key_backup_owner_scope_gate_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_key_backup_owner_scope_gate_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeyBackupRecoveryGateJson)]
+pub fn parse_matrix_key_backup_recovery_gate_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_key_backup_recovery_gate_json(response_body.as_bytes())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -229,6 +268,11 @@ mod tests {
             .expect("supported_specs should be an array")
             .iter()
             .any(|spec| spec == "SPEC-040"));
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
+            .any(|spec| spec == "SPEC-053"));
         assert!(manifest["supported_specs"]
             .as_array()
             .expect("supported_specs should be an array")
@@ -415,6 +459,50 @@ mod tests {
                 "{\"status\":400,\"error\":{\"errcode\":\"M_INVALID_SIGNATURE\",\"error\":\"Invalid signature\"}}"
             ),
             "{\"ok\":true,\"value\":{\"status\":400,\"errcode\":\"M_INVALID_SIGNATURE\",\"error\":\"Invalid signature\"},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_key_backup_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_key_backup_version_create_response_json("{\"version\":\"1\"}"),
+            "{\"ok\":true,\"value\":{\"version\":\"1\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_key_backup_version_json(
+                "{\"version\":\"1\",\"algorithm\":\"m.megolm_backup.v1.curve25519-aes-sha2\",\"auth_data\":{\"public_key\":\"curve25519-public\",\"signatures\":{\"@alice:example.test\":{\"ed25519:ALICE1\":\"signature\"}}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"version\":\"1\",\"algorithm\":\"m.megolm_backup.v1.curve25519-aes-sha2\",\"auth_data\":{\"public_key\":\"curve25519-public\",\"signatures\":{\"@alice:example.test\":{\"ed25519:ALICE1\":\"signature\"}}}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_key_backup_session_json(
+                "{\"first_message_index\":1,\"forwarded_count\":0,\"is_verified\":true,\"session_data\":{\"ephemeral\":\"ephemeral\",\"ciphertext\":\"ciphertext\",\"mac\":\"mac\"}}",
+            ),
+            "{\"ok\":true,\"value\":{\"first_message_index\":1,\"forwarded_count\":0,\"is_verified\":true,\"session_data\":{\"ciphertext\":\"ciphertext\",\"ephemeral\":\"ephemeral\",\"mac\":\"mac\"}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_key_backup_session_upload_response_json(
+                "{\"etag\":\"etag-1\",\"count\":1}"
+            ),
+            "{\"ok\":true,\"value\":{\"etag\":\"etag-1\",\"count\":1},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_key_backup_error_json(
+                "{\"status\":403,\"error\":{\"errcode\":\"M_WRONG_ROOM_KEYS_VERSION\",\"error\":\"Wrong room keys version.\",\"current_version\":\"1\"}}",
+            ),
+            "{\"ok\":true,\"value\":{\"status\":403,\"errcode\":\"M_WRONG_ROOM_KEYS_VERSION\",\"error\":\"Wrong room keys version.\",\"current_version\":\"1\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_key_backup_owner_scope_gate_json(
+                "{\"steps\":[{\"id\":\"alice-read-own-backup\",\"expected_status\":404,\"expected_error\":{\"errcode\":\"M_NOT_FOUND\"},\"must_not_disclose_protected_backup\":true},{\"id\":\"bob-read-alice-backup\",\"expected_status\":404,\"expected_error\":{\"errcode\":\"M_NOT_FOUND\"},\"must_not_disclose_protected_backup\":true},{\"id\":\"bob-overwrite-alice-backup\",\"expected_status\":404,\"expected_error\":{\"errcode\":\"M_NOT_FOUND\"},\"must_not_mutate_protected_backup\":true},{\"id\":\"alice-read-backup-after-bob-attempt\",\"expected_status\":404,\"expected_error\":{\"errcode\":\"M_NOT_FOUND\"},\"must_not_disclose_protected_backup\":true}]}",
+            ),
+            "{\"ok\":true,\"value\":{\"owner_scope_enforced\":true,\"protected_backup_unchanged\":true,\"checked_steps\":[\"alice-read-own-backup\",\"bob-read-alice-backup\",\"bob-overwrite-alice-backup\",\"alice-read-backup-after-bob-attempt\"],\"versions_advertisement_widened\":false},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_key_backup_recovery_gate_json(
+                "{\"crypto_stack_required\":true,\"local_olm_megolm_allowed\":false,\"required_contracts\":[\"SPEC-050\",\"SPEC-052\",\"SPEC-053\"],\"required_evidence\":[\"decrypted_event_matches_pre_logout_plaintext\"],\"steps\":[{\"required\":true},{\"required\":true},{\"required\":true},{\"required\":true},{\"required\":true},{\"required\":true}]}",
+            ),
+            "{\"ok\":true,\"value\":{\"logout_relogin_restore\":true,\"crypto_stack_required\":true,\"local_olm_megolm_allowed\":false,\"required_contracts\":[\"SPEC-050\",\"SPEC-052\",\"SPEC-053\"],\"required_evidence\":[\"decrypted_event_matches_pre_logout_plaintext\"],\"versions_advertisement_widened\":false},\"error\":null}"
         );
     }
 

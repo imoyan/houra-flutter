@@ -273,6 +273,17 @@ calculation, Ed25519 verification, Olm/Megolm sessions, cross-signing private
 keys, trust decisions, QR verification, account recovery UI, token persistence,
 or Matrix E2EE support advertisement.
 
+SPEC-053 adoption record for issue #68: the Rust prototype now consumes the
+`houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
+(`v0.2.0-pre.58-43-g395c400`) SPEC-053 key backup version lifecycle, session
+upload/restore, wrong-version, missing-session, owner-scope, and logout/relogin
+recovery vectors for parser-only key backup metadata adoption. The WASM wrapper
+and TypeScript facade expose version metadata, room key backup session metadata,
+upload response, error, owner-scope gate, and recovery evidence JSON envelopes
+without taking ownership of Megolm backup encryption/decryption, room key
+storage, recovery secret storage, backup ownership authorization policy,
+logout/relogin UX, token persistence, or Matrix E2EE support advertisement.
+
 SPEC-055 adoption record for issue #70: the Rust prototype now consumes the
 `houra-spec` SPEC-055 Matrix federation discovery and signing-key vectors for
 parser-only federation bootstrap adoption. The WASM wrapper and TypeScript
@@ -653,6 +664,8 @@ External registration order:
 
 Current package-specific follow-ups:
 
+- #68: SPEC-053 key backup metadata parser adoption. Completed as parser-only
+  shared-core adoption.
 - #69: SPEC-054 verification / cross-signing / wrong-device parser adoption.
   Completed as parser-only shared-core adoption.
 - #70: SPEC-055 federation discovery / signing key parser adoption. Completed

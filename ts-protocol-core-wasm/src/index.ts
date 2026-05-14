@@ -16,6 +16,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-038",
   "SPEC-039",
   "SPEC-040",
+  "SPEC-053",
   "SPEC-054",
   "SPEC-055",
   "SPEC-056",
@@ -48,6 +49,13 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixCrossSigningInvalidSignatureFailureJson(responseBody: string): string;
   parseMatrixCrossSigningMissingTokenGateJson(responseBody: string): string;
   parseMatrixWrongDeviceFailureGateJson(responseBody: string): string;
+  parseMatrixKeyBackupVersionCreateResponseJson(responseBody: string): string;
+  parseMatrixKeyBackupVersionJson(responseBody: string): string;
+  parseMatrixKeyBackupSessionJson(responseBody: string): string;
+  parseMatrixKeyBackupSessionUploadResponseJson(responseBody: string): string;
+  parseMatrixKeyBackupErrorJson(responseBody: string): string;
+  parseMatrixKeyBackupOwnerScopeGateJson(responseBody: string): string;
+  parseMatrixKeyBackupRecoveryGateJson(responseBody: string): string;
   parseMatrixLoginFlowsJson(responseBody: string): string;
   parseMatrixLoginSessionJson(responseBody: string): string;
   parseMatrixMediaContentUriJson(contentUri: string): string;
@@ -406,6 +414,56 @@ export interface MatrixWrongDeviceFailureGate {
   versions_advertisement_widened: boolean;
 }
 
+export interface MatrixKeyBackupAuthData {
+  public_key: string;
+  signatures: Record<string, Record<string, string>>;
+}
+
+export interface MatrixKeyBackupVersionCreateResponse {
+  version: string;
+}
+
+export interface MatrixKeyBackupVersion {
+  version?: string;
+  algorithm: string;
+  auth_data: MatrixKeyBackupAuthData;
+}
+
+export interface MatrixKeyBackupSession {
+  first_message_index: number;
+  forwarded_count: number;
+  is_verified: boolean;
+  session_data: Record<string, unknown>;
+}
+
+export interface MatrixKeyBackupSessionUploadResponse {
+  etag: string;
+  count: number;
+}
+
+export interface MatrixKeyBackupError {
+  status: number;
+  errcode: string;
+  error: string;
+  current_version?: string;
+}
+
+export interface MatrixKeyBackupOwnerScopeGate {
+  owner_scope_enforced: boolean;
+  protected_backup_unchanged: boolean;
+  checked_steps: string[];
+  versions_advertisement_widened: boolean;
+}
+
+export interface MatrixKeyBackupRecoveryGate {
+  logout_relogin_restore: boolean;
+  crypto_stack_required: boolean;
+  local_olm_megolm_allowed: boolean;
+  required_contracts: string[];
+  required_evidence: string[];
+  versions_advertisement_widened: boolean;
+}
+
 export interface ProtocolErrorEnvelope {
   code: string;
   message: string;
@@ -486,6 +544,25 @@ export interface HouraProtocolCoreFacade {
   parseMatrixWrongDeviceFailureGate(
     responseBody: string,
   ): ProtocolResult<MatrixWrongDeviceFailureGate>;
+  parseMatrixKeyBackupVersionCreateResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeyBackupVersionCreateResponse>;
+  parseMatrixKeyBackupVersion(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeyBackupVersion>;
+  parseMatrixKeyBackupSession(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeyBackupSession>;
+  parseMatrixKeyBackupSessionUploadResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeyBackupSessionUploadResponse>;
+  parseMatrixKeyBackupError(responseBody: string): ProtocolResult<MatrixKeyBackupError>;
+  parseMatrixKeyBackupOwnerScopeGate(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeyBackupOwnerScopeGate>;
+  parseMatrixKeyBackupRecoveryGate(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeyBackupRecoveryGate>;
   parseMatrixLoginFlows(responseBody: string): ProtocolResult<MatrixLoginFlows>;
   parseMatrixLoginSession(
     responseBody: string,
@@ -724,6 +801,55 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixWrongDeviceFailureGateEnvelope(envelope);
+    },
+    parseMatrixKeyBackupVersionCreateResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeyBackupVersionCreateResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeyBackupVersionCreateResponseEnvelope(envelope);
+    },
+    parseMatrixKeyBackupVersion(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeyBackupVersionJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeyBackupVersionEnvelope(envelope);
+    },
+    parseMatrixKeyBackupSession(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeyBackupSessionJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeyBackupSessionEnvelope(envelope);
+    },
+    parseMatrixKeyBackupSessionUploadResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeyBackupSessionUploadResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeyBackupSessionUploadResponseEnvelope(envelope);
+    },
+    parseMatrixKeyBackupError(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeyBackupErrorJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeyBackupErrorEnvelope(envelope);
+    },
+    parseMatrixKeyBackupOwnerScopeGate(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeyBackupOwnerScopeGateJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeyBackupOwnerScopeGateEnvelope(envelope);
+    },
+    parseMatrixKeyBackupRecoveryGate(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeyBackupRecoveryGateJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeyBackupRecoveryGateEnvelope(envelope);
     },
     parseMatrixLoginFlows(responseBody: string) {
       const envelope = parseJsonObject(
@@ -1256,6 +1382,114 @@ function readMatrixWrongDeviceFailureGateEnvelope(
       value,
       "requires_user_reverification",
     ),
+    versions_advertisement_widened: readBoolean(
+      value,
+      "versions_advertisement_widened",
+    ),
+  }));
+}
+
+function readMatrixKeyBackupVersionCreateResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeyBackupVersionCreateResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    version: readString(value, "version", "invalid_envelope"),
+  }));
+}
+
+function readMatrixKeyBackupVersionEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeyBackupVersion> {
+  return readProtocolResult(envelope, readMatrixKeyBackupVersion);
+}
+
+function readMatrixKeyBackupVersion(
+  value: Record<string, unknown>,
+): MatrixKeyBackupVersion {
+  const result: MatrixKeyBackupVersion = {
+    algorithm: readString(value, "algorithm", "invalid_envelope"),
+    auth_data: readMatrixKeyBackupAuthData(
+      readRecord(value, "auth_data", "key backup version"),
+    ),
+  };
+  readOptionalString(value, "version", (version) => {
+    result.version = version;
+  });
+  return result;
+}
+
+function readMatrixKeyBackupAuthData(
+  value: Record<string, unknown>,
+): MatrixKeyBackupAuthData {
+  return {
+    public_key: readString(value, "public_key", "invalid_envelope"),
+    signatures: readNestedStringRecord(
+      value,
+      "signatures",
+      "key_backup.auth_data.signatures",
+    ),
+  };
+}
+
+function readMatrixKeyBackupSessionEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeyBackupSession> {
+  return readProtocolResult(envelope, (value) => ({
+    first_message_index: readNumber(value, "first_message_index", "invalid_envelope"),
+    forwarded_count: readNumber(value, "forwarded_count", "invalid_envelope"),
+    is_verified: readBoolean(value, "is_verified"),
+    session_data: readRecord(value, "session_data", "key backup session"),
+  }));
+}
+
+function readMatrixKeyBackupSessionUploadResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeyBackupSessionUploadResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    etag: readString(value, "etag", "invalid_envelope"),
+    count: readNumber(value, "count", "invalid_envelope"),
+  }));
+}
+
+function readMatrixKeyBackupErrorEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeyBackupError> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixKeyBackupError = {
+      status: readNumber(value, "status", "invalid_envelope"),
+      errcode: readString(value, "errcode", "invalid_envelope"),
+      error: readString(value, "error", "invalid_envelope"),
+    };
+    readOptionalString(value, "current_version", (currentVersion) => {
+      result.current_version = currentVersion;
+    });
+    return result;
+  });
+}
+
+function readMatrixKeyBackupOwnerScopeGateEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeyBackupOwnerScopeGate> {
+  return readProtocolResult(envelope, (value) => ({
+    owner_scope_enforced: readBoolean(value, "owner_scope_enforced"),
+    protected_backup_unchanged: readBoolean(value, "protected_backup_unchanged"),
+    checked_steps: readStringArray(value, "checked_steps", "invalid_envelope"),
+    versions_advertisement_widened: readBoolean(
+      value,
+      "versions_advertisement_widened",
+    ),
+  }));
+}
+
+function readMatrixKeyBackupRecoveryGateEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeyBackupRecoveryGate> {
+  return readProtocolResult(envelope, (value) => ({
+    logout_relogin_restore: readBoolean(value, "logout_relogin_restore"),
+    crypto_stack_required: readBoolean(value, "crypto_stack_required"),
+    local_olm_megolm_allowed: readBoolean(value, "local_olm_megolm_allowed"),
+    required_contracts: readStringArray(value, "required_contracts", "invalid_envelope"),
+    required_evidence: readStringArray(value, "required_evidence", "invalid_envelope"),
     versions_advertisement_widened: readBoolean(
       value,
       "versions_advertisement_widened",
