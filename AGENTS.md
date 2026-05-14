@@ -58,9 +58,10 @@ contract clarification.
   identifier/URI/date/amount helpers, error mapping, retry/idempotency policy,
   config and feature-flag interpretation, capability advertisement gates,
   contract-vector adapters, and thin binding facades.
-- Commonization is not limited to security boundaries, but prototypes must
-  include hot-path notes: avoid hidden I/O, repeated JSON parsing, heavy
-  lookups, unbounded caches, and unnecessary cross-language boundary overhead.
+- Sharing code through common boundaries is not limited to security-sensitive
+  boundaries, but prototypes must include hot-path notes: avoid hidden I/O,
+  repeated JSON parsing, heavy lookups, unbounded caches, and unnecessary
+  cross-language boundary overhead.
 - Keep product semantics, host-owned token persistence, UI presentation,
   storage policy, and adapter transport local to downstream repositories unless
   `../houra-spec` or a planned adoption gate makes the shared boundary explicit.
