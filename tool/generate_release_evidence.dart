@@ -15,6 +15,7 @@ const expectedSpecIds = [
   'SPEC-040',
   'SPEC-045',
   'SPEC-046',
+  'SPEC-047',
   'SPEC-048',
   'SPEC-049',
   'SPEC-051',
@@ -222,6 +223,36 @@ void main(List<String> args) {
         'retry policy',
         'federation EDU delivery',
         'Matrix receipts/typing/read-marker support advertisement',
+      ],
+    },
+    'filters_presence_capabilities_parser_adoption': {
+      'issue': 62,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-047'],
+      'parity_vectors': [
+        'test-vectors/sync/matrix-filter-create-read-basic.json',
+        'test-vectors/sync/matrix-filter-user-mismatch.json',
+        'test-vectors/sync/matrix-presence-set-get-basic.json',
+        'test-vectors/sync/matrix-presence-user-mismatch.json',
+        'test-vectors/sync/matrix-capabilities-basic.json',
+        'test-vectors/sync/matrix-capabilities-missing-token.json',
+      ],
+      'parser_only_surfaces': [
+        'filter definition envelope',
+        'filter create response envelope',
+        'presence request descriptor',
+        'presence response content envelope',
+        'presence sync event envelope',
+        'capabilities response envelope',
+      ],
+      'out_of_scope': [
+        'server-side filter storage or execution',
+        'presence propagation policy',
+        'presence privacy policy',
+        'capability advertisement ownership',
+        'unstable MSC advertisement',
+        'sync pagination completeness',
+        'token persistence',
       ],
     },
     'room_directory_parser_adoption': {
@@ -593,7 +624,7 @@ void main(List<String> args) {
         'command': 'cargo test --locked',
         'guards': [
           'artifact manifest serializes stably',
-          'covered SPEC ids include SPEC-030 through SPEC-040, SPEC-045, SPEC-046, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, and SPEC-069',
+          'covered SPEC ids include SPEC-030 through SPEC-040, SPEC-045, SPEC-046, SPEC-047, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, and SPEC-069',
         ],
       },
       {

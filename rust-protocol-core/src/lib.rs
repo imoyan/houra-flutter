@@ -24,8 +24,8 @@ pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
-    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-048", "SPEC-049", "SPEC-051",
-    "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-069",
+    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047", "SPEC-048", "SPEC-049",
+    "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-069",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -322,6 +322,72 @@ pub struct MatrixReadMarkersRequest {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixFullyReadContent {
     pub event_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFilterEvent {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub types: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRoomFilter {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeline: Option<MatrixFilterEvent>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ephemeral: Option<MatrixFilterEvent>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub account_data: Option<MatrixFilterEvent>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFilterDefinition {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_fields: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub event_format: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub presence: Option<MatrixFilterEvent>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub room: Option<MatrixRoomFilter>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFilterCreateResponse {
+    pub filter_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPresenceRequest {
+    pub presence: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status_msg: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPresenceContent {
+    pub presence: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_active_ago: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub currently_active: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub status_msg: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPresenceEvent {
+    pub sender: String,
+    #[serde(rename = "type")]
+    pub event_type: String,
+    pub content: MatrixPresenceContent,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCapabilitiesResponse {
+    pub capabilities: BTreeMap<String, Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -988,6 +1054,48 @@ pub struct MatrixFullyReadContentParseEnvelope {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFilterDefinitionParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFilterDefinition>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFilterCreateResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFilterCreateResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPresenceRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixPresenceRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPresenceContentParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixPresenceContent>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPresenceEventParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixPresenceEvent>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCapabilitiesResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixCapabilitiesResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixMediaContentUriParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixMediaContentUri>,
@@ -1350,6 +1458,7 @@ pub enum ProtocolError {
     InvalidDeviceKeyField { field: String },
     InvalidProfileAccountDataField { field: String },
     InvalidReceiptsTypingField { field: String },
+    InvalidFiltersPresenceCapabilitiesField { field: String },
     InvalidRoomDirectoryField { field: String },
     InvalidModerationField { field: String },
     InvalidKeyBackupField { field: String },
@@ -1380,6 +1489,9 @@ impl ProtocolError {
                 "invalid_profile_account_data_field"
             }
             ProtocolError::InvalidReceiptsTypingField { .. } => "invalid_receipts_typing_field",
+            ProtocolError::InvalidFiltersPresenceCapabilitiesField { .. } => {
+                "invalid_filters_presence_capabilities_field"
+            }
             ProtocolError::InvalidRoomDirectoryField { .. } => "invalid_room_directory_field",
             ProtocolError::InvalidModerationField { .. } => "invalid_moderation_field",
             ProtocolError::InvalidKeyBackupField { .. } => "invalid_key_backup_field",
@@ -1429,6 +1541,9 @@ impl ProtocolError {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidReceiptsTypingField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidFiltersPresenceCapabilitiesField { field } => {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidRoomDirectoryField { field } => {
@@ -1518,6 +1633,12 @@ impl std::fmt::Display for ProtocolError {
                 write!(
                     formatter,
                     "{field} is not a valid Matrix receipts/typing value"
+                )
+            }
+            ProtocolError::InvalidFiltersPresenceCapabilitiesField { field } => {
+                write!(
+                    formatter,
+                    "{field} is not a valid Matrix filters/presence/capabilities value"
                 )
             }
             ProtocolError::InvalidRoomDirectoryField { field } => {
@@ -1984,6 +2105,54 @@ struct MatrixReadMarkersRequestWire {
 #[derive(Debug, Deserialize)]
 struct MatrixFullyReadContentWire {
     event_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFilterEventWire {
+    limit: Option<i64>,
+    types: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRoomFilterWire {
+    timeline: Option<MatrixFilterEventWire>,
+    ephemeral: Option<MatrixFilterEventWire>,
+    account_data: Option<MatrixFilterEventWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFilterDefinitionWire {
+    event_fields: Option<Vec<String>>,
+    event_format: Option<String>,
+    presence: Option<MatrixFilterEventWire>,
+    room: Option<MatrixRoomFilterWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFilterCreateResponseWire {
+    filter_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixPresenceRequestWire {
+    presence: Option<String>,
+    status_msg: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixPresenceContentWire {
+    presence: Option<String>,
+    last_active_ago: Option<i64>,
+    currently_active: Option<bool>,
+    status_msg: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixPresenceEventWire {
+    sender: Option<String>,
+    #[serde(rename = "type")]
+    event_type: Option<String>,
+    content: Option<MatrixPresenceContentWire>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -3255,6 +3424,237 @@ pub fn parse_matrix_fully_read_content_envelope(
 
 pub fn parse_matrix_fully_read_content_json(bytes: &[u8]) -> String {
     serde_json::to_string(&parse_matrix_fully_read_content_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_filter_definition(
+    bytes: &[u8],
+) -> Result<MatrixFilterDefinition, ProtocolError> {
+    let wire: MatrixFilterDefinitionWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    matrix_filter_definition_from_wire(wire)
+}
+
+pub fn parse_matrix_filter_definition_envelope(
+    bytes: &[u8],
+) -> MatrixFilterDefinitionParseEnvelope {
+    match parse_matrix_filter_definition(bytes) {
+        Ok(value) => MatrixFilterDefinitionParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFilterDefinitionParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_filter_definition_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_filter_definition_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_filter_create_response(
+    bytes: &[u8],
+) -> Result<MatrixFilterCreateResponse, ProtocolError> {
+    let wire: MatrixFilterCreateResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let filter_id =
+        required_filters_presence_capabilities_string(wire.filter_id, "filter_response.filter_id")?;
+    if filter_id.starts_with('{') {
+        return Err(invalid_filters_presence_capabilities_field(
+            "filter_response.filter_id",
+        ));
+    }
+    Ok(MatrixFilterCreateResponse { filter_id })
+}
+
+pub fn parse_matrix_filter_create_response_envelope(
+    bytes: &[u8],
+) -> MatrixFilterCreateResponseParseEnvelope {
+    match parse_matrix_filter_create_response(bytes) {
+        Ok(value) => MatrixFilterCreateResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFilterCreateResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_filter_create_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_filter_create_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_presence_request(bytes: &[u8]) -> Result<MatrixPresenceRequest, ProtocolError> {
+    let wire: MatrixPresenceRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let presence = required_presence_value(wire.presence, "presence_request.presence")?;
+    let status_msg = optional_filters_presence_capabilities_string(
+        wire.status_msg,
+        "presence_request.status_msg",
+    )?;
+    Ok(MatrixPresenceRequest {
+        presence,
+        status_msg,
+    })
+}
+
+pub fn parse_matrix_presence_request_envelope(bytes: &[u8]) -> MatrixPresenceRequestParseEnvelope {
+    match parse_matrix_presence_request(bytes) {
+        Ok(value) => MatrixPresenceRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixPresenceRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_presence_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_presence_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_presence_content(bytes: &[u8]) -> Result<MatrixPresenceContent, ProtocolError> {
+    let wire: MatrixPresenceContentWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    matrix_presence_content_from_wire(wire, "presence_content")
+}
+
+pub fn parse_matrix_presence_content_envelope(bytes: &[u8]) -> MatrixPresenceContentParseEnvelope {
+    match parse_matrix_presence_content(bytes) {
+        Ok(value) => MatrixPresenceContentParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixPresenceContentParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_presence_content_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_presence_content_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_presence_event(bytes: &[u8]) -> Result<MatrixPresenceEvent, ProtocolError> {
+    let wire: MatrixPresenceEventWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let sender =
+        required_filters_presence_capabilities_string(wire.sender, "presence_event.sender")?;
+    let event_type =
+        required_filters_presence_capabilities_string(wire.event_type, "presence_event.type")?;
+    if event_type != "m.presence" {
+        return Err(invalid_filters_presence_capabilities_field(
+            "presence_event.type",
+        ));
+    }
+    let content = matrix_presence_content_from_wire(
+        wire.content
+            .ok_or_else(|| invalid_filters_presence_capabilities_field("presence_event.content"))?,
+        "presence_event.content",
+    )?;
+    Ok(MatrixPresenceEvent {
+        sender,
+        event_type,
+        content,
+    })
+}
+
+pub fn parse_matrix_presence_event_envelope(bytes: &[u8]) -> MatrixPresenceEventParseEnvelope {
+    match parse_matrix_presence_event(bytes) {
+        Ok(value) => MatrixPresenceEventParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixPresenceEventParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_presence_event_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_presence_event_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_capabilities_response(
+    bytes: &[u8],
+) -> Result<MatrixCapabilitiesResponse, ProtocolError> {
+    let value: Value =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let capabilities = value
+        .get("capabilities")
+        .and_then(Value::as_object)
+        .ok_or_else(|| invalid_filters_presence_capabilities_field("capabilities"))?;
+    if capabilities.keys().any(String::is_empty) {
+        return Err(invalid_filters_presence_capabilities_field(
+            "capabilities.key",
+        ));
+    }
+    if let Some(room_versions) = capabilities.get("m.room_versions") {
+        validate_room_versions_capability(room_versions)?;
+    }
+    if let Some(profile_fields) = capabilities.get("m.profile_fields") {
+        validate_profile_fields_capability(profile_fields)?;
+    }
+    for key in [
+        "m.change_password",
+        "m.forget_forced_upon_leave",
+        "m.set_displayname",
+        "m.set_avatar_url",
+    ] {
+        if let Some(value) = capabilities.get(key) {
+            validate_bool_enabled_capability(value, &format!("capabilities.{key}"))?;
+        }
+    }
+    Ok(MatrixCapabilitiesResponse {
+        capabilities: capabilities
+            .iter()
+            .map(|(key, value)| (key.clone(), value.clone()))
+            .collect(),
+    })
+}
+
+pub fn parse_matrix_capabilities_response_envelope(
+    bytes: &[u8],
+) -> MatrixCapabilitiesResponseParseEnvelope {
+    match parse_matrix_capabilities_response(bytes) {
+        Ok(value) => MatrixCapabilitiesResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixCapabilitiesResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_capabilities_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_capabilities_response_envelope(bytes))
         .expect("parse envelope serialization should be infallible")
 }
 
@@ -5817,6 +6217,12 @@ fn invalid_receipts_typing_field(field: &str) -> ProtocolError {
     }
 }
 
+fn invalid_filters_presence_capabilities_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidFiltersPresenceCapabilitiesField {
+        field: field.to_owned(),
+    }
+}
+
 fn invalid_room_directory_field(field: &str) -> ProtocolError {
     ProtocolError::InvalidRoomDirectoryField {
         field: field.to_owned(),
@@ -6066,6 +6472,215 @@ fn optional_receipt_thread_id(
         }
         None => Ok(None),
     }
+}
+
+fn required_filters_presence_capabilities_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_filters_presence_capabilities_field(field)),
+    }
+}
+
+fn optional_filters_presence_capabilities_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<Option<String>, ProtocolError> {
+    match value {
+        Some(value) if value.is_empty() => Err(invalid_filters_presence_capabilities_field(field)),
+        value => Ok(value),
+    }
+}
+
+fn optional_filters_presence_capabilities_non_negative_i64(
+    value: Option<i64>,
+    field: &str,
+) -> Result<Option<u64>, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(Some(value as u64)),
+        Some(_) => Err(invalid_filters_presence_capabilities_field(field)),
+        None => Ok(None),
+    }
+}
+
+fn optional_filters_presence_capabilities_string_array(
+    value: Option<Vec<String>>,
+    field: &str,
+) -> Result<Option<Vec<String>>, ProtocolError> {
+    match value {
+        Some(values) if values.iter().any(String::is_empty) => {
+            Err(invalid_filters_presence_capabilities_field(field))
+        }
+        value => Ok(value),
+    }
+}
+
+fn required_presence_value(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
+    let value = required_filters_presence_capabilities_string(value, field)?;
+    match value.as_str() {
+        "online" | "offline" | "unavailable" => Ok(value),
+        _ => Err(invalid_filters_presence_capabilities_field(field)),
+    }
+}
+
+fn matrix_filter_event_from_wire(
+    wire: MatrixFilterEventWire,
+    field: &str,
+) -> Result<MatrixFilterEvent, ProtocolError> {
+    Ok(MatrixFilterEvent {
+        limit: optional_filters_presence_capabilities_non_negative_i64(
+            wire.limit,
+            &format!("{field}.limit"),
+        )?,
+        types: optional_filters_presence_capabilities_string_array(
+            wire.types,
+            &format!("{field}.types"),
+        )?,
+    })
+}
+
+fn matrix_filter_definition_from_wire(
+    wire: MatrixFilterDefinitionWire,
+) -> Result<MatrixFilterDefinition, ProtocolError> {
+    let event_format =
+        optional_filters_presence_capabilities_string(wire.event_format, "filter.event_format")?;
+    if let Some(format) = &event_format {
+        match format.as_str() {
+            "client" | "federation" => {}
+            _ => {
+                return Err(invalid_filters_presence_capabilities_field(
+                    "filter.event_format",
+                ))
+            }
+        }
+    }
+    Ok(MatrixFilterDefinition {
+        event_fields: optional_filters_presence_capabilities_string_array(
+            wire.event_fields,
+            "filter.event_fields",
+        )?,
+        event_format,
+        presence: wire
+            .presence
+            .map(|presence| matrix_filter_event_from_wire(presence, "filter.presence"))
+            .transpose()?,
+        room: wire
+            .room
+            .map(|room| {
+                Ok(MatrixRoomFilter {
+                    timeline: room
+                        .timeline
+                        .map(|timeline| {
+                            matrix_filter_event_from_wire(timeline, "filter.room.timeline")
+                        })
+                        .transpose()?,
+                    ephemeral: room
+                        .ephemeral
+                        .map(|ephemeral| {
+                            matrix_filter_event_from_wire(ephemeral, "filter.room.ephemeral")
+                        })
+                        .transpose()?,
+                    account_data: room
+                        .account_data
+                        .map(|account_data| {
+                            matrix_filter_event_from_wire(account_data, "filter.room.account_data")
+                        })
+                        .transpose()?,
+                })
+            })
+            .transpose()?,
+    })
+}
+
+fn matrix_presence_content_from_wire(
+    wire: MatrixPresenceContentWire,
+    field: &str,
+) -> Result<MatrixPresenceContent, ProtocolError> {
+    Ok(MatrixPresenceContent {
+        presence: required_presence_value(wire.presence, &format!("{field}.presence"))?,
+        last_active_ago: optional_filters_presence_capabilities_non_negative_i64(
+            wire.last_active_ago,
+            &format!("{field}.last_active_ago"),
+        )?,
+        currently_active: wire.currently_active,
+        status_msg: optional_filters_presence_capabilities_string(
+            wire.status_msg,
+            &format!("{field}.status_msg"),
+        )?,
+    })
+}
+
+fn validate_bool_enabled_capability(value: &Value, field: &str) -> Result<(), ProtocolError> {
+    if value
+        .as_object()
+        .and_then(|object| object.get("enabled"))
+        .and_then(Value::as_bool)
+        .is_some()
+    {
+        Ok(())
+    } else {
+        Err(invalid_filters_presence_capabilities_field(field))
+    }
+}
+
+fn validate_room_versions_capability(value: &Value) -> Result<(), ProtocolError> {
+    let object = value.as_object().ok_or_else(|| {
+        invalid_filters_presence_capabilities_field("capabilities.m.room_versions")
+    })?;
+    let default = object
+        .get("default")
+        .and_then(Value::as_str)
+        .ok_or_else(|| {
+            invalid_filters_presence_capabilities_field("capabilities.m.room_versions.default")
+        })?;
+    if default.is_empty() {
+        return Err(invalid_filters_presence_capabilities_field(
+            "capabilities.m.room_versions.default",
+        ));
+    }
+    let available = object
+        .get("available")
+        .and_then(Value::as_object)
+        .ok_or_else(|| {
+            invalid_filters_presence_capabilities_field("capabilities.m.room_versions.available")
+        })?;
+    if available
+        .iter()
+        .any(|(version, stability)| version.is_empty() || !stability.is_string())
+    {
+        return Err(invalid_filters_presence_capabilities_field(
+            "capabilities.m.room_versions.available",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_profile_fields_capability(value: &Value) -> Result<(), ProtocolError> {
+    let object = value.as_object().ok_or_else(|| {
+        invalid_filters_presence_capabilities_field("capabilities.m.profile_fields")
+    })?;
+    if object.get("enabled").and_then(Value::as_bool).is_none() {
+        return Err(invalid_filters_presence_capabilities_field(
+            "capabilities.m.profile_fields.enabled",
+        ));
+    }
+    let allowed = object
+        .get("allowed")
+        .and_then(Value::as_array)
+        .ok_or_else(|| {
+            invalid_filters_presence_capabilities_field("capabilities.m.profile_fields.allowed")
+        })?;
+    if allowed
+        .iter()
+        .any(|field| field.as_str().is_none_or(str::is_empty))
+    {
+        return Err(invalid_filters_presence_capabilities_field(
+            "capabilities.m.profile_fields.allowed",
+        ));
+    }
+    Ok(())
 }
 
 fn public_room_from_wire(
@@ -6865,8 +7480,9 @@ mod tests {
             manifest.supported_specs,
             vec![
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
-                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-048",
-                "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-069"
+                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047",
+                "SPEC-048", "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056",
+                "SPEC-069"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -7642,6 +8258,130 @@ mod tests {
             .supported_specs
             .iter()
             .any(|spec| spec == "SPEC-046"));
+    }
+
+    #[test]
+    fn parses_spec_047_filters_presence_and_capabilities_vectors() {
+        let filter = read_spec_vector("test-vectors/sync/matrix-filter-create-read-basic.json");
+        assert_eq!(filter["contract"], "SPEC-047");
+        let filter_steps = filter["event"]["steps"]
+            .as_array()
+            .expect("filter vector should contain steps");
+        let parsed_filter =
+            parse_matrix_filter_definition(filter_steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-047 filter definition should parse");
+        assert_eq!(
+            parsed_filter.event_fields.as_deref(),
+            Some(&["type".to_owned(), "content".to_owned(), "sender".to_owned()][..])
+        );
+        assert_eq!(
+            parsed_filter
+                .room
+                .as_ref()
+                .and_then(|room| room.timeline.as_ref())
+                .and_then(|timeline| timeline.limit),
+            Some(20)
+        );
+        let parsed_filter_response = parse_matrix_filter_create_response(
+            filter_steps[0]["expected_body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-047 filter create response should parse");
+        assert_eq!(parsed_filter_response.filter_id, "filter1");
+        let parsed_stored_filter =
+            parse_matrix_filter_definition(filter_steps[1]["expected_body"].to_string().as_bytes())
+                .expect("SPEC-047 stored filter should parse");
+        assert_eq!(parsed_stored_filter.event_format.as_deref(), Some("client"));
+
+        let filter_mismatch =
+            read_spec_vector("test-vectors/sync/matrix-filter-user-mismatch.json");
+        let parsed_filter_error = parse_matrix_error_envelope(
+            filter_mismatch["expected"]["error"].to_string().as_bytes(),
+        )
+        .expect("SPEC-047 filter mismatch error should parse");
+        assert_eq!(parsed_filter_error.errcode, "M_FORBIDDEN");
+
+        let presence = read_spec_vector("test-vectors/sync/matrix-presence-set-get-basic.json");
+        assert_eq!(presence["contract"], "SPEC-047");
+        let presence_steps = presence["event"]["steps"]
+            .as_array()
+            .expect("presence vector should contain steps");
+        let parsed_presence_request =
+            parse_matrix_presence_request(presence_steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-047 presence request should parse");
+        assert_eq!(parsed_presence_request.presence, "online");
+        assert_eq!(
+            parsed_presence_request.status_msg.as_deref(),
+            Some("Available")
+        );
+        let parsed_presence_content = parse_matrix_presence_content(
+            presence_steps[1]["expected_body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-047 presence content should parse");
+        assert_eq!(parsed_presence_content.currently_active, Some(true));
+        let parsed_presence_event = parse_matrix_presence_event(
+            presence_steps[2]["expected_presence_event"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-047 presence event should parse");
+        assert_eq!(parsed_presence_event.event_type, "m.presence");
+        assert_eq!(parsed_presence_event.sender, "@alice:example.test");
+
+        let presence_mismatch =
+            read_spec_vector("test-vectors/sync/matrix-presence-user-mismatch.json");
+        let parsed_presence_error = parse_matrix_error_envelope(
+            presence_mismatch["expected"]["error"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-047 presence mismatch error should parse");
+        assert_eq!(parsed_presence_error.errcode, "M_FORBIDDEN");
+
+        let capabilities = read_spec_vector("test-vectors/sync/matrix-capabilities-basic.json");
+        assert_eq!(capabilities["contract"], "SPEC-047");
+        let parsed_capabilities = parse_matrix_capabilities_response(
+            capabilities["expected"]["body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-047 capabilities response should parse");
+        assert_eq!(
+            parsed_capabilities.capabilities["m.room_versions"]["default"],
+            "12"
+        );
+        assert_eq!(
+            parsed_capabilities.capabilities["m.change_password"]["enabled"],
+            true
+        );
+
+        let missing_token =
+            read_spec_vector("test-vectors/sync/matrix-capabilities-missing-token.json");
+        let parsed_missing_token =
+            parse_matrix_error_envelope(missing_token["expected"]["error"].to_string().as_bytes())
+                .expect("SPEC-047 missing token error should parse");
+        assert_eq!(parsed_missing_token.errcode, "M_MISSING_TOKEN");
+
+        assert!(parse_matrix_filter_definition(br#"{"event_format":"bad"}"#).is_err());
+        assert!(parse_matrix_filter_create_response(br#"{"filter_id":"{bad"}"#).is_err());
+        assert!(parse_matrix_presence_request(br#"{"presence":"busy"}"#).is_err());
+        assert!(
+            parse_matrix_presence_content(br#"{"presence":"online","last_active_ago":-1}"#)
+                .is_err()
+        );
+        assert!(parse_matrix_presence_event(
+            br#"{"sender":"@alice:example.test","type":"m.room.message","content":{"presence":"online"}}"#
+        )
+        .is_err());
+        assert!(parse_matrix_capabilities_response(
+            br#"{"capabilities":{"m.room_versions":{"default":"","available":{"12":"stable"}}}}"#
+        )
+        .is_err());
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-047"));
     }
 
     #[test]

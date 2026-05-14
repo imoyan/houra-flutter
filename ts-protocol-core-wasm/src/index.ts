@@ -18,6 +18,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-040",
   "SPEC-045",
   "SPEC-046",
+  "SPEC-047",
   "SPEC-048",
   "SPEC-049",
   "SPEC-051",
@@ -99,6 +100,12 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixReceiptContentJson(responseBody: string): string;
   parseMatrixReadMarkersRequestJson(responseBody: string): string;
   parseMatrixFullyReadContentJson(responseBody: string): string;
+  parseMatrixFilterDefinitionJson(responseBody: string): string;
+  parseMatrixFilterCreateResponseJson(responseBody: string): string;
+  parseMatrixPresenceRequestJson(responseBody: string): string;
+  parseMatrixPresenceContentJson(responseBody: string): string;
+  parseMatrixPresenceEventJson(responseBody: string): string;
+  parseMatrixCapabilitiesResponseJson(responseBody: string): string;
   parseMatrixSyncResponseJson(responseBody: string): string;
   parseMatrixRegistrationAvailabilityJson(responseBody: string): string;
   parseMatrixRegistrationSessionJson(responseBody: string): string;
@@ -342,6 +349,50 @@ export interface MatrixReadMarkersRequest {
 
 export interface MatrixFullyReadContent {
   event_id: string;
+}
+
+export interface MatrixFilterEvent {
+  limit?: number;
+  types?: string[];
+}
+
+export interface MatrixRoomFilter {
+  timeline?: MatrixFilterEvent;
+  ephemeral?: MatrixFilterEvent;
+  account_data?: MatrixFilterEvent;
+}
+
+export interface MatrixFilterDefinition {
+  event_fields?: string[];
+  event_format?: string;
+  presence?: MatrixFilterEvent;
+  room?: MatrixRoomFilter;
+}
+
+export interface MatrixFilterCreateResponse {
+  filter_id: string;
+}
+
+export interface MatrixPresenceRequest {
+  presence: string;
+  status_msg?: string;
+}
+
+export interface MatrixPresenceContent {
+  presence: string;
+  last_active_ago?: number;
+  currently_active?: boolean;
+  status_msg?: string;
+}
+
+export interface MatrixPresenceEvent {
+  sender: string;
+  type: "m.presence";
+  content: MatrixPresenceContent;
+}
+
+export interface MatrixCapabilitiesResponse {
+  capabilities: Record<string, unknown>;
 }
 
 export interface MatrixMediaContentUri {
@@ -908,6 +959,24 @@ export interface HouraProtocolCoreFacade {
   parseMatrixFullyReadContent(
     responseBody: string,
   ): ProtocolResult<MatrixFullyReadContent>;
+  parseMatrixFilterDefinition(
+    responseBody: string,
+  ): ProtocolResult<MatrixFilterDefinition>;
+  parseMatrixFilterCreateResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixFilterCreateResponse>;
+  parseMatrixPresenceRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixPresenceRequest>;
+  parseMatrixPresenceContent(
+    responseBody: string,
+  ): ProtocolResult<MatrixPresenceContent>;
+  parseMatrixPresenceEvent(
+    responseBody: string,
+  ): ProtocolResult<MatrixPresenceEvent>;
+  parseMatrixCapabilitiesResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixCapabilitiesResponse>;
   parseMatrixSyncResponse(
     responseBody: string,
   ): ProtocolResult<MatrixSyncResponse>;
@@ -1441,6 +1510,48 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixFullyReadContentEnvelope(envelope);
+    },
+    parseMatrixFilterDefinition(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFilterDefinitionJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFilterDefinitionEnvelope(envelope);
+    },
+    parseMatrixFilterCreateResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFilterCreateResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFilterCreateResponseEnvelope(envelope);
+    },
+    parseMatrixPresenceRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixPresenceRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixPresenceRequestEnvelope(envelope);
+    },
+    parseMatrixPresenceContent(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixPresenceContentJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixPresenceContentEnvelope(envelope);
+    },
+    parseMatrixPresenceEvent(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixPresenceEventJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixPresenceEventEnvelope(envelope);
+    },
+    parseMatrixCapabilitiesResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixCapabilitiesResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixCapabilitiesResponseEnvelope(envelope);
     },
     parseMatrixSyncResponse(responseBody: string) {
       const envelope = parseJsonObject(
@@ -2842,6 +2953,122 @@ function readMatrixFullyReadContentEnvelope(
 ): ProtocolResult<MatrixFullyReadContent> {
   return readProtocolResult(envelope, (value) => ({
     event_id: readString(value, "event_id", "invalid_envelope"),
+  }));
+}
+
+function readMatrixFilterDefinitionEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFilterDefinition> {
+  return readProtocolResult(envelope, readMatrixFilterDefinition);
+}
+
+function readMatrixFilterDefinition(
+  value: Record<string, unknown>,
+): MatrixFilterDefinition {
+  const filter: MatrixFilterDefinition = {};
+  if (value.event_fields !== undefined) {
+    filter.event_fields = readStringArray(
+      value,
+      "event_fields",
+      "invalid_envelope",
+    );
+  }
+  readOptionalString(value, "event_format", (eventFormat) => {
+    filter.event_format = eventFormat;
+  });
+  readOptionalRecord(value, "presence", (presence) => {
+    filter.presence = readMatrixFilterEvent(presence);
+  });
+  readOptionalRecord(value, "room", (room) => {
+    const roomFilter: MatrixRoomFilter = {};
+    readOptionalRecord(room, "timeline", (timeline) => {
+      roomFilter.timeline = readMatrixFilterEvent(timeline);
+    });
+    readOptionalRecord(room, "ephemeral", (ephemeral) => {
+      roomFilter.ephemeral = readMatrixFilterEvent(ephemeral);
+    });
+    readOptionalRecord(room, "account_data", (accountData) => {
+      roomFilter.account_data = readMatrixFilterEvent(accountData);
+    });
+    filter.room = roomFilter;
+  });
+  return filter;
+}
+
+function readMatrixFilterEvent(value: Record<string, unknown>): MatrixFilterEvent {
+  const event: MatrixFilterEvent = {};
+  readOptionalNumber(value, "limit", (limit) => {
+    event.limit = limit;
+  });
+  if (value.types !== undefined) {
+    event.types = readStringArray(value, "types", "invalid_envelope");
+  }
+  return event;
+}
+
+function readMatrixFilterCreateResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFilterCreateResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    filter_id: readString(value, "filter_id", "invalid_envelope"),
+  }));
+}
+
+function readMatrixPresenceRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixPresenceRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const request: MatrixPresenceRequest = {
+      presence: readString(value, "presence", "invalid_envelope"),
+    };
+    readOptionalString(value, "status_msg", (statusMsg) => {
+      request.status_msg = statusMsg;
+    });
+    return request;
+  });
+}
+
+function readMatrixPresenceContentEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixPresenceContent> {
+  return readProtocolResult(envelope, readMatrixPresenceContent);
+}
+
+function readMatrixPresenceContent(
+  value: Record<string, unknown>,
+): MatrixPresenceContent {
+  const content: MatrixPresenceContent = {
+    presence: readString(value, "presence", "invalid_envelope"),
+  };
+  readOptionalNumber(value, "last_active_ago", (lastActiveAgo) => {
+    content.last_active_ago = lastActiveAgo;
+  });
+  readOptionalBoolean(value, "currently_active", (currentlyActive) => {
+    content.currently_active = currentlyActive;
+  });
+  readOptionalString(value, "status_msg", (statusMsg) => {
+    content.status_msg = statusMsg;
+  });
+  return content;
+}
+
+function readMatrixPresenceEventEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixPresenceEvent> {
+  return readProtocolResult(envelope, (value) => ({
+    sender: readString(value, "sender", "invalid_envelope"),
+    type: readString(value, "type", "invalid_envelope") as "m.presence",
+    content: readMatrixPresenceContent(
+      readRecord(value, "content", "presence event"),
+    ),
+  }));
+}
+
+function readMatrixCapabilitiesResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixCapabilitiesResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    capabilities: readRecord(value, "capabilities", "capabilities response"),
   }));
 }
 
