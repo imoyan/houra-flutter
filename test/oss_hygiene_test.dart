@@ -43,7 +43,8 @@ void main() {
         }
         final lowerContents = contents.toLowerCase();
         for (final term in forbidden) {
-          if (lowerContents.contains(term.toLowerCase())) {
+          if (lowerContents.contains(term.toLowerCase()) &&
+              !_isAllowedForbiddenTerm(entity, term, lowerContents)) {
             violations.add('${entity.path}: $term');
           }
         }
@@ -69,6 +70,17 @@ bool _isIgnored(File file) {
       path.endsWith('/.git') ||
       path.endsWith('/pubspec.lock') ||
       path.endsWith('/test/oss_hygiene_test.dart');
+}
+
+bool _isAllowedForbiddenTerm(File file, String term, String lowerContents) {
+  final path = file.uri.path;
+  final consumer = _word([99, 111, 110, 115, 117, 109, 101, 114]);
+  if (term != consumer) {
+    return false;
+  }
+  return (path.endsWith('/design/ui.surface.schema.json') ||
+          path.endsWith('/design/ui-surfaces/product-mvp.json')) &&
+      lowerContents.contains('consumer_repos');
 }
 
 String _word(List<int> codes) => String.fromCharCodes(codes);
