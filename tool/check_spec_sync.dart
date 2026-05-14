@@ -15,6 +15,10 @@ void main() {
   checkSpec040ProtocolCoreGate(failures);
   checkSpec048ProtocolCoreGate(failures);
   checkSpec049ProtocolCoreGate(failures);
+  checkSpec051ProtocolCoreGate(failures);
+  checkSpec053ProtocolCoreGate(failures);
+  checkSpec054ProtocolCoreGate(failures);
+  checkSpec069ProtocolCoreGate(failures);
 
   if (failures.isNotEmpty) {
     stderr.writeln('Spec sync check failed:');
@@ -526,6 +530,331 @@ void checkSpec049ProtocolCoreGate(List<String> failures) {
   }
 }
 
+void checkSpec051ProtocolCoreGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final contract = File(
+    '${specRoot.path}/contracts/SPEC-051-matrix-device-one-time-fallback-keys.md',
+  );
+  final vectors = [
+    'test-vectors/auth/matrix-keys-upload-device-one-time-fallback-basic.json',
+    'test-vectors/auth/matrix-keys-upload-malformed-device-keys.json',
+    'test-vectors/auth/matrix-keys-claim-one-time-fallback-basic.json',
+    'test-vectors/auth/matrix-keys-claim-invalid-algorithm.json',
+  ];
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-051 contract: ${contract.path}');
+    return;
+  }
+  checkVectorsHaveContract(failures, specRoot, 'SPEC-051', vectors);
+  checkReleaseEvidenceAdoption(
+    failures,
+    blockName: 'device_key_parser_adoption',
+    issue: 66,
+    specId: 'SPEC-051',
+    parityVectors: vectors,
+    parserOnlySurfaces: [
+      'device key upload request',
+      'one-time key upload request',
+      'fallback key upload request',
+      'one-time key count upload response',
+      'one-time/fallback key claim request',
+      'one-time/fallback key claim response',
+      'device-key Matrix error envelope',
+    ],
+    outOfScope: [
+      'Olm or Megolm key generation',
+      'private key storage',
+      'signature verification',
+      'trust policy decisions',
+      'claim lifecycle enforcement',
+      'Matrix E2EE support advertisement',
+    ],
+  );
+
+  checkRequiredFragments(
+    failures,
+    specId: 'SPEC-051',
+    requiredFragmentsByFile: {
+      'AGENTS.md': ['SPEC-051'],
+      'rust-protocol-core/src/lib.rs': [
+        '"SPEC-051"',
+        'parse_matrix_keys_upload_request',
+        'parse_matrix_keys_upload_response',
+        'parse_matrix_keys_claim_request',
+        'parse_matrix_keys_claim_response',
+        'parse_matrix_device_key_error',
+        'matrix-keys-upload-malformed-device-keys.json',
+      ],
+      'rust-protocol-core-wasm/src/lib.rs': [
+        'parseMatrixKeysUploadRequestJson',
+        'parseMatrixKeysUploadResponseJson',
+        'parseMatrixKeysClaimRequestJson',
+        'parseMatrixKeysClaimResponseJson',
+        'parseMatrixDeviceKeyErrorJson',
+      ],
+      'ts-protocol-core-wasm/src/index.ts': [
+        '"SPEC-051"',
+        'parseMatrixKeysUploadRequest',
+        'parseMatrixKeysUploadResponse',
+        'parseMatrixKeysClaimRequest',
+        'parseMatrixKeysClaimResponse',
+        'parseMatrixDeviceKeyError',
+      ],
+      'ts-protocol-core-wasm/test/index.test.mjs': [
+        'SPEC-051',
+        'matrix-keys-upload-device-one-time-fallback-basic.json',
+        'matrix-keys-claim-one-time-fallback-basic.json',
+        'matrix-keys-claim-invalid-algorithm.json',
+      ],
+    },
+  );
+}
+
+void checkSpec053ProtocolCoreGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final contract = File(
+    '${specRoot.path}/contracts/SPEC-053-matrix-key-backup-restore-gate.md',
+  );
+  final vectors = [
+    'test-vectors/messaging/matrix-key-backup-version-lifecycle.json',
+    'test-vectors/messaging/matrix-key-backup-session-upload-restore-basic.json',
+    'test-vectors/messaging/matrix-key-backup-wrong-version.json',
+    'test-vectors/messaging/matrix-key-backup-restore-missing-session.json',
+    'test-vectors/messaging/matrix-key-backup-owner-scope.json',
+    'test-vectors/messaging/matrix-key-backup-logout-relogin-recovery-gate.json',
+  ];
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-053 contract: ${contract.path}');
+    return;
+  }
+  checkVectorsHaveContract(failures, specRoot, 'SPEC-053', vectors);
+  checkReleaseEvidenceAdoption(
+    failures,
+    blockName: 'key_backup_parser_adoption',
+    issue: 68,
+    specId: 'SPEC-053',
+    parityVectors: vectors,
+    parserOnlySurfaces: [
+      'key backup version create response',
+      'key backup version metadata',
+      'room key backup session metadata',
+      'room key backup upload response',
+      'wrong-version and missing-session errors',
+      'owner-scope protection gate',
+      'logout/relogin recovery evidence gate',
+    ],
+    outOfScope: [
+      'Megolm backup encryption or decryption',
+      'room key storage',
+      'recovery secret storage',
+      'backup ownership authorization policy',
+      'logout/relogin UX',
+      'Matrix E2EE support advertisement',
+    ],
+  );
+
+  checkRequiredFragments(
+    failures,
+    specId: 'SPEC-053',
+    requiredFragmentsByFile: {
+      'rust-protocol-core/src/lib.rs': [
+        '"SPEC-053"',
+        'parse_matrix_key_backup_version_create_response',
+        'parse_matrix_key_backup_version',
+        'parse_matrix_key_backup_session',
+        'parse_matrix_key_backup_session_upload_response',
+        'parse_matrix_key_backup_error',
+        'parse_matrix_key_backup_owner_scope_gate',
+        'parse_matrix_key_backup_recovery_gate',
+        'matrix-key-backup-owner-scope.json',
+      ],
+      'rust-protocol-core-wasm/src/lib.rs': [
+        'parseMatrixKeyBackupVersionCreateResponseJson',
+        'parseMatrixKeyBackupVersionJson',
+        'parseMatrixKeyBackupSessionJson',
+        'parseMatrixKeyBackupSessionUploadResponseJson',
+        'parseMatrixKeyBackupErrorJson',
+        'parseMatrixKeyBackupOwnerScopeGateJson',
+        'parseMatrixKeyBackupRecoveryGateJson',
+      ],
+      'ts-protocol-core-wasm/src/index.ts': [
+        '"SPEC-053"',
+        'parseMatrixKeyBackupVersionCreateResponse',
+        'parseMatrixKeyBackupVersion',
+        'parseMatrixKeyBackupSession',
+        'parseMatrixKeyBackupSessionUploadResponse',
+        'parseMatrixKeyBackupError',
+        'parseMatrixKeyBackupOwnerScopeGate',
+        'parseMatrixKeyBackupRecoveryGate',
+      ],
+      'ts-protocol-core-wasm/test/index.test.mjs': [
+        'SPEC-053',
+        'matrix-key-backup-version-lifecycle.json',
+        'matrix-key-backup-session-upload-restore-basic.json',
+        'matrix-key-backup-owner-scope.json',
+      ],
+    },
+  );
+}
+
+void checkSpec054ProtocolCoreGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final contract = File(
+    '${specRoot.path}/contracts/SPEC-054-matrix-verification-cross-signing-gate.md',
+  );
+  final vectors = [
+    'test-vectors/messaging/matrix-verification-sas-to-device-happy-path.json',
+    'test-vectors/messaging/matrix-verification-sas-mismatch-cancel.json',
+    'test-vectors/messaging/matrix-cross-signing-key-lifecycle.json',
+    'test-vectors/messaging/matrix-cross-signing-invalid-signature.json',
+    'test-vectors/messaging/matrix-cross-signing-missing-token.json',
+    'test-vectors/messaging/matrix-wrong-device-failure-gate.json',
+  ];
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-054 contract: ${contract.path}');
+    return;
+  }
+  checkVectorsHaveContract(failures, specRoot, 'SPEC-054', vectors);
+  checkReleaseEvidenceAdoption(
+    failures,
+    blockName: 'verification_cross_signing_parser_adoption',
+    issue: 69,
+    specId: 'SPEC-054',
+    parityVectors: vectors,
+    parserOnlySurfaces: [
+      'SAS to-device message flow envelope',
+      'verification cancel envelope',
+      'cross-signing public key upload envelope',
+      'signature upload envelope',
+      'invalid signature failure envelope',
+      'missing-token gate envelope',
+      'wrong-device failure gate envelope',
+    ],
+    outOfScope: [
+      'local SAS calculation',
+      'Ed25519 verification',
+      'Olm or Megolm session handling',
+      'cross-signing private key storage',
+      'trust policy decisions',
+      'QR verification or account recovery UI',
+    ],
+  );
+
+  checkRequiredFragments(
+    failures,
+    specId: 'SPEC-054',
+    requiredFragmentsByFile: {
+      'rust-protocol-core/src/lib.rs': [
+        '"SPEC-054"',
+        'parse_matrix_verification_sas_flow',
+        'parse_matrix_verification_cancel',
+        'parse_matrix_cross_signing_device_signing_upload',
+        'parse_matrix_cross_signing_signature_upload',
+        'parse_matrix_cross_signing_invalid_signature_failure',
+        'parse_matrix_cross_signing_missing_token_gate',
+        'parse_matrix_wrong_device_failure_gate',
+        'matrix-cross-signing-missing-token.json',
+      ],
+      'rust-protocol-core-wasm/src/lib.rs': [
+        'parseMatrixVerificationSasFlowJson',
+        'parseMatrixVerificationCancelJson',
+        'parseMatrixCrossSigningDeviceSigningUploadJson',
+        'parseMatrixCrossSigningSignatureUploadJson',
+        'parseMatrixCrossSigningInvalidSignatureFailureJson',
+        'parseMatrixCrossSigningMissingTokenGateJson',
+        'parseMatrixWrongDeviceFailureGateJson',
+      ],
+      'ts-protocol-core-wasm/src/index.ts': [
+        '"SPEC-054"',
+        'parseMatrixVerificationSasFlow',
+        'parseMatrixVerificationCancel',
+        'parseMatrixCrossSigningDeviceSigningUpload',
+        'parseMatrixCrossSigningSignatureUpload',
+        'parseMatrixCrossSigningInvalidSignatureFailure',
+        'parseMatrixCrossSigningMissingTokenGate',
+        'parseMatrixWrongDeviceFailureGate',
+      ],
+      'ts-protocol-core-wasm/test/index.test.mjs': [
+        'SPEC-054',
+        'matrix-verification-sas-to-device-happy-path.json',
+        'matrix-cross-signing-key-lifecycle.json',
+        'matrix-wrong-device-failure-gate.json',
+      ],
+    },
+  );
+}
+
+void checkSpec069ProtocolCoreGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final contract = File(
+    '${specRoot.path}/contracts/SPEC-069-matrix-device-key-query.md',
+  );
+  final vectors = [
+    'test-vectors/auth/matrix-keys-query-basic.json',
+    'test-vectors/auth/matrix-keys-query-all-devices.json',
+    'test-vectors/auth/matrix-keys-query-unknown-device-omitted.json',
+    'test-vectors/auth/matrix-keys-query-missing-token.json',
+    'test-vectors/auth/matrix-keys-query-timeout-not-integer.json',
+  ];
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-069 contract: ${contract.path}');
+    return;
+  }
+  checkVectorsHaveContract(failures, specRoot, 'SPEC-069', vectors);
+  checkReleaseEvidenceAdoption(
+    failures,
+    blockName: 'device_key_query_parser_adoption',
+    issue: 65,
+    specId: 'SPEC-069',
+    parityVectors: vectors,
+    parserOnlySurfaces: [
+      'device key query request descriptor',
+      'all-devices query selector',
+      'public device-key query response',
+      'unknown-device omission response',
+      'device-key query Matrix error envelope',
+    ],
+    outOfScope: [
+      'signature verification',
+      'device trust decisions',
+      'secure storage',
+      'crypto verification',
+      'device list lifecycle',
+      'Matrix E2EE support advertisement',
+    ],
+  );
+
+  checkRequiredFragments(
+    failures,
+    specId: 'SPEC-069',
+    requiredFragmentsByFile: {
+      'AGENTS.md': ['SPEC-069'],
+      'rust-protocol-core/src/lib.rs': [
+        '"SPEC-069"',
+        'parse_matrix_device_key_query_request',
+        'parse_matrix_device_key_query_response',
+        'matrix-keys-query-all-devices.json',
+        'matrix-keys-query-timeout-not-integer.json',
+      ],
+      'rust-protocol-core-wasm/src/lib.rs': [
+        'parseMatrixDeviceKeyQueryRequestJson',
+        'parseMatrixDeviceKeyQueryResponseJson',
+      ],
+      'ts-protocol-core-wasm/src/index.ts': [
+        '"SPEC-069"',
+        'parseMatrixDeviceKeyQueryRequest',
+        'parseMatrixDeviceKeyQueryResponse',
+      ],
+      'ts-protocol-core-wasm/test/index.test.mjs': [
+        'SPEC-069',
+        'matrix-keys-query-basic.json',
+        'matrix-keys-query-all-devices.json',
+        'matrix-keys-query-missing-token.json',
+      ],
+    },
+  );
+}
+
 void checkSpec048ProtocolCoreGate(List<String> failures) {
   final specRoot = canonicalSpecRoot();
   final contract = File(
@@ -633,6 +962,46 @@ void checkSpec048ProtocolCoreGate(List<String> failures) {
       if (!source.contains(fragment)) {
         failures
             .add('${entry.key} is missing SPEC-048 gate fragment: $fragment');
+      }
+    }
+  }
+}
+
+void checkVectorsHaveContract(
+  List<String> failures,
+  Directory specRoot,
+  String specId,
+  List<String> vectorPaths,
+) {
+  for (final vectorPath in vectorPaths) {
+    final vector = File('${specRoot.path}/$vectorPath');
+    if (!vector.existsSync()) {
+      failures.add('Missing $specId canonical vector: ${vector.path}');
+      continue;
+    }
+    final decoded = jsonDecode(vector.readAsStringSync());
+    if (decoded is! Map<String, Object?> || decoded['contract'] != specId) {
+      failures.add('$specId vector has an unexpected contract id: $vectorPath');
+    }
+  }
+}
+
+void checkRequiredFragments(
+  List<String> failures, {
+  required String specId,
+  required Map<String, List<String>> requiredFragmentsByFile,
+}) {
+  for (final entry in requiredFragmentsByFile.entries) {
+    final file = File(entry.key);
+    if (!file.existsSync()) {
+      failures.add('Missing $specId gate file: ${entry.key}');
+      continue;
+    }
+    final source = file.readAsStringSync();
+    for (final fragment in entry.value) {
+      if (!source.contains(fragment)) {
+        failures
+            .add('${entry.key} is missing $specId gate fragment: $fragment');
       }
     }
   }
