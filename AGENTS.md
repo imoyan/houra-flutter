@@ -49,6 +49,25 @@ contract clarification.
 - Keep Codex-facing rules here.
 - Do not add broad publication docs until publication is being prepared.
 
+## Shared Boundary Defaults
+
+- Labs may prototype common boundaries when they reduce duplicate
+  implementation, repeated decisions, contract drift, validation gaps, or
+  maintenance cost across Houra repositories.
+- Good candidates include parser, normalizer, and input-checker cores, domain primitives,
+  identifier/URI/date/amount helpers, error mapping, retry/idempotency policy,
+  config and feature-flag interpretation, capability advertisement gates,
+  contract-vector adapters, and thin binding facades.
+- Commonization is not limited to security boundaries, but prototypes must
+  include hot-path notes: avoid hidden I/O, repeated JSON parsing, heavy
+  lookups, unbounded caches, and unnecessary cross-language boundary overhead.
+- Keep product semantics, host-owned token persistence, UI presentation,
+  storage policy, and adapter transport local to downstream repositories unless
+  `../houra-spec` or a planned adoption gate makes the shared boundary explicit.
+- Rust/WASM/FFI work remains a candidate, not a requirement. Record parity
+  vectors, performance evidence, packaging/rebuild cost, security boundary
+  review, and rollback notes before treating a prototype as adopted.
+
 ## Initial Surface
 
 The current package implements:
