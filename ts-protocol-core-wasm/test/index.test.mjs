@@ -1114,6 +1114,120 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixFilterDefinitionJson() {
+      return JSON.stringify(
+        overrides.filterDefinitionEnvelope ?? {
+          ok: true,
+          value: {
+            event_fields: ["type", "content", "sender"],
+            event_format: "client",
+            presence: {
+              types: ["m.presence"],
+            },
+            room: {
+              timeline: {
+                limit: 20,
+                types: ["m.room.message"],
+              },
+              ephemeral: {
+                types: ["m.receipt", "m.typing"],
+              },
+              account_data: {
+                types: ["m.tag", "m.fully_read"],
+              },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFilterCreateResponseJson() {
+      return JSON.stringify(
+        overrides.filterCreateResponseEnvelope ?? {
+          ok: true,
+          value: {
+            filter_id: "filter1",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixPresenceRequestJson() {
+      return JSON.stringify(
+        overrides.presenceRequestEnvelope ?? {
+          ok: true,
+          value: {
+            presence: "online",
+            status_msg: "Available",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixPresenceContentJson() {
+      return JSON.stringify(
+        overrides.presenceContentEnvelope ?? {
+          ok: true,
+          value: {
+            presence: "online",
+            currently_active: true,
+            status_msg: "Available",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixPresenceEventJson() {
+      return JSON.stringify(
+        overrides.presenceEventEnvelope ?? {
+          ok: true,
+          value: {
+            sender: "@alice:example.test",
+            type: "m.presence",
+            content: {
+              presence: "online",
+              currently_active: true,
+              status_msg: "Available",
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixCapabilitiesResponseJson() {
+      return JSON.stringify(
+        overrides.capabilitiesResponseEnvelope ?? {
+          ok: true,
+          value: {
+            capabilities: {
+              "m.change_password": {
+                enabled: true,
+              },
+              "m.forget_forced_upon_leave": {
+                enabled: false,
+              },
+              "m.room_versions": {
+                default: "12",
+                available: {
+                  "12": "stable",
+                },
+              },
+              "m.profile_fields": {
+                enabled: true,
+                allowed: ["displayname", "avatar_url", "m.tz"],
+              },
+              "m.set_displayname": {
+                enabled: true,
+              },
+              "m.set_avatar_url": {
+                enabled: true,
+              },
+            },
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixSyncResponseJson() {
       return JSON.stringify(
         overrides.syncResponseEnvelope ?? {
@@ -2000,6 +2114,78 @@ test("maps SPEC-046 receipts, typing, and read marker envelopes", () => {
   assert.equal(
     core.parseMatrixFullyReadContent("{}").value.event_id,
     "$event1:example.test",
+  );
+});
+
+test("maps SPEC-047 filters, presence, and capabilities envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const filter = readSpecVector("test-vectors/sync/matrix-filter-create-read-basic.json");
+  const filterMismatch = readSpecVector("test-vectors/sync/matrix-filter-user-mismatch.json");
+  const presence = readSpecVector("test-vectors/sync/matrix-presence-set-get-basic.json");
+  const presenceMismatch = readSpecVector(
+    "test-vectors/sync/matrix-presence-user-mismatch.json",
+  );
+  const capabilities = readSpecVector("test-vectors/sync/matrix-capabilities-basic.json");
+  const missingToken = readSpecVector(
+    "test-vectors/sync/matrix-capabilities-missing-token.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-047"));
+  for (const vector of [
+    filter,
+    filterMismatch,
+    presence,
+    presenceMismatch,
+    capabilities,
+    missingToken,
+  ]) {
+    assert.equal(vector.contract, "SPEC-047");
+  }
+
+  assert.deepEqual(core.parseMatrixFilterDefinition("{}").value.event_fields, [
+    "type",
+    "content",
+    "sender",
+  ]);
+  assert.equal(
+    core.parseMatrixFilterDefinition("{}").value.room.timeline.limit,
+    20,
+  );
+  assert.equal(
+    core.parseMatrixFilterCreateResponse("{}").value.filter_id,
+    "filter1",
+  );
+  assert.equal(core.parseMatrixPresenceRequest("{}").value.presence, "online");
+  assert.equal(
+    core.parseMatrixPresenceContent("{}").value.currently_active,
+    true,
+  );
+  assert.equal(core.parseMatrixPresenceEvent("{}").value.type, "m.presence");
+  assert.equal(
+    core.parseMatrixCapabilitiesResponse("{}").value.capabilities[
+      "m.room_versions"
+    ].default,
+    "12",
+  );
+
+  const invalidPresenceEventCore = createHouraProtocolCore(
+    binding({
+      presenceEventEnvelope: {
+        ok: true,
+        value: {
+          sender: "@alice:example.test",
+          type: "m.room.message",
+          content: {
+            presence: "online",
+          },
+        },
+        error: null,
+      },
+    }),
+  );
+  assert.throws(
+    () => invalidPresenceEventCore.parseMatrixPresenceEvent("{}"),
+    HouraProtocolCoreFacadeError,
   );
 });
 

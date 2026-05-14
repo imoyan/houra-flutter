@@ -88,6 +88,9 @@ The current package implements:
 - SPEC-046 Matrix Receipts / Typing / Read Markers parser-only request
   descriptors, ephemeral content envelopes, and fully read content envelopes
   only
+- SPEC-047 Matrix Filters / Presence / Capabilities parser-only filter
+  definition envelopes, presence envelopes, and capabilities response envelopes
+  only
 - SPEC-048 Matrix Room Directory / Aliases / Invites request descriptors,
   public response envelopes, stripped invite state envelopes, and Matrix error
   envelopes only

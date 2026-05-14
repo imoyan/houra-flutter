@@ -187,6 +187,36 @@ pub fn parse_matrix_fully_read_content_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_fully_read_content_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixFilterDefinitionJson)]
+pub fn parse_matrix_filter_definition_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_filter_definition_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFilterCreateResponseJson)]
+pub fn parse_matrix_filter_create_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_filter_create_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixPresenceRequestJson)]
+pub fn parse_matrix_presence_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_presence_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixPresenceContentJson)]
+pub fn parse_matrix_presence_content_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_presence_content_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixPresenceEventJson)]
+pub fn parse_matrix_presence_event_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_presence_event_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixCapabilitiesResponseJson)]
+pub fn parse_matrix_capabilities_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_capabilities_response_json(response_body.as_bytes())
+}
+
 #[wasm_bindgen(js_name = parseMatrixMediaContentUriJson)]
 pub fn parse_matrix_media_content_uri_json(content_uri: &str) -> String {
     houra_protocol_core::parse_matrix_media_content_uri_json(content_uri)
@@ -442,6 +472,11 @@ mod tests {
             .as_array()
             .expect("supported_specs should be an array")
             .iter()
+            .any(|spec| spec == "SPEC-047"));
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
             .any(|spec| spec == "SPEC-051"));
         assert!(manifest["supported_specs"]
             .as_array()
@@ -594,6 +629,44 @@ mod tests {
         assert_eq!(
             parse_matrix_fully_read_content_json("{\"event_id\":\"$event1:example.test\"}"),
             "{\"ok\":true,\"value\":{\"event_id\":\"$event1:example.test\"},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_filters_presence_capabilities_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_filter_definition_json(
+                "{\"event_fields\":[\"type\",\"content\"],\"event_format\":\"client\",\"presence\":{\"types\":[\"m.presence\"]},\"room\":{\"timeline\":{\"limit\":20,\"types\":[\"m.room.message\"]}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"event_fields\":[\"type\",\"content\"],\"event_format\":\"client\",\"presence\":{\"types\":[\"m.presence\"]},\"room\":{\"timeline\":{\"limit\":20,\"types\":[\"m.room.message\"]}}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_filter_create_response_json("{\"filter_id\":\"filter1\"}"),
+            "{\"ok\":true,\"value\":{\"filter_id\":\"filter1\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_presence_request_json(
+                "{\"presence\":\"online\",\"status_msg\":\"Available\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"presence\":\"online\",\"status_msg\":\"Available\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_presence_content_json(
+                "{\"presence\":\"online\",\"currently_active\":true,\"status_msg\":\"Available\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"presence\":\"online\",\"currently_active\":true,\"status_msg\":\"Available\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_presence_event_json(
+                "{\"sender\":\"@alice:example.test\",\"type\":\"m.presence\",\"content\":{\"presence\":\"online\"}}",
+            ),
+            "{\"ok\":true,\"value\":{\"sender\":\"@alice:example.test\",\"type\":\"m.presence\",\"content\":{\"presence\":\"online\"}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_capabilities_response_json(
+                "{\"capabilities\":{\"m.change_password\":{\"enabled\":true},\"m.room_versions\":{\"default\":\"12\",\"available\":{\"12\":\"stable\"}}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"capabilities\":{\"m.change_password\":{\"enabled\":true},\"m.room_versions\":{\"available\":{\"12\":\"stable\"},\"default\":\"12\"}}},\"error\":null}"
         );
     }
 
