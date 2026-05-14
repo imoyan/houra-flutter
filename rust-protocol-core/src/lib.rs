@@ -24,7 +24,7 @@ pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
-    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-054", "SPEC-055", "SPEC-056",
+    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -446,6 +446,66 @@ pub struct MatrixWrongDeviceFailureGate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupAuthData {
+    pub public_key: String,
+    pub signatures: BTreeMap<String, BTreeMap<String, String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupVersionCreateResponse {
+    pub version: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupVersion {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    pub algorithm: String,
+    pub auth_data: MatrixKeyBackupAuthData,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixKeyBackupSession {
+    pub first_message_index: u64,
+    pub forwarded_count: u64,
+    pub is_verified: bool,
+    pub session_data: BTreeMap<String, Value>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupSessionUploadResponse {
+    pub etag: String,
+    pub count: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupError {
+    pub status: u64,
+    pub errcode: String,
+    pub error: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_version: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupOwnerScopeGate {
+    pub owner_scope_enforced: bool,
+    pub protected_backup_unchanged: bool,
+    pub checked_steps: Vec<String>,
+    pub versions_advertisement_widened: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupRecoveryGate {
+    pub logout_relogin_restore: bool,
+    pub crypto_stack_required: bool,
+    pub local_olm_megolm_allowed: bool,
+    pub required_contracts: Vec<String>,
+    pub required_evidence: Vec<String>,
+    pub versions_advertisement_widened: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ProtocolErrorEnvelope {
     pub code: String,
     pub message: String,
@@ -725,6 +785,55 @@ pub struct MatrixWrongDeviceFailureGateParseEnvelope {
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupVersionCreateResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeyBackupVersionCreateResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupVersionParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeyBackupVersion>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixKeyBackupSessionParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeyBackupSession>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupSessionUploadResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeyBackupSessionUploadResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupErrorParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeyBackupError>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupOwnerScopeGateParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeyBackupOwnerScopeGate>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupRecoveryGateParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeyBackupRecoveryGate>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProtocolError {
     Json(String),
@@ -742,6 +851,7 @@ pub enum ProtocolError {
     InvalidMediaField { field: String },
     InvalidFederationField { field: String },
     InvalidVerificationField { field: String },
+    InvalidKeyBackupField { field: String },
 }
 
 impl ProtocolError {
@@ -764,6 +874,7 @@ impl ProtocolError {
             ProtocolError::InvalidMediaField { .. } => "invalid_media_field",
             ProtocolError::InvalidFederationField { .. } => "invalid_federation_field",
             ProtocolError::InvalidVerificationField { .. } => "invalid_verification_field",
+            ProtocolError::InvalidKeyBackupField { .. } => "invalid_key_backup_field",
         }
     }
 
@@ -801,6 +912,9 @@ impl ProtocolError {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidVerificationField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidKeyBackupField { field } => {
                 details.insert("field".to_owned(), field.clone());
             }
             _ => {}
@@ -868,6 +982,9 @@ impl std::fmt::Display for ProtocolError {
                     "{field} is not a valid Matrix verification value"
                 )
             }
+            ProtocolError::InvalidKeyBackupField { field } => {
+                write!(formatter, "{field} is not a valid Matrix key backup value")
+            }
         }
     }
 }
@@ -886,6 +1003,7 @@ struct MatrixErrorWire {
     errcode: Option<String>,
     error: Option<String>,
     retry_after_ms: Option<u64>,
+    current_version: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1157,6 +1275,58 @@ struct MatrixVerificationEventWire {
     trusted_identity: Option<MatrixWrongDeviceIdentityWire>,
     observed_identity: Option<MatrixWrongDeviceIdentityWire>,
     required_evidence: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeyBackupVersionWire {
+    version: Option<String>,
+    algorithm: Option<String>,
+    auth_data: Option<MatrixKeyBackupAuthDataWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeyBackupAuthDataWire {
+    public_key: Option<String>,
+    signatures: Option<BTreeMap<String, BTreeMap<String, String>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeyBackupSessionWire {
+    first_message_index: Option<i64>,
+    forwarded_count: Option<i64>,
+    is_verified: Option<bool>,
+    session_data: Option<BTreeMap<String, Value>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeyBackupSessionUploadResponseWire {
+    etag: Option<String>,
+    count: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeyBackupErrorWire {
+    status: Option<i64>,
+    error: Option<MatrixErrorWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeyBackupGateEventWire {
+    required_contracts: Option<Vec<String>>,
+    crypto_stack_required: Option<bool>,
+    local_olm_megolm_allowed: Option<bool>,
+    steps: Option<Vec<MatrixKeyBackupGateStepWire>>,
+    required_evidence: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeyBackupGateStepWire {
+    id: Option<String>,
+    required: Option<bool>,
+    expected_status: Option<i64>,
+    expected_error: Option<MatrixErrorWire>,
+    must_not_disclose_protected_backup: Option<bool>,
+    must_not_mutate_protected_backup: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -3012,6 +3182,301 @@ pub fn parse_matrix_wrong_device_failure_gate_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_key_backup_version_create_response(
+    bytes: &[u8],
+) -> Result<MatrixKeyBackupVersionCreateResponse, ProtocolError> {
+    let wire: MatrixKeyBackupVersionWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixKeyBackupVersionCreateResponse {
+        version: required_key_backup_string(wire.version, "key_backup.version")?,
+    })
+}
+
+pub fn parse_matrix_key_backup_version_create_response_envelope(
+    bytes: &[u8],
+) -> MatrixKeyBackupVersionCreateResponseParseEnvelope {
+    match parse_matrix_key_backup_version_create_response(bytes) {
+        Ok(value) => MatrixKeyBackupVersionCreateResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeyBackupVersionCreateResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_key_backup_version_create_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_key_backup_version_create_response_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_key_backup_version(
+    bytes: &[u8],
+) -> Result<MatrixKeyBackupVersion, ProtocolError> {
+    let wire: MatrixKeyBackupVersionWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    key_backup_version_from_wire(wire, "key_backup.version")
+}
+
+pub fn parse_matrix_key_backup_version_envelope(
+    bytes: &[u8],
+) -> MatrixKeyBackupVersionParseEnvelope {
+    match parse_matrix_key_backup_version(bytes) {
+        Ok(value) => MatrixKeyBackupVersionParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeyBackupVersionParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_key_backup_version_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_key_backup_version_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_key_backup_session(
+    bytes: &[u8],
+) -> Result<MatrixKeyBackupSession, ProtocolError> {
+    let wire: MatrixKeyBackupSessionWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    key_backup_session_from_wire(wire, "key_backup.session")
+}
+
+pub fn parse_matrix_key_backup_session_envelope(
+    bytes: &[u8],
+) -> MatrixKeyBackupSessionParseEnvelope {
+    match parse_matrix_key_backup_session(bytes) {
+        Ok(value) => MatrixKeyBackupSessionParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeyBackupSessionParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_key_backup_session_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_key_backup_session_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_key_backup_session_upload_response(
+    bytes: &[u8],
+) -> Result<MatrixKeyBackupSessionUploadResponse, ProtocolError> {
+    let wire: MatrixKeyBackupSessionUploadResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixKeyBackupSessionUploadResponse {
+        etag: required_key_backup_string(wire.etag, "key_backup.session_upload.etag")?,
+        count: required_key_backup_non_negative_i64(wire.count, "key_backup.session_upload.count")?,
+    })
+}
+
+pub fn parse_matrix_key_backup_session_upload_response_envelope(
+    bytes: &[u8],
+) -> MatrixKeyBackupSessionUploadResponseParseEnvelope {
+    match parse_matrix_key_backup_session_upload_response(bytes) {
+        Ok(value) => MatrixKeyBackupSessionUploadResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeyBackupSessionUploadResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_key_backup_session_upload_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_key_backup_session_upload_response_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_key_backup_error(bytes: &[u8]) -> Result<MatrixKeyBackupError, ProtocolError> {
+    let wire: MatrixKeyBackupErrorWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let error = wire
+        .error
+        .ok_or_else(|| invalid_key_backup_field("key_backup.error"))?;
+    Ok(MatrixKeyBackupError {
+        status: required_key_backup_non_negative_i64(wire.status, "key_backup.status")?,
+        errcode: required_key_backup_string(error.errcode, "key_backup.error.errcode")?,
+        error: required_key_backup_string(error.error, "key_backup.error.error")?,
+        current_version: optional_key_backup_string(
+            error.current_version,
+            "key_backup.error.current_version",
+        )?,
+    })
+}
+
+pub fn parse_matrix_key_backup_error_envelope(bytes: &[u8]) -> MatrixKeyBackupErrorParseEnvelope {
+    match parse_matrix_key_backup_error(bytes) {
+        Ok(value) => MatrixKeyBackupErrorParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeyBackupErrorParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_key_backup_error_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_key_backup_error_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_key_backup_owner_scope_gate(
+    bytes: &[u8],
+) -> Result<MatrixKeyBackupOwnerScopeGate, ProtocolError> {
+    let wire: MatrixKeyBackupGateEventWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let mut checked_steps = Vec::new();
+    for (index, step) in key_backup_steps(wire.steps)?.into_iter().enumerate() {
+        let id = required_key_backup_string(
+            step.id,
+            &format!("key_backup.owner_scope.steps.{index}.id"),
+        )?;
+        let status = step.expected_status.ok_or_else(|| {
+            invalid_key_backup_field(&format!(
+                "key_backup.owner_scope.steps.{index}.expected_status"
+            ))
+        })?;
+        if status != 404 {
+            return Err(invalid_key_backup_field(&format!(
+                "key_backup.owner_scope.steps.{index}.expected_status"
+            )));
+        }
+        let error = step.expected_error.ok_or_else(|| {
+            invalid_key_backup_field(&format!(
+                "key_backup.owner_scope.steps.{index}.expected_error"
+            ))
+        })?;
+        let errcode = required_key_backup_string(
+            error.errcode,
+            &format!("key_backup.owner_scope.steps.{index}.expected_error.errcode"),
+        )?;
+        if errcode != "M_NOT_FOUND" {
+            return Err(invalid_key_backup_field(&format!(
+                "key_backup.owner_scope.steps.{index}.expected_error.errcode"
+            )));
+        }
+        if id.contains("read") && step.must_not_disclose_protected_backup != Some(true) {
+            return Err(invalid_key_backup_field(&format!(
+                "key_backup.owner_scope.steps.{index}.must_not_disclose_protected_backup"
+            )));
+        }
+        if id.contains("overwrite") && step.must_not_mutate_protected_backup != Some(true) {
+            return Err(invalid_key_backup_field(&format!(
+                "key_backup.owner_scope.steps.{index}.must_not_mutate_protected_backup"
+            )));
+        }
+        checked_steps.push(id);
+    }
+    if checked_steps.len() < 4 {
+        return Err(invalid_key_backup_field("key_backup.owner_scope.steps"));
+    }
+    Ok(MatrixKeyBackupOwnerScopeGate {
+        owner_scope_enforced: true,
+        protected_backup_unchanged: true,
+        checked_steps,
+        versions_advertisement_widened: false,
+    })
+}
+
+pub fn parse_matrix_key_backup_owner_scope_gate_envelope(
+    bytes: &[u8],
+) -> MatrixKeyBackupOwnerScopeGateParseEnvelope {
+    match parse_matrix_key_backup_owner_scope_gate(bytes) {
+        Ok(value) => MatrixKeyBackupOwnerScopeGateParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeyBackupOwnerScopeGateParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_key_backup_owner_scope_gate_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_key_backup_owner_scope_gate_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_key_backup_recovery_gate(
+    bytes: &[u8],
+) -> Result<MatrixKeyBackupRecoveryGate, ProtocolError> {
+    let wire: MatrixKeyBackupGateEventWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let steps = key_backup_steps(wire.steps)?;
+    let required_contracts = required_key_backup_string_array(
+        wire.required_contracts,
+        "key_backup.recovery.required_contracts",
+    )?;
+    let required_evidence = required_key_backup_string_array(
+        wire.required_evidence,
+        "key_backup.recovery.required_evidence",
+    )?;
+    if steps.len() < 6 || steps.iter().any(|step| step.required != Some(true)) {
+        return Err(invalid_key_backup_field("key_backup.recovery.steps"));
+    }
+    Ok(MatrixKeyBackupRecoveryGate {
+        logout_relogin_restore: true,
+        crypto_stack_required: wire.crypto_stack_required == Some(true),
+        local_olm_megolm_allowed: wire.local_olm_megolm_allowed == Some(true),
+        required_contracts,
+        required_evidence,
+        versions_advertisement_widened: false,
+    })
+}
+
+pub fn parse_matrix_key_backup_recovery_gate_envelope(
+    bytes: &[u8],
+) -> MatrixKeyBackupRecoveryGateParseEnvelope {
+    match parse_matrix_key_backup_recovery_gate(bytes) {
+        Ok(value) => MatrixKeyBackupRecoveryGateParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeyBackupRecoveryGateParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_key_backup_recovery_gate_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_key_backup_recovery_gate_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 fn required_non_empty(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
     match value {
         Some(value) if !value.is_empty() => Ok(value),
@@ -3358,6 +3823,145 @@ fn invalid_verification_field(field: &str) -> ProtocolError {
     ProtocolError::InvalidVerificationField {
         field: field.to_owned(),
     }
+}
+
+fn invalid_key_backup_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidKeyBackupField {
+        field: field.to_owned(),
+    }
+}
+
+fn required_key_backup_string(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_key_backup_field(field)),
+    }
+}
+
+fn optional_key_backup_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<Option<String>, ProtocolError> {
+    match value {
+        Some(value) if value.is_empty() => Err(invalid_key_backup_field(field)),
+        value => Ok(value),
+    }
+}
+
+fn required_key_backup_non_negative_i64(
+    value: Option<i64>,
+    field: &str,
+) -> Result<u64, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(value as u64),
+        _ => Err(invalid_key_backup_field(field)),
+    }
+}
+
+fn required_key_backup_string_array(
+    value: Option<Vec<String>>,
+    field: &str,
+) -> Result<Vec<String>, ProtocolError> {
+    let values = value.ok_or_else(|| invalid_key_backup_field(field))?;
+    if values.is_empty() || values.iter().any(String::is_empty) {
+        Err(invalid_key_backup_field(field))
+    } else {
+        Ok(values)
+    }
+}
+
+fn key_backup_version_from_wire(
+    wire: MatrixKeyBackupVersionWire,
+    context: &str,
+) -> Result<MatrixKeyBackupVersion, ProtocolError> {
+    Ok(MatrixKeyBackupVersion {
+        version: optional_key_backup_string(wire.version, &format!("{context}.version"))?,
+        algorithm: required_key_backup_string(wire.algorithm, &format!("{context}.algorithm"))?,
+        auth_data: key_backup_auth_data_from_wire(
+            wire.auth_data
+                .ok_or_else(|| invalid_key_backup_field(&format!("{context}.auth_data")))?,
+            &format!("{context}.auth_data"),
+        )?,
+    })
+}
+
+fn key_backup_auth_data_from_wire(
+    wire: MatrixKeyBackupAuthDataWire,
+    context: &str,
+) -> Result<MatrixKeyBackupAuthData, ProtocolError> {
+    Ok(MatrixKeyBackupAuthData {
+        public_key: required_key_backup_string(wire.public_key, &format!("{context}.public_key"))?,
+        signatures: optional_key_backup_nested_string_map(
+            wire.signatures,
+            &format!("{context}.signatures"),
+        )?,
+    })
+}
+
+fn key_backup_session_from_wire(
+    wire: MatrixKeyBackupSessionWire,
+    context: &str,
+) -> Result<MatrixKeyBackupSession, ProtocolError> {
+    let session_data = wire
+        .session_data
+        .ok_or_else(|| invalid_key_backup_field(&format!("{context}.session_data")))?;
+    if session_data.is_empty() {
+        return Err(invalid_key_backup_field(&format!("{context}.session_data")));
+    }
+    Ok(MatrixKeyBackupSession {
+        first_message_index: required_key_backup_non_negative_i64(
+            wire.first_message_index,
+            &format!("{context}.first_message_index"),
+        )?,
+        forwarded_count: required_key_backup_non_negative_i64(
+            wire.forwarded_count,
+            &format!("{context}.forwarded_count"),
+        )?,
+        is_verified: wire
+            .is_verified
+            .ok_or_else(|| invalid_key_backup_field(&format!("{context}.is_verified")))?,
+        session_data,
+    })
+}
+
+fn key_backup_steps(
+    value: Option<Vec<MatrixKeyBackupGateStepWire>>,
+) -> Result<Vec<MatrixKeyBackupGateStepWire>, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_key_backup_field("key_backup.steps")),
+    }
+}
+
+fn optional_key_backup_nested_string_map(
+    value: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    field: &str,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, ProtocolError> {
+    match value {
+        Some(map) => validate_key_backup_nested_string_map(map, field),
+        None => Ok(BTreeMap::new()),
+    }
+}
+
+fn validate_key_backup_nested_string_map(
+    map: BTreeMap<String, BTreeMap<String, String>>,
+    field: &str,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, ProtocolError> {
+    if map.is_empty() {
+        return Err(invalid_key_backup_field(field));
+    }
+    for (outer_key, inner) in &map {
+        if outer_key.is_empty() || inner.is_empty() {
+            return Err(invalid_key_backup_field(field));
+        }
+        if inner
+            .iter()
+            .any(|(inner_key, value)| inner_key.is_empty() || value.is_empty())
+        {
+            return Err(invalid_key_backup_field(field));
+        }
+    }
+    Ok(map)
 }
 
 fn required_verification_borrowed_string<'a>(
@@ -3799,7 +4403,8 @@ mod tests {
             manifest.supported_specs,
             vec![
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
-                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-054", "SPEC-055", "SPEC-056"
+                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-053", "SPEC-054", "SPEC-055",
+                "SPEC-056"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -4055,6 +4660,134 @@ mod tests {
             .supported_specs
             .iter()
             .any(|spec| spec == "SPEC-054"));
+    }
+
+    #[test]
+    fn parses_spec_053_key_backup_metadata_vectors() {
+        let lifecycle =
+            read_spec_vector("test-vectors/messaging/matrix-key-backup-version-lifecycle.json");
+        assert_eq!(lifecycle["contract"], "SPEC-053");
+        let steps = lifecycle["event"]["steps"]
+            .as_array()
+            .expect("key backup lifecycle should contain steps");
+        let parsed_create_response = parse_matrix_key_backup_version_create_response(
+            steps[0]["expected_body_contains"].to_string().as_bytes(),
+        )
+        .expect("SPEC-053 key backup create response should parse");
+        assert_eq!(parsed_create_response.version, "1");
+        let parsed_create_body =
+            parse_matrix_key_backup_version(steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-053 key backup create body should parse");
+        assert_eq!(
+            parsed_create_body.algorithm,
+            "m.megolm_backup.v1.curve25519-aes-sha2"
+        );
+        assert_eq!(
+            parsed_create_body.auth_data.public_key,
+            "backup-public-key-1"
+        );
+        let parsed_current = parse_matrix_key_backup_version(
+            steps[1]["expected_body_contains"].to_string().as_bytes(),
+        )
+        .expect("SPEC-053 key backup current version should parse");
+        assert_eq!(parsed_current.version.as_deref(), Some("1"));
+        let parsed_update =
+            parse_matrix_key_backup_version(steps[2]["body"].to_string().as_bytes())
+                .expect("SPEC-053 key backup update body should parse");
+        assert_eq!(
+            parsed_update
+                .auth_data
+                .signatures
+                .get("@alice:example.test")
+                .and_then(|signatures| signatures.get("ed25519:DEVICE2"))
+                .map(String::as_str),
+            Some("signature-backup-2")
+        );
+
+        let restore = read_spec_vector(
+            "test-vectors/messaging/matrix-key-backup-session-upload-restore-basic.json",
+        );
+        assert_eq!(restore["contract"], "SPEC-053");
+        let restore_steps = restore["event"]["steps"]
+            .as_array()
+            .expect("key backup restore vector should contain steps");
+        let parsed_session =
+            parse_matrix_key_backup_session(restore_steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-053 key backup upload session should parse");
+        assert_eq!(parsed_session.first_message_index, 1);
+        assert_eq!(parsed_session.forwarded_count, 0);
+        assert!(parsed_session.is_verified);
+        assert_eq!(
+            parsed_session.session_data["ciphertext"],
+            "backup-ciphertext"
+        );
+        let parsed_upload_response = parse_matrix_key_backup_session_upload_response(
+            restore_steps[0]["expected_body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-053 key backup upload response should parse");
+        assert_eq!(parsed_upload_response.etag, "etag-1");
+        assert_eq!(parsed_upload_response.count, 1);
+        let parsed_restore = parse_matrix_key_backup_session(
+            restore_steps[1]["expected_body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-053 key backup restore body should parse");
+        assert_eq!(parsed_restore.session_data["mac"], "backup-mac");
+
+        let wrong_version =
+            read_spec_vector("test-vectors/messaging/matrix-key-backup-wrong-version.json");
+        let parsed_wrong_version =
+            parse_matrix_key_backup_error(wrong_version["expected"].to_string().as_bytes())
+                .expect("SPEC-053 wrong version error should parse");
+        assert_eq!(parsed_wrong_version.status, 403);
+        assert_eq!(parsed_wrong_version.errcode, "M_WRONG_ROOM_KEYS_VERSION");
+        assert_eq!(parsed_wrong_version.current_version.as_deref(), Some("1"));
+
+        let missing_session = read_spec_vector(
+            "test-vectors/messaging/matrix-key-backup-restore-missing-session.json",
+        );
+        let parsed_missing_session =
+            parse_matrix_key_backup_error(missing_session["expected"].to_string().as_bytes())
+                .expect("SPEC-053 missing session error should parse");
+        assert_eq!(parsed_missing_session.status, 404);
+        assert_eq!(parsed_missing_session.errcode, "M_NOT_FOUND");
+
+        let owner_scope =
+            read_spec_vector("test-vectors/messaging/matrix-key-backup-owner-scope.json");
+        let parsed_owner_scope =
+            parse_matrix_key_backup_owner_scope_gate(owner_scope["event"].to_string().as_bytes())
+                .expect("SPEC-053 owner scope gate should parse");
+        assert!(parsed_owner_scope.owner_scope_enforced);
+        assert!(parsed_owner_scope.protected_backup_unchanged);
+        assert_eq!(parsed_owner_scope.checked_steps.len(), 4);
+        assert!(!parsed_owner_scope.versions_advertisement_widened);
+
+        let recovery_gate = read_spec_vector(
+            "test-vectors/messaging/matrix-key-backup-logout-relogin-recovery-gate.json",
+        );
+        let parsed_recovery_gate =
+            parse_matrix_key_backup_recovery_gate(recovery_gate["event"].to_string().as_bytes())
+                .expect("SPEC-053 logout/relogin recovery gate should parse");
+        assert!(parsed_recovery_gate.logout_relogin_restore);
+        assert!(parsed_recovery_gate.crypto_stack_required);
+        assert!(!parsed_recovery_gate.local_olm_megolm_allowed);
+        assert_eq!(
+            parsed_recovery_gate.required_contracts,
+            vec!["SPEC-050", "SPEC-052", "SPEC-053"]
+        );
+        assert!(parsed_recovery_gate
+            .required_evidence
+            .contains(&"per_step_pass_fail".to_owned()));
+        assert!(!parsed_recovery_gate.versions_advertisement_widened);
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-053"));
     }
 
     #[test]

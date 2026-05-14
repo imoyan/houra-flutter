@@ -13,6 +13,7 @@ const expectedSpecIds = [
   'SPEC-038',
   'SPEC-039',
   'SPEC-040',
+  'SPEC-053',
   'SPEC-054',
   'SPEC-055',
   'SPEC-056',
@@ -159,6 +160,36 @@ void main(List<String> args) {
       'primary_runtime_target': 'browser-esm',
       'secondary_facade_targets': ['next', 'vue'],
       'node_runtime_status': 'package-validation-and-tests-only',
+    },
+    'key_backup_parser_adoption': {
+      'issue': 68,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-053'],
+      'parity_vectors': [
+        'test-vectors/messaging/matrix-key-backup-version-lifecycle.json',
+        'test-vectors/messaging/matrix-key-backup-session-upload-restore-basic.json',
+        'test-vectors/messaging/matrix-key-backup-wrong-version.json',
+        'test-vectors/messaging/matrix-key-backup-restore-missing-session.json',
+        'test-vectors/messaging/matrix-key-backup-owner-scope.json',
+        'test-vectors/messaging/matrix-key-backup-logout-relogin-recovery-gate.json',
+      ],
+      'parser_only_surfaces': [
+        'key backup version create response',
+        'key backup version metadata',
+        'room key backup session metadata',
+        'room key backup upload response',
+        'wrong-version and missing-session errors',
+        'owner-scope protection gate',
+        'logout/relogin recovery evidence gate',
+      ],
+      'out_of_scope': [
+        'Megolm backup encryption or decryption',
+        'room key storage',
+        'recovery secret storage',
+        'backup ownership authorization policy',
+        'logout/relogin UX',
+        'Matrix E2EE support advertisement',
+      ],
     },
     'verification_cross_signing_parser_adoption': {
       'issue': 69,
@@ -380,7 +411,7 @@ void main(List<String> args) {
         'command': 'cargo test --locked',
         'guards': [
           'artifact manifest serializes stably',
-          'covered SPEC ids include SPEC-030 through SPEC-040',
+          'covered SPEC ids include SPEC-030 through SPEC-040 and SPEC-053 through SPEC-056',
         ],
       },
       {

@@ -474,6 +474,123 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixKeyBackupVersionCreateResponseJson() {
+      return JSON.stringify(
+        overrides.keyBackupVersionCreateResponseEnvelope ?? {
+          ok: true,
+          value: {
+            version: "1",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeyBackupVersionJson() {
+      return JSON.stringify(
+        overrides.keyBackupVersionEnvelope ?? {
+          ok: true,
+          value: {
+            version: "1",
+            algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+            auth_data: {
+              public_key: "curve25519-public",
+              signatures: {
+                "@alice:example.test": {
+                  "ed25519:ALICE1": "signature",
+                },
+              },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeyBackupSessionJson() {
+      return JSON.stringify(
+        overrides.keyBackupSessionEnvelope ?? {
+          ok: true,
+          value: {
+            first_message_index: 1,
+            forwarded_count: 0,
+            is_verified: true,
+            session_data: {
+              ephemeral: "ephemeral",
+              ciphertext: "ciphertext",
+              mac: "mac",
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeyBackupSessionUploadResponseJson() {
+      return JSON.stringify(
+        overrides.keyBackupSessionUploadResponseEnvelope ?? {
+          ok: true,
+          value: {
+            etag: "etag-1",
+            count: 1,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeyBackupErrorJson() {
+      return JSON.stringify(
+        overrides.keyBackupErrorEnvelope ?? {
+          ok: true,
+          value: {
+            status: 403,
+            errcode: "M_WRONG_ROOM_KEYS_VERSION",
+            error: "Wrong room keys version.",
+            current_version: "1",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeyBackupOwnerScopeGateJson() {
+      return JSON.stringify(
+        overrides.keyBackupOwnerScopeGateEnvelope ?? {
+          ok: true,
+          value: {
+            owner_scope_enforced: true,
+            protected_backup_unchanged: true,
+            checked_steps: [
+              "alice-read-own-backup",
+              "bob-read-alice-backup",
+              "bob-overwrite-alice-backup",
+              "alice-read-backup-after-bob-attempt",
+            ],
+            versions_advertisement_widened: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeyBackupRecoveryGateJson() {
+      return JSON.stringify(
+        overrides.keyBackupRecoveryGateEnvelope ?? {
+          ok: true,
+          value: {
+            logout_relogin_restore: true,
+            crypto_stack_required: true,
+            local_olm_megolm_allowed: false,
+            required_contracts: ["SPEC-050", "SPEC-052", "SPEC-053"],
+            required_evidence: [
+              "backup_version_created_before_logout",
+              "session_uploaded_before_logout",
+              "fresh_device_has_no_local_room_key_before_restore",
+              "restore_uses_backup_version_with_recovery_secret",
+              "decrypted_event_matches_pre_logout_plaintext",
+              "versions_advertisement_unchanged",
+            ],
+            versions_advertisement_widened: false,
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixMessagesResponseJson() {
       return JSON.stringify(
         overrides.messagesResponseEnvelope ?? {
@@ -1097,6 +1214,141 @@ test("maps SPEC-054 verification and cross-signing envelopes", () => {
   assert.equal(
     protoSignatureUpload.value.signed_objects.__proto__.__proto__.user_id,
     "@alice:example.test",
+  );
+});
+
+test("maps SPEC-053 key backup metadata envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const lifecycle = readSpecVector(
+    "test-vectors/messaging/matrix-key-backup-version-lifecycle.json",
+  );
+  const restore = readSpecVector(
+    "test-vectors/messaging/matrix-key-backup-session-upload-restore-basic.json",
+  );
+  const wrongVersion = readSpecVector(
+    "test-vectors/messaging/matrix-key-backup-wrong-version.json",
+  );
+  const missingSession = readSpecVector(
+    "test-vectors/messaging/matrix-key-backup-restore-missing-session.json",
+  );
+  const ownerScope = readSpecVector(
+    "test-vectors/messaging/matrix-key-backup-owner-scope.json",
+  );
+  const recoveryGate = readSpecVector(
+    "test-vectors/messaging/matrix-key-backup-logout-relogin-recovery-gate.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-053"));
+  for (const vector of [
+    lifecycle,
+    restore,
+    wrongVersion,
+    missingSession,
+    ownerScope,
+    recoveryGate,
+  ]) {
+    assert.equal(vector.contract, "SPEC-053");
+  }
+  assert.equal(lifecycle.event.steps.length, 4);
+  assert.equal(restore.event.steps.length, 2);
+  assert.deepEqual(core.parseMatrixKeyBackupVersionCreateResponse("{}"), {
+    ok: true,
+    value: {
+      version: "1",
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixKeyBackupVersion("{}"), {
+    ok: true,
+    value: {
+      version: "1",
+      algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+      auth_data: {
+        public_key: "curve25519-public",
+        signatures: {
+          "@alice:example.test": {
+            "ed25519:ALICE1": "signature",
+          },
+        },
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixKeyBackupSession("{}"), {
+    ok: true,
+    value: {
+      first_message_index: 1,
+      forwarded_count: 0,
+      is_verified: true,
+      session_data: {
+        ephemeral: "ephemeral",
+        ciphertext: "ciphertext",
+        mac: "mac",
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixKeyBackupSessionUploadResponse("{}"), {
+    ok: true,
+    value: {
+      etag: "etag-1",
+      count: 1,
+    },
+    error: null,
+  });
+  assert.equal(
+    core.parseMatrixKeyBackupError("{}").value.errcode,
+    "M_WRONG_ROOM_KEYS_VERSION",
+  );
+  assert.equal(core.parseMatrixKeyBackupError("{}").value.current_version, "1");
+  assert.equal(
+    createHouraProtocolCore(
+      binding({
+        keyBackupErrorEnvelope: {
+          ok: true,
+          value: {
+            status: 404,
+            errcode: "M_NOT_FOUND",
+            error: "Room key session not found.",
+          },
+          error: null,
+        },
+      }),
+    ).parseMatrixKeyBackupError("{}").value.errcode,
+    "M_NOT_FOUND",
+  );
+  assert.equal(
+    core.parseMatrixKeyBackupOwnerScopeGate("{}").value.owner_scope_enforced,
+    true,
+  );
+  assert.equal(
+    core.parseMatrixKeyBackupRecoveryGate("{}").value.local_olm_megolm_allowed,
+    false,
+  );
+
+  const protoKeyCore = createHouraProtocolCore(
+    binding({
+      keyBackupVersionEnvelope: {
+        ok: true,
+        value: {
+          algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+          auth_data: {
+            public_key: "curve25519-public",
+            signatures: {
+              ["__proto__"]: {
+                ["__proto__"]: "signature",
+              },
+            },
+          },
+        },
+        error: null,
+      },
+    }),
+  );
+  assert.equal(
+    protoKeyCore.parseMatrixKeyBackupVersion("{}").value.auth_data.signatures
+      .__proto__.__proto__,
+    "signature",
   );
 });
 
