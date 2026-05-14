@@ -3055,13 +3055,22 @@ function readMatrixPresenceContent(
 function readMatrixPresenceEventEnvelope(
   envelope: Record<string, unknown>,
 ): ProtocolResult<MatrixPresenceEvent> {
-  return readProtocolResult(envelope, (value) => ({
-    sender: readString(value, "sender", "invalid_envelope"),
-    type: readString(value, "type", "invalid_envelope") as "m.presence",
-    content: readMatrixPresenceContent(
-      readRecord(value, "content", "presence event"),
-    ),
-  }));
+  return readProtocolResult(envelope, (value) => {
+    const eventType = readString(value, "type", "invalid_envelope");
+    if (eventType !== "m.presence") {
+      throw new HouraProtocolCoreFacadeError(
+        "invalid_envelope",
+        "type must be m.presence",
+      );
+    }
+    return {
+      sender: readString(value, "sender", "invalid_envelope"),
+      type: eventType,
+      content: readMatrixPresenceContent(
+        readRecord(value, "content", "presence event"),
+      ),
+    };
+  });
 }
 
 function readMatrixCapabilitiesResponseEnvelope(

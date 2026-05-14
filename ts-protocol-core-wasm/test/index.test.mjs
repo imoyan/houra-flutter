@@ -2167,6 +2167,26 @@ test("maps SPEC-047 filters, presence, and capabilities envelopes", () => {
     ].default,
     "12",
   );
+
+  const invalidPresenceEventCore = createHouraProtocolCore(
+    binding({
+      presenceEventEnvelope: {
+        ok: true,
+        value: {
+          sender: "@alice:example.test",
+          type: "m.room.message",
+          content: {
+            presence: "online",
+          },
+        },
+        error: null,
+      },
+    }),
+  );
+  assert.throws(
+    () => invalidPresenceEventCore.parseMatrixPresenceEvent("{}"),
+    HouraProtocolCoreFacadeError,
+  );
 });
 
 test("maps SPEC-049 moderation, reporting, and admin envelopes", () => {

@@ -3464,7 +3464,7 @@ pub fn parse_matrix_filter_create_response(
         serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
     let filter_id =
         required_filters_presence_capabilities_string(wire.filter_id, "filter_response.filter_id")?;
-    if filter_id.starts_with('{') {
+    if !is_valid_filter_id(&filter_id) {
         return Err(invalid_filters_presence_capabilities_field(
             "filter_response.filter_id",
         ));
@@ -6525,6 +6525,13 @@ fn required_presence_value(value: Option<String>, field: &str) -> Result<String,
     }
 }
 
+fn is_valid_filter_id(value: &str) -> bool {
+    !value.starts_with('{')
+        && value
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-' | ':'))
+}
+
 fn matrix_filter_event_from_wire(
     wire: MatrixFilterEventWire,
     field: &str,
@@ -8363,6 +8370,7 @@ mod tests {
 
         assert!(parse_matrix_filter_definition(br#"{"event_format":"bad"}"#).is_err());
         assert!(parse_matrix_filter_create_response(br#"{"filter_id":"{bad"}"#).is_err());
+        assert!(parse_matrix_filter_create_response(br#"{"filter_id":"bad id"}"#).is_err());
         assert!(parse_matrix_presence_request(br#"{"presence":"busy"}"#).is_err());
         assert!(
             parse_matrix_presence_content(br#"{"presence":"online","last_active_ago":-1}"#)
