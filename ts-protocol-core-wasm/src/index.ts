@@ -21,6 +21,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-054",
   "SPEC-055",
   "SPEC-056",
+  "SPEC-069",
 ] as const;
 
 export interface HouraProtocolCoreWasmBinding {
@@ -55,6 +56,8 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixKeysClaimRequestJson(responseBody: string): string;
   parseMatrixKeysClaimResponseJson(responseBody: string): string;
   parseMatrixDeviceKeyErrorJson(responseBody: string): string;
+  parseMatrixDeviceKeyQueryRequestJson(responseBody: string): string;
+  parseMatrixDeviceKeyQueryResponseJson(responseBody: string): string;
   parseMatrixKeyBackupVersionCreateResponseJson(responseBody: string): string;
   parseMatrixKeyBackupVersionJson(responseBody: string): string;
   parseMatrixKeyBackupSessionJson(responseBody: string): string;
@@ -465,6 +468,18 @@ export interface MatrixDeviceKeyError {
   error: string;
 }
 
+export interface MatrixDeviceKeyQueryRequest {
+  device_keys: Record<string, string[]>;
+  timeout?: number;
+}
+
+export interface MatrixDeviceKeyQueryResponse {
+  failures: Record<string, Record<string, string>>;
+  device_keys: Record<string, Record<string, MatrixDeviceKeysUploadDevice>>;
+  private_key_material_returned: boolean;
+  trust_decision_made: boolean;
+}
+
 export interface MatrixKeyBackupAuthData {
   public_key: string;
   signatures: Record<string, Record<string, string>>;
@@ -610,6 +625,12 @@ export interface HouraProtocolCoreFacade {
   parseMatrixDeviceKeyError(
     responseBody: string,
   ): ProtocolResult<MatrixDeviceKeyError>;
+  parseMatrixDeviceKeyQueryRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixDeviceKeyQueryRequest>;
+  parseMatrixDeviceKeyQueryResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixDeviceKeyQueryResponse>;
   parseMatrixKeyBackupVersionCreateResponse(
     responseBody: string,
   ): ProtocolResult<MatrixKeyBackupVersionCreateResponse>;
@@ -902,6 +923,20 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixDeviceKeyErrorEnvelope(envelope);
+    },
+    parseMatrixDeviceKeyQueryRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixDeviceKeyQueryRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixDeviceKeyQueryRequestEnvelope(envelope);
+    },
+    parseMatrixDeviceKeyQueryResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixDeviceKeyQueryResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixDeviceKeyQueryResponseEnvelope(envelope);
     },
     parseMatrixKeyBackupVersionCreateResponse(responseBody: string) {
       const envelope = parseJsonObject(
@@ -1551,6 +1586,75 @@ function readMatrixDeviceKeyErrorEnvelope(
     errcode: readString(value, "errcode", "invalid_envelope"),
     error: readString(value, "error", "invalid_envelope"),
   }));
+}
+
+function readMatrixDeviceKeyQueryRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixDeviceKeyQueryRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixDeviceKeyQueryRequest = {
+      device_keys: readStringArrayRecord(value, "device_keys"),
+    };
+    readOptionalNumber(value, "timeout", (timeout) => {
+      result.timeout = timeout;
+    });
+    return result;
+  });
+}
+
+function readMatrixDeviceKeyQueryResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixDeviceKeyQueryResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    failures: readNestedStringRecord(value, "failures", "device key query"),
+    device_keys: readDeviceKeyQueryDeviceRecord(value, "device_keys"),
+    private_key_material_returned: readBoolean(
+      value,
+      "private_key_material_returned",
+    ),
+    trust_decision_made: readBoolean(value, "trust_decision_made"),
+  }));
+}
+
+function readStringArrayRecord(
+  source: Record<string, unknown>,
+  field: string,
+): Record<string, string[]> {
+  const entries: [string, string[]][] = [];
+  for (const [key, value] of Object.entries(readRecord(source, field, field))) {
+    if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) {
+      throw new HouraProtocolCoreFacadeError(
+        "invalid_envelope",
+        `${field}.${key} must be a string array`,
+      );
+    }
+    entries.push([key, value]);
+  }
+  return Object.fromEntries(entries);
+}
+
+function readDeviceKeyQueryDeviceRecord(
+  source: Record<string, unknown>,
+  field: string,
+): Record<string, Record<string, MatrixDeviceKeysUploadDevice>> {
+  const users: [string, Record<string, MatrixDeviceKeysUploadDevice>][] = [];
+  for (const [userId, devices] of Object.entries(
+    readRecord(source, field, "device key query"),
+  )) {
+    const deviceEntries: [string, MatrixDeviceKeysUploadDevice][] = [];
+    for (const [deviceId, device] of Object.entries(
+      assertRecord(devices, `${field}.${userId}`),
+    )) {
+      deviceEntries.push([
+        deviceId,
+        readMatrixDeviceKeysUploadDevice(
+          assertRecord(device, `${field}.${userId}.${deviceId}`),
+        ),
+      ]);
+    }
+    users.push([userId, Object.fromEntries(deviceEntries)]);
+  }
+  return Object.fromEntries(users);
 }
 
 function readMatrixDeviceKeysUploadDevice(

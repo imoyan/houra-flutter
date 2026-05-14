@@ -25,6 +25,7 @@ pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
     "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056",
+    "SPEC-069",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -497,6 +498,21 @@ pub struct MatrixDeviceKeyError {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDeviceKeyQueryRequest {
+    pub device_keys: BTreeMap<String, Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDeviceKeyQueryResponse {
+    pub failures: BTreeMap<String, BTreeMap<String, String>>,
+    pub device_keys: BTreeMap<String, BTreeMap<String, MatrixDeviceKeysUploadDevice>>,
+    pub private_key_material_returned: bool,
+    pub trust_decision_made: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixKeyBackupAuthData {
     pub public_key: String,
     pub signatures: BTreeMap<String, BTreeMap<String, String>>,
@@ -868,6 +884,20 @@ pub struct MatrixKeysClaimResponseParseEnvelope {
 pub struct MatrixDeviceKeyErrorParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixDeviceKeyError>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDeviceKeyQueryRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixDeviceKeyQueryRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDeviceKeyQueryResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixDeviceKeyQueryResponse>,
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
@@ -1469,6 +1499,18 @@ struct MatrixKeysClaimResponseWire {
 struct MatrixDeviceKeyErrorWire {
     status: Option<i64>,
     error: Option<MatrixErrorWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixDeviceKeyQueryRequestWire {
+    device_keys: Option<BTreeMap<String, Vec<String>>>,
+    timeout: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixDeviceKeyQueryResponseWire {
+    failures: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    device_keys: Option<BTreeMap<String, BTreeMap<String, MatrixDeviceKeysUploadDeviceWire>>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -3532,6 +3574,97 @@ pub fn parse_matrix_device_key_error_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_device_key_query_request(
+    bytes: &[u8],
+) -> Result<MatrixDeviceKeyQueryRequest, ProtocolError> {
+    let wire: MatrixDeviceKeyQueryRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let device_keys =
+        device_key_query_selection_map(wire.device_keys, "device_key_query.device_keys")?;
+    let timeout = match wire.timeout {
+        Some(value) if value >= 0 => Some(value as u64),
+        Some(_) => return Err(invalid_device_key_field("device_key_query.timeout")),
+        None => None,
+    };
+    Ok(MatrixDeviceKeyQueryRequest {
+        device_keys,
+        timeout,
+    })
+}
+
+pub fn parse_matrix_device_key_query_request_envelope(
+    bytes: &[u8],
+) -> MatrixDeviceKeyQueryRequestParseEnvelope {
+    match parse_matrix_device_key_query_request(bytes) {
+        Ok(value) => MatrixDeviceKeyQueryRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixDeviceKeyQueryRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_device_key_query_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_device_key_query_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_device_key_query_response(
+    bytes: &[u8],
+) -> Result<MatrixDeviceKeyQueryResponse, ProtocolError> {
+    let wire: MatrixDeviceKeyQueryResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let mut device_keys = BTreeMap::new();
+    let users = wire
+        .device_keys
+        .ok_or_else(|| invalid_device_key_field("device_key_query_response.device_keys"))?;
+    for (user_id, devices) in users {
+        required_device_key_borrowed_string(&user_id, "device_key_query_response.user_id")?;
+        let mut device_map = BTreeMap::new();
+        for (device_id, device) in devices {
+            required_device_key_borrowed_string(&device_id, "device_key_query_response.device_id")?;
+            device_map.insert(
+                device_id,
+                device_keys_from_wire(device, "device_key_query_response.device_keys")?,
+            );
+        }
+        device_keys.insert(user_id, device_map);
+    }
+    Ok(MatrixDeviceKeyQueryResponse {
+        failures: wire.failures.unwrap_or_default(),
+        device_keys,
+        private_key_material_returned: false,
+        trust_decision_made: false,
+    })
+}
+
+pub fn parse_matrix_device_key_query_response_envelope(
+    bytes: &[u8],
+) -> MatrixDeviceKeyQueryResponseParseEnvelope {
+    match parse_matrix_device_key_query_response(bytes) {
+        Ok(value) => MatrixDeviceKeyQueryResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixDeviceKeyQueryResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_device_key_query_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_device_key_query_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 pub fn parse_matrix_key_backup_version_create_response(
     bytes: &[u8],
 ) -> Result<MatrixKeyBackupVersionCreateResponse, ProtocolError> {
@@ -4299,6 +4432,22 @@ fn device_algorithm_map_from_wire(
     Ok(map)
 }
 
+fn device_key_query_selection_map(
+    value: Option<BTreeMap<String, Vec<String>>>,
+    field: &str,
+) -> Result<BTreeMap<String, Vec<String>>, ProtocolError> {
+    let map = value.ok_or_else(|| invalid_device_key_field(field))?;
+    if map.is_empty() {
+        return Err(invalid_device_key_field(field));
+    }
+    for (user_id, devices) in &map {
+        if user_id.is_empty() || devices.iter().any(String::is_empty) {
+            return Err(invalid_device_key_field(field));
+        }
+    }
+    Ok(map)
+}
+
 fn claimed_keys_from_wire(
     value: Option<
         BTreeMap<String, BTreeMap<String, BTreeMap<String, MatrixSignedCurve25519KeyWire>>>,
@@ -4956,7 +5105,7 @@ mod tests {
             vec![
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
                 "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-051", "SPEC-053", "SPEC-054",
-                "SPEC-055", "SPEC-056"
+                "SPEC-055", "SPEC-056", "SPEC-069"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -5320,6 +5469,81 @@ mod tests {
             .supported_specs
             .iter()
             .any(|spec| spec == "SPEC-051"));
+    }
+
+    #[test]
+    fn parses_spec_069_device_key_query_vectors() {
+        let basic = read_spec_vector("test-vectors/auth/matrix-keys-query-basic.json");
+        assert_eq!(basic["contract"], "SPEC-069");
+        let parsed_request =
+            parse_matrix_device_key_query_request(basic["request"]["body"].to_string().as_bytes())
+                .expect("SPEC-069 keys/query request should parse");
+        assert_eq!(
+            parsed_request
+                .device_keys
+                .get("@alice:example.test")
+                .expect("Alice selection should be present"),
+            &vec!["DEVICE1".to_owned()]
+        );
+        assert_eq!(parsed_request.timeout, Some(10000));
+        let parsed_response = parse_matrix_device_key_query_response(
+            basic["expected"]["body_contains"].to_string().as_bytes(),
+        )
+        .expect("SPEC-069 keys/query response should parse");
+        assert_eq!(
+            parsed_response.device_keys["@alice:example.test"]["DEVICE1"].keys["ed25519:DEVICE1"],
+            "ed25519-public-device1"
+        );
+        assert!(!parsed_response.private_key_material_returned);
+        assert!(!parsed_response.trust_decision_made);
+
+        let all_devices = read_spec_vector("test-vectors/auth/matrix-keys-query-all-devices.json");
+        let parsed_all_devices = parse_matrix_device_key_query_request(
+            all_devices["request"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-069 empty device selection should parse as all devices");
+        assert_eq!(
+            parsed_all_devices
+                .device_keys
+                .get("@alice:example.test")
+                .map(Vec::is_empty),
+            Some(true)
+        );
+
+        let unknown_device =
+            read_spec_vector("test-vectors/auth/matrix-keys-query-unknown-device-omitted.json");
+        let parsed_unknown_device = parse_matrix_device_key_query_response(
+            unknown_device["expected"]["body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-069 unknown device omission response should parse");
+        assert!(
+            !parsed_unknown_device.device_keys["@alice:example.test"].contains_key("UNKNOWNDEVICE")
+        );
+
+        let missing_token =
+            read_spec_vector("test-vectors/auth/matrix-keys-query-missing-token.json");
+        let parsed_missing_token =
+            parse_matrix_device_key_error(missing_token["expected"].to_string().as_bytes())
+                .expect("SPEC-069 missing token error should parse");
+        assert_eq!(parsed_missing_token.status, 401);
+        assert_eq!(parsed_missing_token.errcode, "M_MISSING_TOKEN");
+
+        let timeout_not_integer =
+            read_spec_vector("test-vectors/auth/matrix-keys-query-timeout-not-integer.json");
+        assert!(parse_matrix_device_key_query_request(
+            timeout_not_integer["request"]["body"]
+                .to_string()
+                .as_bytes()
+        )
+        .is_err());
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-069"));
     }
 
     #[test]
