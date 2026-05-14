@@ -24,8 +24,8 @@ pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
-    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056",
-    "SPEC-069",
+    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055",
+    "SPEC-056", "SPEC-069",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -513,6 +513,51 @@ pub struct MatrixDeviceKeyQueryResponse {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixModerationRequest {
+    pub user_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRedactionRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRedactionResponse {
+    pub event_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixReportRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixAccountModerationCapability {
+    pub lock: bool,
+    pub suspend: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixAdminAccountModerationStatus {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub locked: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub suspended: Option<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixModerationError {
+    pub status: u64,
+    pub errcode: String,
+    pub error: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixKeyBackupAuthData {
     pub public_key: String,
     pub signatures: BTreeMap<String, BTreeMap<String, String>>,
@@ -902,6 +947,55 @@ pub struct MatrixDeviceKeyQueryResponseParseEnvelope {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixModerationRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixModerationRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRedactionRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRedactionRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRedactionResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRedactionResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixReportRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixReportRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixAccountModerationCapabilityParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixAccountModerationCapability>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixAdminAccountModerationStatusParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixAdminAccountModerationStatus>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixModerationErrorParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixModerationError>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixKeyBackupVersionCreateResponseParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixKeyBackupVersionCreateResponse>,
@@ -968,6 +1062,7 @@ pub enum ProtocolError {
     InvalidFederationField { field: String },
     InvalidVerificationField { field: String },
     InvalidDeviceKeyField { field: String },
+    InvalidModerationField { field: String },
     InvalidKeyBackupField { field: String },
 }
 
@@ -992,6 +1087,7 @@ impl ProtocolError {
             ProtocolError::InvalidFederationField { .. } => "invalid_federation_field",
             ProtocolError::InvalidVerificationField { .. } => "invalid_verification_field",
             ProtocolError::InvalidDeviceKeyField { .. } => "invalid_device_key_field",
+            ProtocolError::InvalidModerationField { .. } => "invalid_moderation_field",
             ProtocolError::InvalidKeyBackupField { .. } => "invalid_key_backup_field",
         }
     }
@@ -1033,6 +1129,9 @@ impl ProtocolError {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidDeviceKeyField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidModerationField { field } => {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidKeyBackupField { field } => {
@@ -1105,6 +1204,12 @@ impl std::fmt::Display for ProtocolError {
             }
             ProtocolError::InvalidDeviceKeyField { field } => {
                 write!(formatter, "{field} is not a valid Matrix device key value")
+            }
+            ProtocolError::InvalidModerationField { field } => {
+                write!(
+                    formatter,
+                    "{field} is not a valid Matrix moderation/reporting value"
+                )
             }
             ProtocolError::InvalidKeyBackupField { field } => {
                 write!(formatter, "{field} is not a valid Matrix key backup value")
@@ -1511,6 +1616,56 @@ struct MatrixDeviceKeyQueryRequestWire {
 struct MatrixDeviceKeyQueryResponseWire {
     failures: Option<BTreeMap<String, BTreeMap<String, String>>>,
     device_keys: Option<BTreeMap<String, BTreeMap<String, MatrixDeviceKeysUploadDeviceWire>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixModerationRequestWire {
+    user_id: Option<String>,
+    reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRedactionRequestWire {
+    reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRedactionResponseWire {
+    event_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixReportRequestWire {
+    reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixAccountModerationCapabilityWire {
+    lock: Option<bool>,
+    suspend: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixCapabilitiesAccountModerationWire {
+    #[serde(rename = "m.account_moderation")]
+    account_moderation: Option<MatrixAccountModerationCapabilityWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixCapabilitiesWire {
+    capabilities: Option<MatrixCapabilitiesAccountModerationWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixAdminAccountModerationStatusWire {
+    locked: Option<bool>,
+    suspended: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixModerationErrorWire {
+    status: Option<i64>,
+    error: Option<MatrixErrorWire>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -3665,6 +3820,243 @@ pub fn parse_matrix_device_key_query_response_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_moderation_request(
+    bytes: &[u8],
+) -> Result<MatrixModerationRequest, ProtocolError> {
+    let wire: MatrixModerationRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixModerationRequest {
+        user_id: required_moderation_string(wire.user_id, "moderation_request.user_id")?,
+        reason: optional_moderation_string(wire.reason, "moderation_request.reason")?,
+    })
+}
+
+pub fn parse_matrix_moderation_request_envelope(
+    bytes: &[u8],
+) -> MatrixModerationRequestParseEnvelope {
+    match parse_matrix_moderation_request(bytes) {
+        Ok(value) => MatrixModerationRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixModerationRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_moderation_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_moderation_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_redaction_request(
+    bytes: &[u8],
+) -> Result<MatrixRedactionRequest, ProtocolError> {
+    let wire: MatrixRedactionRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixRedactionRequest {
+        reason: optional_moderation_string(wire.reason, "redaction_request.reason")?,
+    })
+}
+
+pub fn parse_matrix_redaction_request_envelope(
+    bytes: &[u8],
+) -> MatrixRedactionRequestParseEnvelope {
+    match parse_matrix_redaction_request(bytes) {
+        Ok(value) => MatrixRedactionRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRedactionRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_redaction_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_redaction_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_redaction_response(
+    bytes: &[u8],
+) -> Result<MatrixRedactionResponse, ProtocolError> {
+    let wire: MatrixRedactionResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixRedactionResponse {
+        event_id: required_moderation_string(wire.event_id, "redaction_response.event_id")?,
+    })
+}
+
+pub fn parse_matrix_redaction_response_envelope(
+    bytes: &[u8],
+) -> MatrixRedactionResponseParseEnvelope {
+    match parse_matrix_redaction_response(bytes) {
+        Ok(value) => MatrixRedactionResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRedactionResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_redaction_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_redaction_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_report_request(bytes: &[u8]) -> Result<MatrixReportRequest, ProtocolError> {
+    let wire: MatrixReportRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixReportRequest {
+        reason: optional_moderation_string(wire.reason, "report_request.reason")?,
+    })
+}
+
+pub fn parse_matrix_report_request_envelope(bytes: &[u8]) -> MatrixReportRequestParseEnvelope {
+    match parse_matrix_report_request(bytes) {
+        Ok(value) => MatrixReportRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixReportRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_report_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_report_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_account_moderation_capability(
+    bytes: &[u8],
+) -> Result<MatrixAccountModerationCapability, ProtocolError> {
+    let wire: MatrixCapabilitiesWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let capability = wire
+        .capabilities
+        .and_then(|capabilities| capabilities.account_moderation)
+        .ok_or_else(|| invalid_moderation_field("capabilities.m.account_moderation"))?;
+    Ok(MatrixAccountModerationCapability {
+        lock: capability
+            .lock
+            .ok_or_else(|| invalid_moderation_field("capabilities.m.account_moderation.lock"))?,
+        suspend: capability
+            .suspend
+            .ok_or_else(|| invalid_moderation_field("capabilities.m.account_moderation.suspend"))?,
+    })
+}
+
+pub fn parse_matrix_account_moderation_capability_envelope(
+    bytes: &[u8],
+) -> MatrixAccountModerationCapabilityParseEnvelope {
+    match parse_matrix_account_moderation_capability(bytes) {
+        Ok(value) => MatrixAccountModerationCapabilityParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixAccountModerationCapabilityParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_account_moderation_capability_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_account_moderation_capability_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_admin_account_moderation_status(
+    bytes: &[u8],
+) -> Result<MatrixAdminAccountModerationStatus, ProtocolError> {
+    let wire: MatrixAdminAccountModerationStatusWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    if wire.locked.is_none() && wire.suspended.is_none() {
+        return Err(invalid_moderation_field("admin_account_moderation_status"));
+    }
+    Ok(MatrixAdminAccountModerationStatus {
+        locked: wire.locked,
+        suspended: wire.suspended,
+    })
+}
+
+pub fn parse_matrix_admin_account_moderation_status_envelope(
+    bytes: &[u8],
+) -> MatrixAdminAccountModerationStatusParseEnvelope {
+    match parse_matrix_admin_account_moderation_status(bytes) {
+        Ok(value) => MatrixAdminAccountModerationStatusParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixAdminAccountModerationStatusParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_admin_account_moderation_status_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_admin_account_moderation_status_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_moderation_error(bytes: &[u8]) -> Result<MatrixModerationError, ProtocolError> {
+    let wire: MatrixModerationErrorWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let error = wire
+        .error
+        .ok_or_else(|| invalid_moderation_field("moderation_error.error"))?;
+    Ok(MatrixModerationError {
+        status: required_moderation_non_negative_i64(wire.status, "moderation_error.status")?,
+        errcode: required_moderation_string(error.errcode, "moderation_error.errcode")?,
+        error: required_moderation_string(error.error, "moderation_error.error")?,
+    })
+}
+
+pub fn parse_matrix_moderation_error_envelope(bytes: &[u8]) -> MatrixModerationErrorParseEnvelope {
+    match parse_matrix_moderation_error(bytes) {
+        Ok(value) => MatrixModerationErrorParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixModerationErrorParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_moderation_error_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_moderation_error_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 pub fn parse_matrix_key_backup_version_create_response(
     bytes: &[u8],
 ) -> Result<MatrixKeyBackupVersionCreateResponse, ProtocolError> {
@@ -4314,6 +4706,12 @@ fn invalid_device_key_field(field: &str) -> ProtocolError {
     }
 }
 
+fn invalid_moderation_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidModerationField {
+        field: field.to_owned(),
+    }
+}
+
 fn required_device_key_borrowed_string<'a>(
     value: &'a str,
     field: &str,
@@ -4332,6 +4730,23 @@ fn required_device_key_string(value: Option<String>, field: &str) -> Result<Stri
     }
 }
 
+fn required_moderation_string(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_moderation_field(field)),
+    }
+}
+
+fn optional_moderation_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<Option<String>, ProtocolError> {
+    match value {
+        Some(value) if value.is_empty() => Err(invalid_moderation_field(field)),
+        value => Ok(value),
+    }
+}
+
 fn required_device_key_non_negative_i64(
     value: Option<i64>,
     field: &str,
@@ -4339,6 +4754,16 @@ fn required_device_key_non_negative_i64(
     match value {
         Some(value) if value >= 0 => Ok(value as u64),
         _ => Err(invalid_device_key_field(field)),
+    }
+}
+
+fn required_moderation_non_negative_i64(
+    value: Option<i64>,
+    field: &str,
+) -> Result<u64, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(value as u64),
+        _ => Err(invalid_moderation_field(field)),
     }
 }
 
@@ -5104,8 +5529,8 @@ mod tests {
             manifest.supported_specs,
             vec![
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
-                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-051", "SPEC-053", "SPEC-054",
-                "SPEC-055", "SPEC-056", "SPEC-069"
+                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-049", "SPEC-051", "SPEC-053",
+                "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-069"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -5544,6 +5969,113 @@ mod tests {
             .supported_specs
             .iter()
             .any(|spec| spec == "SPEC-069"));
+    }
+
+    #[test]
+    fn parses_spec_049_moderation_reporting_and_admin_vectors() {
+        let moderation =
+            read_spec_vector("test-vectors/rooms/matrix-room-moderation-kick-ban-unban.json");
+        assert_eq!(moderation["contract"], "SPEC-049");
+        let moderation_steps = moderation["event"]["steps"]
+            .as_array()
+            .expect("moderation vector should list steps");
+        let parsed_kick =
+            parse_matrix_moderation_request(moderation_steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-049 kick request should parse");
+        assert_eq!(parsed_kick.user_id, "@bob:example.test");
+        assert_eq!(parsed_kick.reason.as_deref(), Some("Off topic"));
+        let parsed_ban =
+            parse_matrix_moderation_request(moderation_steps[1]["body"].to_string().as_bytes())
+                .expect("SPEC-049 ban request should parse");
+        assert_eq!(parsed_ban.user_id, "@carol:example.test");
+        let parsed_unban =
+            parse_matrix_moderation_request(moderation_steps[2]["body"].to_string().as_bytes())
+                .expect("SPEC-049 unban request should parse");
+        assert_eq!(parsed_unban.reason.as_deref(), Some("Appeal accepted"));
+
+        let redaction = read_spec_vector("test-vectors/rooms/matrix-room-redaction-basic.json");
+        assert_eq!(redaction["contract"], "SPEC-049");
+        let parsed_redaction_request =
+            parse_matrix_redaction_request(redaction["request"]["body"].to_string().as_bytes())
+                .expect("SPEC-049 redaction request should parse");
+        assert_eq!(
+            parsed_redaction_request.reason.as_deref(),
+            Some("Remove spam")
+        );
+        let parsed_redaction_response = parse_matrix_redaction_response(
+            redaction["expected"]["body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-049 redaction response should parse");
+        assert_eq!(
+            parsed_redaction_response.event_id,
+            "$redaction1:example.test"
+        );
+
+        let reporting = read_spec_vector("test-vectors/rooms/matrix-room-reporting-basic.json");
+        assert_eq!(reporting["contract"], "SPEC-049");
+        for step in reporting["event"]["steps"]
+            .as_array()
+            .expect("reporting vector should list steps")
+        {
+            let parsed_report = parse_matrix_report_request(step["body"].to_string().as_bytes())
+                .expect("SPEC-049 report request should parse");
+            assert!(parsed_report.reason.is_some());
+        }
+
+        let admin =
+            read_spec_vector("test-vectors/rooms/matrix-admin-account-moderation-basic.json");
+        assert_eq!(admin["contract"], "SPEC-049");
+        let admin_steps = admin["event"]["steps"]
+            .as_array()
+            .expect("admin vector should list steps");
+        let parsed_capability = parse_matrix_account_moderation_capability(
+            admin_steps[0]["expected_body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-049 account moderation capability should parse");
+        assert!(parsed_capability.lock);
+        assert!(parsed_capability.suspend);
+        let parsed_lock_put = parse_matrix_admin_account_moderation_status(
+            admin_steps[1]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-049 admin lock request should parse");
+        assert_eq!(parsed_lock_put.locked, Some(true));
+        let parsed_suspend_get = parse_matrix_admin_account_moderation_status(
+            admin_steps[4]["expected_body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-049 admin suspend status should parse");
+        assert_eq!(parsed_suspend_get.suspended, Some(true));
+
+        let permission_denied =
+            read_spec_vector("test-vectors/rooms/matrix-room-moderation-permission-denied.json");
+        let parsed_permission_error =
+            parse_matrix_moderation_error(permission_denied["expected"].to_string().as_bytes())
+                .expect("SPEC-049 moderation permission error should parse");
+        assert_eq!(parsed_permission_error.status, 403);
+        assert_eq!(parsed_permission_error.errcode, "M_FORBIDDEN");
+        let redaction_forbidden =
+            read_spec_vector("test-vectors/rooms/matrix-room-redaction-forbidden.json");
+        let parsed_redaction_error =
+            parse_matrix_moderation_error(redaction_forbidden["expected"].to_string().as_bytes())
+                .expect("SPEC-049 redaction forbidden error should parse");
+        assert_eq!(parsed_redaction_error.status, 403);
+        assert_eq!(parsed_redaction_error.errcode, "M_FORBIDDEN");
+        let admin_forbidden =
+            read_spec_vector("test-vectors/rooms/matrix-admin-account-moderation-forbidden.json");
+        let parsed_admin_error =
+            parse_matrix_moderation_error(admin_forbidden["expected"].to_string().as_bytes())
+                .expect("SPEC-049 admin forbidden error should parse");
+        assert_eq!(parsed_admin_error.status, 403);
+        assert_eq!(parsed_admin_error.errcode, "M_FORBIDDEN");
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-049"));
     }
 
     #[test]

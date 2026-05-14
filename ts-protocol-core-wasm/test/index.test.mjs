@@ -641,6 +641,87 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixModerationRequestJson() {
+      return JSON.stringify(
+        overrides.moderationRequestEnvelope ?? {
+          ok: true,
+          value: {
+            user_id: "@bob:example.test",
+            reason: "Off topic",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRedactionRequestJson() {
+      return JSON.stringify(
+        overrides.redactionRequestEnvelope ?? {
+          ok: true,
+          value: {
+            reason: "Remove spam",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRedactionResponseJson() {
+      return JSON.stringify(
+        overrides.redactionResponseEnvelope ?? {
+          ok: true,
+          value: {
+            event_id: "$redaction1:example.test",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixReportRequestJson() {
+      return JSON.stringify(
+        overrides.reportRequestEnvelope ?? {
+          ok: true,
+          value: {
+            reason: "Room contains spam",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixAccountModerationCapabilityJson() {
+      return JSON.stringify(
+        overrides.accountModerationCapabilityEnvelope ?? {
+          ok: true,
+          value: {
+            lock: true,
+            suspend: true,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixAdminAccountModerationStatusJson() {
+      return JSON.stringify(
+        overrides.adminAccountModerationStatusEnvelope ?? {
+          ok: true,
+          value: {
+            locked: true,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixModerationErrorJson() {
+      return JSON.stringify(
+        overrides.moderationErrorEnvelope ?? {
+          ok: true,
+          value: {
+            status: 403,
+            errcode: "M_FORBIDDEN",
+            error: "No permission.",
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixKeyBackupVersionCreateResponseJson() {
       return JSON.stringify(
         overrides.keyBackupVersionCreateResponseEnvelope ?? {
@@ -1558,6 +1639,62 @@ test("maps SPEC-069 device key query envelopes", () => {
     ).parseMatrixDeviceKeyError("{}").value.errcode,
     "M_MISSING_TOKEN",
   );
+});
+
+test("maps SPEC-049 moderation, reporting, and admin envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const moderation = readSpecVector(
+    "test-vectors/rooms/matrix-room-moderation-kick-ban-unban.json",
+  );
+  const redaction = readSpecVector(
+    "test-vectors/rooms/matrix-room-redaction-basic.json",
+  );
+  const reporting = readSpecVector(
+    "test-vectors/rooms/matrix-room-reporting-basic.json",
+  );
+  const admin = readSpecVector(
+    "test-vectors/rooms/matrix-admin-account-moderation-basic.json",
+  );
+  const permissionDenied = readSpecVector(
+    "test-vectors/rooms/matrix-room-moderation-permission-denied.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-049"));
+  for (const vector of [
+    moderation,
+    redaction,
+    reporting,
+    admin,
+    permissionDenied,
+  ]) {
+    assert.equal(vector.contract, "SPEC-049");
+  }
+
+  assert.deepEqual(core.parseMatrixModerationRequest("{}"), {
+    ok: true,
+    value: {
+      user_id: "@bob:example.test",
+      reason: "Off topic",
+    },
+    error: null,
+  });
+  assert.equal(
+    core.parseMatrixRedactionRequest("{}").value.reason,
+    "Remove spam",
+  );
+  assert.equal(
+    core.parseMatrixRedactionResponse("{}").value.event_id,
+    "$redaction1:example.test",
+  );
+  assert.equal(core.parseMatrixReportRequest("{}").value.reason, "Room contains spam");
+  assert.deepEqual(core.parseMatrixAccountModerationCapability("{}").value, {
+    lock: true,
+    suspend: true,
+  });
+  assert.deepEqual(core.parseMatrixAdminAccountModerationStatus("{}").value, {
+    locked: true,
+  });
+  assert.equal(core.parseMatrixModerationError("{}").value.errcode, "M_FORBIDDEN");
 });
 
 test("maps SPEC-053 key backup metadata envelopes", () => {

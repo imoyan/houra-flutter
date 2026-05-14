@@ -245,6 +245,41 @@ pub fn parse_matrix_device_key_query_response_json(response_body: &str) -> Strin
     houra_protocol_core::parse_matrix_device_key_query_response_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixModerationRequestJson)]
+pub fn parse_matrix_moderation_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_moderation_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixRedactionRequestJson)]
+pub fn parse_matrix_redaction_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_redaction_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixRedactionResponseJson)]
+pub fn parse_matrix_redaction_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_redaction_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixReportRequestJson)]
+pub fn parse_matrix_report_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_report_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixAccountModerationCapabilityJson)]
+pub fn parse_matrix_account_moderation_capability_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_account_moderation_capability_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixAdminAccountModerationStatusJson)]
+pub fn parse_matrix_admin_account_moderation_status_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_admin_account_moderation_status_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixModerationErrorJson)]
+pub fn parse_matrix_moderation_error_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_moderation_error_json(response_body.as_bytes())
+}
+
 #[wasm_bindgen(js_name = parseMatrixKeyBackupVersionCreateResponseJson)]
 pub fn parse_matrix_key_backup_version_create_response_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_key_backup_version_create_response_json(
@@ -545,6 +580,44 @@ mod tests {
                 "{\"failures\":{},\"device_keys\":{\"@alice:example.test\":{\"DEVICE1\":{\"user_id\":\"@alice:example.test\",\"device_id\":\"DEVICE1\",\"algorithms\":[\"m.olm.v1.curve25519-aes-sha2\",\"m.megolm.v1.aes-sha2\"],\"keys\":{\"curve25519:DEVICE1\":\"curve25519-public-device1\",\"ed25519:DEVICE1\":\"ed25519-public-device1\"},\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-device1\"}}}}}}",
             ),
             "{\"ok\":true,\"value\":{\"failures\":{},\"device_keys\":{\"@alice:example.test\":{\"DEVICE1\":{\"user_id\":\"@alice:example.test\",\"device_id\":\"DEVICE1\",\"algorithms\":[\"m.olm.v1.curve25519-aes-sha2\",\"m.megolm.v1.aes-sha2\"],\"keys\":{\"curve25519:DEVICE1\":\"curve25519-public-device1\",\"ed25519:DEVICE1\":\"ed25519-public-device1\"},\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-device1\"}}}}},\"private_key_material_returned\":false,\"trust_decision_made\":false},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_moderation_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_moderation_request_json(
+                "{\"user_id\":\"@bob:example.test\",\"reason\":\"Off topic\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"user_id\":\"@bob:example.test\",\"reason\":\"Off topic\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_redaction_request_json("{\"reason\":\"Remove spam\"}"),
+            "{\"ok\":true,\"value\":{\"reason\":\"Remove spam\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_redaction_response_json("{\"event_id\":\"$redaction1:example.test\"}"),
+            "{\"ok\":true,\"value\":{\"event_id\":\"$redaction1:example.test\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_report_request_json("{\"reason\":\"Room contains spam\"}"),
+            "{\"ok\":true,\"value\":{\"reason\":\"Room contains spam\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_account_moderation_capability_json(
+                "{\"capabilities\":{\"m.account_moderation\":{\"lock\":true,\"suspend\":true}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"lock\":true,\"suspend\":true},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_admin_account_moderation_status_json("{\"locked\":true}"),
+            "{\"ok\":true,\"value\":{\"locked\":true},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_moderation_error_json(
+                "{\"status\":403,\"error\":{\"errcode\":\"M_FORBIDDEN\",\"error\":\"No permission\"}}",
+            ),
+            "{\"ok\":true,\"value\":{\"status\":403,\"errcode\":\"M_FORBIDDEN\",\"error\":\"No permission\"},\"error\":null}"
         );
     }
 

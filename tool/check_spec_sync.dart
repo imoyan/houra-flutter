@@ -10,6 +10,7 @@ void main() {
   checkDocReferences(failures);
   checkSpec039ProtocolCoreGate(failures);
   checkSpec040ProtocolCoreGate(failures);
+  checkSpec049ProtocolCoreGate(failures);
 
   if (failures.isNotEmpty) {
     stderr.writeln('Spec sync check failed:');
@@ -403,6 +404,100 @@ void checkSpec040ProtocolCoreGate(List<String> failures) {
         failures.add(
           '${entry.key} is missing SPEC-040 gate fragment: $fragment',
         );
+      }
+    }
+  }
+}
+
+void checkSpec049ProtocolCoreGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final contract = File(
+    '${specRoot.path}/contracts/SPEC-049-matrix-moderation-reporting-admin-controls.md',
+  );
+  final vectors = [
+    'test-vectors/rooms/matrix-room-moderation-kick-ban-unban.json',
+    'test-vectors/rooms/matrix-room-moderation-permission-denied.json',
+    'test-vectors/rooms/matrix-room-redaction-basic.json',
+    'test-vectors/rooms/matrix-room-redaction-forbidden.json',
+    'test-vectors/rooms/matrix-room-reporting-basic.json',
+    'test-vectors/rooms/matrix-admin-account-moderation-basic.json',
+    'test-vectors/rooms/matrix-admin-account-moderation-forbidden.json',
+  ];
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-049 contract: ${contract.path}');
+    return;
+  }
+  for (final vectorPath in vectors) {
+    final vector = File('${specRoot.path}/$vectorPath');
+    if (!vector.existsSync()) {
+      failures.add('Missing SPEC-049 canonical vector: ${vector.path}');
+      continue;
+    }
+    final decoded = jsonDecode(vector.readAsStringSync());
+    if (decoded is! Map<String, Object?> || decoded['contract'] != 'SPEC-049') {
+      failures
+          .add('SPEC-049 vector has an unexpected contract id: $vectorPath');
+    }
+  }
+
+  final requiredFragmentsByFile = {
+    'AGENTS.md': ['SPEC-049'],
+    'README.md': ['SPEC-049', 'parser-only moderation/reporting/admin'],
+    'tool/generate_release_evidence.dart': [
+      "'SPEC-049'",
+      'moderation_reporting_parser_adoption',
+      'matrix-room-redaction-forbidden.json',
+    ],
+    'rust-protocol-core/src/lib.rs': [
+      '"SPEC-049"',
+      'parse_matrix_moderation_request',
+      'parse_matrix_redaction_request',
+      'parse_matrix_redaction_response',
+      'parse_matrix_report_request',
+      'parse_matrix_account_moderation_capability',
+      'parse_matrix_admin_account_moderation_status',
+      'parse_matrix_moderation_error',
+      'matrix-room-redaction-forbidden.json',
+    ],
+    'rust-protocol-core-wasm/src/lib.rs': [
+      'parseMatrixModerationRequestJson',
+      'parseMatrixRedactionRequestJson',
+      'parseMatrixRedactionResponseJson',
+      'parseMatrixReportRequestJson',
+      'parseMatrixAccountModerationCapabilityJson',
+      'parseMatrixAdminAccountModerationStatusJson',
+      'parseMatrixModerationErrorJson',
+    ],
+    'ts-protocol-core-wasm/src/index.ts': [
+      '"SPEC-049"',
+      'parseMatrixModerationRequest',
+      'parseMatrixRedactionRequest',
+      'parseMatrixRedactionResponse',
+      'parseMatrixReportRequest',
+      'parseMatrixAccountModerationCapability',
+      'parseMatrixAdminAccountModerationStatus',
+      'parseMatrixModerationError',
+    ],
+    'ts-protocol-core-wasm/test/index.test.mjs': [
+      'SPEC-049',
+      'matrix-room-moderation-kick-ban-unban.json',
+      'matrix-room-redaction-basic.json',
+      'matrix-room-reporting-basic.json',
+      'matrix-admin-account-moderation-basic.json',
+      'matrix-room-moderation-permission-denied.json',
+    ],
+  };
+  for (final entry in requiredFragmentsByFile.entries) {
+    final file = File(entry.key);
+    if (!file.existsSync()) {
+      failures.add('Missing SPEC-049 gate file: ${entry.key}');
+      continue;
+    }
+    final source = file.readAsStringSync();
+    for (final fragment in entry.value) {
+      if (!source.contains(fragment)) {
+        failures
+            .add('${entry.key} is missing SPEC-049 gate fragment: $fragment');
       }
     }
   }

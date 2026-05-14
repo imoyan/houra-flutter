@@ -261,6 +261,17 @@ authorization decisions, state resolution, federation, event signing/hash
 verification, host persistence, and Matrix full compliance stay outside this
 repository.
 
+SPEC-049 shared-core adoption record for issue #64: the Rust prototype now
+consumes the `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
+(`v0.2.0-pre.58-43-g395c400`) SPEC-049 kick, ban, unban, redaction,
+reporting, account moderation capability, admin lock/suspend, and representative
+forbidden-error vectors for parser-only moderation/reporting/admin surface
+adoption. The WASM wrapper and TypeScript facade expose request descriptors,
+redaction response, capability/status envelopes, and Matrix error JSON
+envelopes without taking ownership of authorization decisions, policy
+enforcement, appeal processes, moderation queue UI, audit logging, federation
+enforcement, token persistence, or Matrix moderation support advertisement.
+
 SPEC-051 shared-core adoption record for issue #66: the Rust prototype now
 consumes the `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
 (`v0.2.0-pre.58-43-g395c400`) SPEC-051 device key upload, one-time key upload,
@@ -685,6 +696,8 @@ External registration order:
 
 Current package-specific follow-ups:
 
+- #64: SPEC-049 moderation / reporting / admin controls parser adoption.
+  Completed as parser-only shared-core adoption.
 - #65: SPEC-069 device key query parser/request descriptor adoption. Completed
   as parser-only shared-core adoption.
 - #66: SPEC-051 device / one-time / fallback keys parser adoption. Completed as
