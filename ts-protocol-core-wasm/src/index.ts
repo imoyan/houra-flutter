@@ -16,6 +16,14 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-038",
   "SPEC-039",
   "SPEC-040",
+  "SPEC-048",
+  "SPEC-049",
+  "SPEC-051",
+  "SPEC-053",
+  "SPEC-054",
+  "SPEC-055",
+  "SPEC-056",
+  "SPEC-069",
 ] as const;
 
 export interface HouraProtocolCoreWasmBinding {
@@ -26,6 +34,53 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixDevicesJson(responseBody: string): string;
   parseMatrixEventIdResponseJson(responseBody: string): string;
   parseMatrixErrorEnvelopeJson(responseBody: string): string;
+  parseMatrixFederationInviteRequestJson(responseBody: string): string;
+  parseMatrixFederationInviteResponseJson(responseBody: string): string;
+  parseMatrixFederationDestinationResolutionFailureJson(responseBody: string): string;
+  parseMatrixFederationKeyQueryRequestJson(responseBody: string): string;
+  parseMatrixFederationKeyQueryResponseJson(responseBody: string): string;
+  parseMatrixFederationMakeJoinResponseJson(responseBody: string): string;
+  parseMatrixFederationServerNameJson(serverName: string): string;
+  parseMatrixFederationSendJoinResponseJson(responseBody: string): string;
+  parseMatrixFederationSigningKeyJson(responseBody: string): string;
+  parseMatrixFederationTransactionJson(responseBody: string): string;
+  parseMatrixFederationTransactionResponseJson(responseBody: string): string;
+  parseMatrixFederationWellKnownServerJson(responseBody: string): string;
+  parseMatrixVerificationSasFlowJson(responseBody: string): string;
+  parseMatrixVerificationCancelJson(responseBody: string): string;
+  parseMatrixCrossSigningDeviceSigningUploadJson(responseBody: string): string;
+  parseMatrixCrossSigningSignatureUploadJson(responseBody: string): string;
+  parseMatrixCrossSigningInvalidSignatureFailureJson(responseBody: string): string;
+  parseMatrixCrossSigningMissingTokenGateJson(responseBody: string): string;
+  parseMatrixWrongDeviceFailureGateJson(responseBody: string): string;
+  parseMatrixKeysUploadRequestJson(responseBody: string): string;
+  parseMatrixKeysUploadResponseJson(responseBody: string): string;
+  parseMatrixKeysClaimRequestJson(responseBody: string): string;
+  parseMatrixKeysClaimResponseJson(responseBody: string): string;
+  parseMatrixDeviceKeyErrorJson(responseBody: string): string;
+  parseMatrixDeviceKeyQueryRequestJson(responseBody: string): string;
+  parseMatrixDeviceKeyQueryResponseJson(responseBody: string): string;
+  parseMatrixPublicRoomsRequestJson(responseBody: string): string;
+  parseMatrixPublicRoomsResponseJson(responseBody: string): string;
+  parseMatrixDirectoryVisibilityJson(responseBody: string): string;
+  parseMatrixRoomAliasesJson(responseBody: string): string;
+  parseMatrixInviteRequestJson(responseBody: string): string;
+  parseMatrixInviteRoomJson(responseBody: string): string;
+  parseMatrixRoomDirectoryErrorJson(responseBody: string): string;
+  parseMatrixModerationRequestJson(responseBody: string): string;
+  parseMatrixRedactionRequestJson(responseBody: string): string;
+  parseMatrixRedactionResponseJson(responseBody: string): string;
+  parseMatrixReportRequestJson(responseBody: string): string;
+  parseMatrixAccountModerationCapabilityJson(responseBody: string): string;
+  parseMatrixAdminAccountModerationStatusJson(responseBody: string): string;
+  parseMatrixModerationErrorJson(responseBody: string): string;
+  parseMatrixKeyBackupVersionCreateResponseJson(responseBody: string): string;
+  parseMatrixKeyBackupVersionJson(responseBody: string): string;
+  parseMatrixKeyBackupSessionJson(responseBody: string): string;
+  parseMatrixKeyBackupSessionUploadResponseJson(responseBody: string): string;
+  parseMatrixKeyBackupErrorJson(responseBody: string): string;
+  parseMatrixKeyBackupOwnerScopeGateJson(responseBody: string): string;
+  parseMatrixKeyBackupRecoveryGateJson(responseBody: string): string;
   parseMatrixLoginFlowsJson(responseBody: string): string;
   parseMatrixLoginSessionJson(responseBody: string): string;
   parseMatrixMediaContentUriJson(contentUri: string): string;
@@ -229,6 +284,361 @@ export interface MatrixMediaUploadResponse {
   content_uri: string;
 }
 
+export interface MatrixFederationTransaction {
+  origin: string;
+  origin_server_ts: number;
+  pdus: Record<string, unknown>[];
+  edus: Record<string, unknown>[];
+}
+
+export interface MatrixFederationPduResult {
+  error?: string;
+}
+
+export interface MatrixFederationTransactionResponse {
+  pdus: Record<string, MatrixFederationPduResult>;
+}
+
+export interface MatrixFederationMakeJoinResponse {
+  room_version: string;
+  event: Record<string, unknown>;
+}
+
+export interface MatrixFederationSendJoinResponse {
+  origin: string;
+  state: Record<string, unknown>[];
+  auth_chain: Record<string, unknown>[];
+  event: Record<string, unknown>;
+}
+
+export interface MatrixFederationInviteRequest {
+  room_version: string;
+  event: Record<string, unknown>;
+}
+
+export interface MatrixFederationInviteResponse {
+  event: Record<string, unknown>;
+}
+
+export interface MatrixFederationServerName {
+  server_name: string;
+  host: string;
+  port?: number;
+}
+
+export interface MatrixFederationWellKnownServer {
+  delegated_server_name: string;
+  host: string;
+  port?: number;
+}
+
+export interface MatrixFederationVerifyKey {
+  key: string;
+}
+
+export interface MatrixFederationOldVerifyKey {
+  expired_ts: number;
+  key: string;
+}
+
+export interface MatrixFederationSigningKey {
+  server_name: string;
+  verify_keys: Record<string, MatrixFederationVerifyKey>;
+  old_verify_keys: Record<string, MatrixFederationOldVerifyKey>;
+  valid_until_ts: number;
+  signatures: Record<string, Record<string, string>>;
+}
+
+export interface MatrixFederationKeyQueryCriteria {
+  minimum_valid_until_ts?: number;
+}
+
+export interface MatrixFederationKeyQueryRequest {
+  server_keys: Record<
+    string,
+    Record<string, MatrixFederationKeyQueryCriteria>
+  >;
+}
+
+export interface MatrixFederationKeyQueryResponse {
+  server_keys: MatrixFederationSigningKey[];
+}
+
+export interface MatrixFederationDestinationResolutionFailure {
+  server_name: string;
+  stages: string[];
+  destination_resolved: boolean;
+  federation_request_sent: boolean;
+  backoff_recorded: boolean;
+}
+
+export interface MatrixVerificationSasFlow {
+  transaction_id: string;
+  transport: string;
+  event_types: string[];
+  verified: boolean;
+  local_sas_allowed: boolean;
+  versions_advertisement_widened: boolean;
+}
+
+export interface MatrixVerificationCancel {
+  transaction_id: string;
+  code: string;
+  reason: string;
+  verified: boolean;
+  versions_advertisement_widened: boolean;
+}
+
+export interface MatrixCrossSigningKey {
+  user_id: string;
+  usage: string[];
+  keys: Record<string, string>;
+  signatures: Record<string, Record<string, string>>;
+}
+
+export interface MatrixCrossSigningDeviceSigningUpload {
+  master_key?: MatrixCrossSigningKey;
+  self_signing_key?: MatrixCrossSigningKey;
+  user_signing_key?: MatrixCrossSigningKey;
+}
+
+export interface MatrixCrossSigningSignatureUpload {
+  signed_objects: Record<string, Record<string, Record<string, unknown>>>;
+}
+
+export interface MatrixCrossSigningInvalidSignatureFailure {
+  status: number;
+  errcode: string;
+  error: string;
+}
+
+export interface MatrixCrossSigningMissingTokenGate {
+  protected_key_operations_require_token: boolean;
+  semantic_errors_suppressed_until_authenticated: boolean;
+  auth_precedes_signature_validation: boolean;
+  operations: string[];
+  errcode: string;
+}
+
+export interface MatrixWrongDeviceIdentity {
+  user_id: string;
+  device_id: string;
+  master_key: string;
+  device_key: string;
+}
+
+export interface MatrixWrongDeviceFailureGate {
+  trusted_identity: MatrixWrongDeviceIdentity;
+  observed_identity: MatrixWrongDeviceIdentity;
+  required_steps: string[];
+  required_evidence: string[];
+  cancel_code: string;
+  device_verified: boolean;
+  outbound_session_shared: boolean;
+  requires_user_reverification: boolean;
+  versions_advertisement_widened: boolean;
+}
+
+export interface MatrixDeviceKeysUploadDevice {
+  user_id: string;
+  device_id: string;
+  algorithms: string[];
+  keys: Record<string, string>;
+  signatures: Record<string, Record<string, string>>;
+}
+
+export interface MatrixSignedCurve25519Key {
+  key: string;
+  fallback: boolean;
+  signatures: Record<string, Record<string, string>>;
+}
+
+export interface MatrixKeysUploadRequest {
+  device_keys?: MatrixDeviceKeysUploadDevice;
+  one_time_keys: Record<string, MatrixSignedCurve25519Key>;
+  fallback_keys: Record<string, MatrixSignedCurve25519Key>;
+  private_key_material_returned: boolean;
+}
+
+export interface MatrixKeysUploadResponse {
+  one_time_key_counts: Record<string, number>;
+  private_key_material_returned: boolean;
+}
+
+export interface MatrixKeysClaimRequest {
+  one_time_keys: Record<string, Record<string, string>>;
+}
+
+export interface MatrixKeysClaimResponse {
+  failures: Record<string, Record<string, string>>;
+  one_time_keys: Record<
+    string,
+    Record<string, Record<string, MatrixSignedCurve25519Key>>
+  >;
+  fallback_key_returned: boolean;
+}
+
+export interface MatrixDeviceKeyError {
+  status: number;
+  errcode: string;
+  error: string;
+}
+
+export interface MatrixDeviceKeyQueryRequest {
+  device_keys: Record<string, string[]>;
+  timeout?: number;
+}
+
+export interface MatrixDeviceKeyQueryResponse {
+  failures: Record<string, Record<string, string>>;
+  device_keys: Record<string, Record<string, MatrixDeviceKeysUploadDevice>>;
+  private_key_material_returned: boolean;
+  trust_decision_made: boolean;
+}
+
+export interface MatrixPublicRoomsRequest {
+  limit?: number;
+  since?: string;
+  server?: string;
+  generic_search_term?: string;
+  include_all_networks?: boolean;
+  third_party_instance_id?: string;
+}
+
+export interface MatrixPublicRoom {
+  room_id: string;
+  num_joined_members: number;
+  world_readable: boolean;
+  guest_can_join: boolean;
+  name?: string;
+  topic?: string;
+  canonical_alias?: string;
+  avatar_url?: string;
+  join_rule?: string;
+  room_type?: string;
+}
+
+export interface MatrixPublicRoomsResponse {
+  chunk: MatrixPublicRoom[];
+  next_batch?: string;
+  prev_batch?: string;
+  total_room_count_estimate?: number;
+}
+
+export interface MatrixDirectoryVisibility {
+  visibility: string;
+}
+
+export interface MatrixRoomAliases {
+  aliases: string[];
+}
+
+export interface MatrixInviteRequest {
+  user_id: string;
+  reason?: string;
+}
+
+export interface MatrixInviteStateEvent {
+  type: string;
+  sender?: string;
+  state_key: string;
+  content: Record<string, unknown>;
+}
+
+export interface MatrixInviteRoom {
+  room_id: string;
+  events: MatrixInviteStateEvent[];
+}
+
+export interface MatrixRoomDirectoryError {
+  status: number;
+  errcode: string;
+  error: string;
+}
+
+export interface MatrixModerationRequest {
+  user_id: string;
+  reason?: string;
+}
+
+export interface MatrixRedactionRequest {
+  reason?: string;
+}
+
+export interface MatrixRedactionResponse {
+  event_id: string;
+}
+
+export interface MatrixReportRequest {
+  reason?: string;
+}
+
+export interface MatrixAccountModerationCapability {
+  lock: boolean;
+  suspend: boolean;
+}
+
+export interface MatrixAdminAccountModerationStatus {
+  locked?: boolean;
+  suspended?: boolean;
+}
+
+export interface MatrixModerationError {
+  status: number;
+  errcode: string;
+  error: string;
+}
+
+export interface MatrixKeyBackupAuthData {
+  public_key: string;
+  signatures: Record<string, Record<string, string>>;
+}
+
+export interface MatrixKeyBackupVersionCreateResponse {
+  version: string;
+}
+
+export interface MatrixKeyBackupVersion {
+  version?: string;
+  algorithm: string;
+  auth_data: MatrixKeyBackupAuthData;
+}
+
+export interface MatrixKeyBackupSession {
+  first_message_index: number;
+  forwarded_count: number;
+  is_verified: boolean;
+  session_data: Record<string, unknown>;
+}
+
+export interface MatrixKeyBackupSessionUploadResponse {
+  etag: string;
+  count: number;
+}
+
+export interface MatrixKeyBackupError {
+  status: number;
+  errcode: string;
+  error: string;
+  current_version?: string;
+}
+
+export interface MatrixKeyBackupOwnerScopeGate {
+  owner_scope_enforced: boolean;
+  protected_backup_unchanged: boolean;
+  checked_steps: string[];
+  versions_advertisement_widened: boolean;
+}
+
+export interface MatrixKeyBackupRecoveryGate {
+  logout_relogin_restore: boolean;
+  crypto_stack_required: boolean;
+  local_olm_megolm_allowed: boolean;
+  required_contracts: string[];
+  required_evidence: string[];
+  versions_advertisement_widened: boolean;
+}
+
 export interface ProtocolErrorEnvelope {
   code: string;
   message: string;
@@ -252,6 +662,141 @@ export interface HouraProtocolCoreFacade {
     responseBody: string,
   ): ProtocolResult<MatrixEventIdResponse>;
   parseMatrixErrorEnvelope(responseBody: string): ProtocolResult<MatrixErrorEnvelope>;
+  parseMatrixFederationInviteRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationInviteRequest>;
+  parseMatrixFederationInviteResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationInviteResponse>;
+  parseMatrixFederationDestinationResolutionFailure(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationDestinationResolutionFailure>;
+  parseMatrixFederationKeyQueryRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationKeyQueryRequest>;
+  parseMatrixFederationKeyQueryResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationKeyQueryResponse>;
+  parseMatrixFederationMakeJoinResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationMakeJoinResponse>;
+  parseMatrixFederationServerName(
+    serverName: string,
+  ): ProtocolResult<MatrixFederationServerName>;
+  parseMatrixFederationSendJoinResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationSendJoinResponse>;
+  parseMatrixFederationSigningKey(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationSigningKey>;
+  parseMatrixFederationTransaction(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationTransaction>;
+  parseMatrixFederationTransactionResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationTransactionResponse>;
+  parseMatrixFederationWellKnownServer(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationWellKnownServer>;
+  parseMatrixVerificationSasFlow(
+    responseBody: string,
+  ): ProtocolResult<MatrixVerificationSasFlow>;
+  parseMatrixVerificationCancel(
+    responseBody: string,
+  ): ProtocolResult<MatrixVerificationCancel>;
+  parseMatrixCrossSigningDeviceSigningUpload(
+    responseBody: string,
+  ): ProtocolResult<MatrixCrossSigningDeviceSigningUpload>;
+  parseMatrixCrossSigningSignatureUpload(
+    responseBody: string,
+  ): ProtocolResult<MatrixCrossSigningSignatureUpload>;
+  parseMatrixCrossSigningInvalidSignatureFailure(
+    responseBody: string,
+  ): ProtocolResult<MatrixCrossSigningInvalidSignatureFailure>;
+  parseMatrixCrossSigningMissingTokenGate(
+    responseBody: string,
+  ): ProtocolResult<MatrixCrossSigningMissingTokenGate>;
+  parseMatrixWrongDeviceFailureGate(
+    responseBody: string,
+  ): ProtocolResult<MatrixWrongDeviceFailureGate>;
+  parseMatrixKeysUploadRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeysUploadRequest>;
+  parseMatrixKeysUploadResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeysUploadResponse>;
+  parseMatrixKeysClaimRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeysClaimRequest>;
+  parseMatrixKeysClaimResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeysClaimResponse>;
+  parseMatrixDeviceKeyError(
+    responseBody: string,
+  ): ProtocolResult<MatrixDeviceKeyError>;
+  parseMatrixDeviceKeyQueryRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixDeviceKeyQueryRequest>;
+  parseMatrixDeviceKeyQueryResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixDeviceKeyQueryResponse>;
+  parseMatrixPublicRoomsRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixPublicRoomsRequest>;
+  parseMatrixPublicRoomsResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixPublicRoomsResponse>;
+  parseMatrixDirectoryVisibility(
+    responseBody: string,
+  ): ProtocolResult<MatrixDirectoryVisibility>;
+  parseMatrixRoomAliases(responseBody: string): ProtocolResult<MatrixRoomAliases>;
+  parseMatrixInviteRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixInviteRequest>;
+  parseMatrixInviteRoom(responseBody: string): ProtocolResult<MatrixInviteRoom>;
+  parseMatrixRoomDirectoryError(
+    responseBody: string,
+  ): ProtocolResult<MatrixRoomDirectoryError>;
+  parseMatrixModerationRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixModerationRequest>;
+  parseMatrixRedactionRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixRedactionRequest>;
+  parseMatrixRedactionResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixRedactionResponse>;
+  parseMatrixReportRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixReportRequest>;
+  parseMatrixAccountModerationCapability(
+    responseBody: string,
+  ): ProtocolResult<MatrixAccountModerationCapability>;
+  parseMatrixAdminAccountModerationStatus(
+    responseBody: string,
+  ): ProtocolResult<MatrixAdminAccountModerationStatus>;
+  parseMatrixModerationError(
+    responseBody: string,
+  ): ProtocolResult<MatrixModerationError>;
+  parseMatrixKeyBackupVersionCreateResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeyBackupVersionCreateResponse>;
+  parseMatrixKeyBackupVersion(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeyBackupVersion>;
+  parseMatrixKeyBackupSession(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeyBackupSession>;
+  parseMatrixKeyBackupSessionUploadResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeyBackupSessionUploadResponse>;
+  parseMatrixKeyBackupError(responseBody: string): ProtocolResult<MatrixKeyBackupError>;
+  parseMatrixKeyBackupOwnerScopeGate(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeyBackupOwnerScopeGate>;
+  parseMatrixKeyBackupRecoveryGate(
+    responseBody: string,
+  ): ProtocolResult<MatrixKeyBackupRecoveryGate>;
   parseMatrixLoginFlows(responseBody: string): ProtocolResult<MatrixLoginFlows>;
   parseMatrixLoginSession(
     responseBody: string,
@@ -355,6 +900,337 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixErrorEnvelope(envelope);
+    },
+    parseMatrixFederationInviteRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationInviteRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationInviteRequestEnvelope(envelope);
+    },
+    parseMatrixFederationInviteResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationInviteResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationInviteResponseEnvelope(envelope);
+    },
+    parseMatrixFederationDestinationResolutionFailure(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationDestinationResolutionFailureJson(
+          responseBody,
+        ),
+        "parse envelope",
+      );
+      return readMatrixFederationDestinationResolutionFailureEnvelope(envelope);
+    },
+    parseMatrixFederationKeyQueryRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationKeyQueryRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationKeyQueryRequestEnvelope(envelope);
+    },
+    parseMatrixFederationKeyQueryResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationKeyQueryResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationKeyQueryResponseEnvelope(envelope);
+    },
+    parseMatrixFederationMakeJoinResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationMakeJoinResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationMakeJoinResponseEnvelope(envelope);
+    },
+    parseMatrixFederationServerName(serverName: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationServerNameJson(serverName),
+        "parse envelope",
+      );
+      return readMatrixFederationServerNameEnvelope(envelope);
+    },
+    parseMatrixFederationSendJoinResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationSendJoinResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationSendJoinResponseEnvelope(envelope);
+    },
+    parseMatrixFederationSigningKey(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationSigningKeyJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationSigningKeyEnvelope(envelope);
+    },
+    parseMatrixFederationTransaction(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationTransactionJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationTransactionEnvelope(envelope);
+    },
+    parseMatrixFederationTransactionResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationTransactionResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationTransactionResponseEnvelope(envelope);
+    },
+    parseMatrixFederationWellKnownServer(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationWellKnownServerJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationWellKnownServerEnvelope(envelope);
+    },
+    parseMatrixVerificationSasFlow(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixVerificationSasFlowJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixVerificationSasFlowEnvelope(envelope);
+    },
+    parseMatrixVerificationCancel(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixVerificationCancelJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixVerificationCancelEnvelope(envelope);
+    },
+    parseMatrixCrossSigningDeviceSigningUpload(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixCrossSigningDeviceSigningUploadJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixCrossSigningDeviceSigningUploadEnvelope(envelope);
+    },
+    parseMatrixCrossSigningSignatureUpload(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixCrossSigningSignatureUploadJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixCrossSigningSignatureUploadEnvelope(envelope);
+    },
+    parseMatrixCrossSigningInvalidSignatureFailure(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixCrossSigningInvalidSignatureFailureJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixCrossSigningInvalidSignatureFailureEnvelope(envelope);
+    },
+    parseMatrixCrossSigningMissingTokenGate(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixCrossSigningMissingTokenGateJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixCrossSigningMissingTokenGateEnvelope(envelope);
+    },
+    parseMatrixWrongDeviceFailureGate(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixWrongDeviceFailureGateJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixWrongDeviceFailureGateEnvelope(envelope);
+    },
+    parseMatrixKeysUploadRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeysUploadRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeysUploadRequestEnvelope(envelope);
+    },
+    parseMatrixKeysUploadResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeysUploadResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeysUploadResponseEnvelope(envelope);
+    },
+    parseMatrixKeysClaimRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeysClaimRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeysClaimRequestEnvelope(envelope);
+    },
+    parseMatrixKeysClaimResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeysClaimResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeysClaimResponseEnvelope(envelope);
+    },
+    parseMatrixDeviceKeyError(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixDeviceKeyErrorJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixDeviceKeyErrorEnvelope(envelope);
+    },
+    parseMatrixDeviceKeyQueryRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixDeviceKeyQueryRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixDeviceKeyQueryRequestEnvelope(envelope);
+    },
+    parseMatrixDeviceKeyQueryResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixDeviceKeyQueryResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixDeviceKeyQueryResponseEnvelope(envelope);
+    },
+    parseMatrixPublicRoomsRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixPublicRoomsRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixPublicRoomsRequestEnvelope(envelope);
+    },
+    parseMatrixPublicRoomsResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixPublicRoomsResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixPublicRoomsResponseEnvelope(envelope);
+    },
+    parseMatrixDirectoryVisibility(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixDirectoryVisibilityJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixDirectoryVisibilityEnvelope(envelope);
+    },
+    parseMatrixRoomAliases(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRoomAliasesJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRoomAliasesEnvelope(envelope);
+    },
+    parseMatrixInviteRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixInviteRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixInviteRequestEnvelope(envelope);
+    },
+    parseMatrixInviteRoom(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixInviteRoomJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixInviteRoomEnvelope(envelope);
+    },
+    parseMatrixRoomDirectoryError(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRoomDirectoryErrorJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRoomDirectoryErrorEnvelope(envelope);
+    },
+    parseMatrixModerationRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixModerationRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixModerationRequestEnvelope(envelope);
+    },
+    parseMatrixRedactionRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRedactionRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRedactionRequestEnvelope(envelope);
+    },
+    parseMatrixRedactionResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRedactionResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRedactionResponseEnvelope(envelope);
+    },
+    parseMatrixReportRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixReportRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixReportRequestEnvelope(envelope);
+    },
+    parseMatrixAccountModerationCapability(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixAccountModerationCapabilityJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixAccountModerationCapabilityEnvelope(envelope);
+    },
+    parseMatrixAdminAccountModerationStatus(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixAdminAccountModerationStatusJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixAdminAccountModerationStatusEnvelope(envelope);
+    },
+    parseMatrixModerationError(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixModerationErrorJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixModerationErrorEnvelope(envelope);
+    },
+    parseMatrixKeyBackupVersionCreateResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeyBackupVersionCreateResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeyBackupVersionCreateResponseEnvelope(envelope);
+    },
+    parseMatrixKeyBackupVersion(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeyBackupVersionJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeyBackupVersionEnvelope(envelope);
+    },
+    parseMatrixKeyBackupSession(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeyBackupSessionJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeyBackupSessionEnvelope(envelope);
+    },
+    parseMatrixKeyBackupSessionUploadResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeyBackupSessionUploadResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeyBackupSessionUploadResponseEnvelope(envelope);
+    },
+    parseMatrixKeyBackupError(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeyBackupErrorJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeyBackupErrorEnvelope(envelope);
+    },
+    parseMatrixKeyBackupOwnerScopeGate(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeyBackupOwnerScopeGateJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeyBackupOwnerScopeGateEnvelope(envelope);
+    },
+    parseMatrixKeyBackupRecoveryGate(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixKeyBackupRecoveryGateJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixKeyBackupRecoveryGateEnvelope(envelope);
     },
     parseMatrixLoginFlows(responseBody: string) {
       const envelope = parseJsonObject(
@@ -599,6 +1475,860 @@ function readMatrixFoundationValidationEnvelope(
   return readProtocolResult(envelope, (value) => ({
     valid: readBoolean(value, "valid"),
   }));
+}
+
+function readMatrixFederationTransactionEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationTransaction> {
+  return readProtocolResult(envelope, (value) => ({
+    origin: readString(value, "origin", "invalid_envelope"),
+    origin_server_ts: readNumber(value, "origin_server_ts", "invalid_envelope"),
+    pdus: readRecordArray(value, "pdus", "federation.transaction.pdus"),
+    edus: readRecordArray(value, "edus", "federation.transaction.edus"),
+  }));
+}
+
+function readMatrixFederationTransactionResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationTransactionResponse> {
+  return readProtocolResult(envelope, (value) => {
+    const pdus: [string, MatrixFederationPduResult][] = [];
+    for (const [eventId, result] of Object.entries(
+      readRecord(value, "pdus", "federation.transaction_response"),
+    )) {
+      const record = assertRecord(
+        result,
+        `federation.transaction_response.pdus.${eventId}`,
+      );
+      const pduResult: MatrixFederationPduResult = {};
+      readOptionalString(record, "error", (error) => {
+        pduResult.error = error;
+      }, `federation.transaction_response.pdus.${eventId}`);
+      pdus.push([eventId, pduResult]);
+    }
+    return { pdus: Object.fromEntries(pdus) };
+  });
+}
+
+function readMatrixFederationMakeJoinResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationMakeJoinResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    room_version: readString(value, "room_version", "invalid_envelope"),
+    event: readRecord(value, "event", "federation.make_join"),
+  }));
+}
+
+function readMatrixFederationSendJoinResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationSendJoinResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    origin: readString(value, "origin", "invalid_envelope"),
+    state: readRecordArray(value, "state", "federation.send_join.state"),
+    auth_chain: readRecordArray(
+      value,
+      "auth_chain",
+      "federation.send_join.auth_chain",
+    ),
+    event: readRecord(value, "event", "federation.send_join"),
+  }));
+}
+
+function readMatrixFederationInviteRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationInviteRequest> {
+  return readProtocolResult(envelope, (value) => ({
+    room_version: readString(value, "room_version", "invalid_envelope"),
+    event: readRecord(value, "event", "federation.invite"),
+  }));
+}
+
+function readMatrixFederationInviteResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationInviteResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    event: readRecord(value, "event", "federation.invite_response"),
+  }));
+}
+
+function readMatrixFederationServerNameEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationServerName> {
+  return readProtocolResult(envelope, (value) => {
+    const serverName: MatrixFederationServerName = {
+      server_name: readString(value, "server_name", "invalid_envelope"),
+      host: readString(value, "host", "invalid_envelope"),
+    };
+    readOptionalNumber(value, "port", (port) => {
+      serverName.port = port;
+    });
+    return serverName;
+  });
+}
+
+function readMatrixFederationWellKnownServerEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationWellKnownServer> {
+  return readProtocolResult(envelope, (value) => {
+    const wellKnown: MatrixFederationWellKnownServer = {
+      delegated_server_name: readString(
+        value,
+        "delegated_server_name",
+        "invalid_envelope",
+      ),
+      host: readString(value, "host", "invalid_envelope"),
+    };
+    readOptionalNumber(value, "port", (port) => {
+      wellKnown.port = port;
+    });
+    return wellKnown;
+  });
+}
+
+function readMatrixFederationSigningKeyEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationSigningKey> {
+  return readProtocolResult(envelope, readMatrixFederationSigningKey);
+}
+
+function readMatrixFederationKeyQueryRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationKeyQueryRequest> {
+  return readProtocolResult(envelope, (value) => ({
+    server_keys: readNestedFederationKeyQueryCriteria(
+      value,
+      "server_keys",
+      "federation.key_query_request.server_keys",
+    ),
+  }));
+}
+
+function readMatrixFederationKeyQueryResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationKeyQueryResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    server_keys: readArray(value, "server_keys", "invalid_envelope").map(
+      (entry, index) =>
+        readMatrixFederationSigningKey(
+          assertRecord(entry, `federation.key_query_response.${index}`),
+        ),
+    ),
+  }));
+}
+
+function readMatrixFederationDestinationResolutionFailureEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationDestinationResolutionFailure> {
+  return readProtocolResult(envelope, (value) => ({
+    server_name: readString(value, "server_name", "invalid_envelope"),
+    stages: readStringArray(value, "stages", "invalid_envelope"),
+    destination_resolved: readBoolean(value, "destination_resolved"),
+    federation_request_sent: readBoolean(value, "federation_request_sent"),
+    backoff_recorded: readBoolean(value, "backoff_recorded"),
+  }));
+}
+
+function readMatrixVerificationSasFlowEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixVerificationSasFlow> {
+  return readProtocolResult(envelope, (value) => {
+    const flow: MatrixVerificationSasFlow = {
+      transaction_id: readString(value, "transaction_id", "invalid_envelope"),
+      transport: readString(value, "transport", "invalid_envelope"),
+      event_types: readStringArray(value, "event_types", "invalid_envelope"),
+      verified: readBoolean(value, "verified"),
+      local_sas_allowed: readBoolean(value, "local_sas_allowed"),
+      versions_advertisement_widened: readBoolean(
+        value,
+        "versions_advertisement_widened",
+      ),
+    };
+    return flow;
+  });
+}
+
+function readMatrixVerificationCancelEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixVerificationCancel> {
+  return readProtocolResult(envelope, (value) => ({
+    transaction_id: readString(value, "transaction_id", "invalid_envelope"),
+    code: readString(value, "code", "invalid_envelope"),
+    reason: readString(value, "reason", "invalid_envelope"),
+    verified: readBoolean(value, "verified"),
+    versions_advertisement_widened: readBoolean(
+      value,
+      "versions_advertisement_widened",
+    ),
+  }));
+}
+
+function readMatrixCrossSigningDeviceSigningUploadEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixCrossSigningDeviceSigningUpload> {
+  return readProtocolResult(envelope, (value) => {
+    const upload: MatrixCrossSigningDeviceSigningUpload = {};
+    readOptionalRecord(value, "master_key", (key) => {
+      upload.master_key = readMatrixCrossSigningKey(key);
+    });
+    readOptionalRecord(value, "self_signing_key", (key) => {
+      upload.self_signing_key = readMatrixCrossSigningKey(key);
+    });
+    readOptionalRecord(value, "user_signing_key", (key) => {
+      upload.user_signing_key = readMatrixCrossSigningKey(key);
+    });
+    return upload;
+  });
+}
+
+function readMatrixCrossSigningSignatureUploadEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixCrossSigningSignatureUpload> {
+  return readProtocolResult(envelope, (value) => {
+    const signedObjects: [
+      string,
+      Record<string, Record<string, unknown>>,
+    ][] = [];
+    for (const [userId, devices] of Object.entries(
+      readRecord(value, "signed_objects", "cross signing signature upload"),
+    )) {
+      const deviceRecords: [string, Record<string, unknown>][] = [];
+      for (const [deviceId, signedObject] of Object.entries(
+        assertRecord(devices, `cross_signing.signatures_upload.${userId}`),
+      )) {
+        deviceRecords.push([
+          deviceId,
+          assertRecord(
+            signedObject,
+            `cross_signing.signatures_upload.${userId}.${deviceId}`,
+          ),
+        ]);
+      }
+      signedObjects.push([userId, Object.fromEntries(deviceRecords)]);
+    }
+    return { signed_objects: Object.fromEntries(signedObjects) };
+  });
+}
+
+function readMatrixCrossSigningInvalidSignatureFailureEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixCrossSigningInvalidSignatureFailure> {
+  return readProtocolResult(envelope, (value) => ({
+    status: readNumber(value, "status", "invalid_envelope"),
+    errcode: readString(value, "errcode", "invalid_envelope"),
+    error: readString(value, "error", "invalid_envelope"),
+  }));
+}
+
+function readMatrixCrossSigningMissingTokenGateEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixCrossSigningMissingTokenGate> {
+  return readProtocolResult(envelope, (value) => ({
+    protected_key_operations_require_token: readBoolean(
+      value,
+      "protected_key_operations_require_token",
+    ),
+    semantic_errors_suppressed_until_authenticated: readBoolean(
+      value,
+      "semantic_errors_suppressed_until_authenticated",
+    ),
+    auth_precedes_signature_validation: readBoolean(
+      value,
+      "auth_precedes_signature_validation",
+    ),
+    operations: readStringArray(value, "operations", "invalid_envelope"),
+    errcode: readString(value, "errcode", "invalid_envelope"),
+  }));
+}
+
+function readMatrixWrongDeviceFailureGateEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixWrongDeviceFailureGate> {
+  return readProtocolResult(envelope, (value) => ({
+    trusted_identity: readMatrixWrongDeviceIdentity(
+      readRecord(value, "trusted_identity", "wrong device gate"),
+    ),
+    observed_identity: readMatrixWrongDeviceIdentity(
+      readRecord(value, "observed_identity", "wrong device gate"),
+    ),
+    required_steps: readStringArray(value, "required_steps", "invalid_envelope"),
+    required_evidence: readStringArray(
+      value,
+      "required_evidence",
+      "invalid_envelope",
+    ),
+    cancel_code: readString(value, "cancel_code", "invalid_envelope"),
+    device_verified: readBoolean(value, "device_verified"),
+    outbound_session_shared: readBoolean(value, "outbound_session_shared"),
+    requires_user_reverification: readBoolean(
+      value,
+      "requires_user_reverification",
+    ),
+    versions_advertisement_widened: readBoolean(
+      value,
+      "versions_advertisement_widened",
+    ),
+  }));
+}
+
+function readMatrixKeysUploadRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeysUploadRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixKeysUploadRequest = {
+      one_time_keys: readSignedKeyRecord(value, "one_time_keys"),
+      fallback_keys: readSignedKeyRecord(value, "fallback_keys"),
+      private_key_material_returned: readBoolean(
+        value,
+        "private_key_material_returned",
+      ),
+    };
+    readOptionalRecord(value, "device_keys", (deviceKeys) => {
+      result.device_keys = readMatrixDeviceKeysUploadDevice(deviceKeys);
+    });
+    return result;
+  });
+}
+
+function readMatrixKeysUploadResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeysUploadResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    one_time_key_counts: readNumberRecord(value, "one_time_key_counts"),
+    private_key_material_returned: readBoolean(
+      value,
+      "private_key_material_returned",
+    ),
+  }));
+}
+
+function readMatrixKeysClaimRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeysClaimRequest> {
+  return readProtocolResult(envelope, (value) => ({
+    one_time_keys: readNestedStringRecord(
+      value,
+      "one_time_keys",
+      "keys claim request",
+    ),
+  }));
+}
+
+function readMatrixKeysClaimResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeysClaimResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    failures: readNestedStringRecord(value, "failures", "keys claim response"),
+    one_time_keys: readClaimedKeysRecord(value, "one_time_keys"),
+    fallback_key_returned: readBoolean(value, "fallback_key_returned"),
+  }));
+}
+
+function readMatrixDeviceKeyErrorEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixDeviceKeyError> {
+  return readProtocolResult(envelope, (value) => ({
+    status: readNumber(value, "status", "invalid_envelope"),
+    errcode: readString(value, "errcode", "invalid_envelope"),
+    error: readString(value, "error", "invalid_envelope"),
+  }));
+}
+
+function readMatrixDeviceKeyQueryRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixDeviceKeyQueryRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixDeviceKeyQueryRequest = {
+      device_keys: readStringArrayRecord(value, "device_keys"),
+    };
+    readOptionalNumber(value, "timeout", (timeout) => {
+      result.timeout = timeout;
+    });
+    return result;
+  });
+}
+
+function readMatrixDeviceKeyQueryResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixDeviceKeyQueryResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    failures: readNestedStringRecord(value, "failures", "device key query"),
+    device_keys: readDeviceKeyQueryDeviceRecord(value, "device_keys"),
+    private_key_material_returned: readBoolean(
+      value,
+      "private_key_material_returned",
+    ),
+    trust_decision_made: readBoolean(value, "trust_decision_made"),
+  }));
+}
+
+function readMatrixPublicRoomsRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixPublicRoomsRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixPublicRoomsRequest = {};
+    readOptionalNumber(value, "limit", (limit) => {
+      result.limit = limit;
+    });
+    readOptionalString(value, "since", (since) => {
+      result.since = since;
+    });
+    readOptionalString(value, "server", (server) => {
+      result.server = server;
+    });
+    readOptionalString(value, "generic_search_term", (term) => {
+      result.generic_search_term = term;
+    });
+    readOptionalBoolean(value, "include_all_networks", (includeAllNetworks) => {
+      result.include_all_networks = includeAllNetworks;
+    });
+    readOptionalString(value, "third_party_instance_id", (id) => {
+      result.third_party_instance_id = id;
+    });
+    return result;
+  });
+}
+
+function readMatrixPublicRoomsResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixPublicRoomsResponse> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixPublicRoomsResponse = {
+      chunk: readRecordArray(value, "chunk", "invalid_envelope").map((room) => {
+        const publicRoom: MatrixPublicRoom = {
+          room_id: readString(room, "room_id", "invalid_envelope"),
+          num_joined_members: readNumber(
+            room,
+            "num_joined_members",
+            "invalid_envelope",
+          ),
+          world_readable: readBoolean(room, "world_readable"),
+          guest_can_join: readBoolean(room, "guest_can_join"),
+        };
+        for (const field of [
+          "name",
+          "topic",
+          "canonical_alias",
+          "avatar_url",
+          "join_rule",
+          "room_type",
+        ] as const) {
+          readOptionalString(room, field, (entry) => {
+            publicRoom[field] = entry;
+          });
+        }
+        return publicRoom;
+      }),
+    };
+    readOptionalString(value, "next_batch", (token) => {
+      result.next_batch = token;
+    });
+    readOptionalString(value, "prev_batch", (token) => {
+      result.prev_batch = token;
+    });
+    readOptionalNumber(value, "total_room_count_estimate", (count) => {
+      result.total_room_count_estimate = count;
+    });
+    return result;
+  });
+}
+
+function readMatrixDirectoryVisibilityEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixDirectoryVisibility> {
+  return readProtocolResult(envelope, (value) => ({
+    visibility: readString(value, "visibility", "invalid_envelope"),
+  }));
+}
+
+function readMatrixRoomAliasesEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRoomAliases> {
+  return readProtocolResult(envelope, (value) => ({
+    aliases: readStringArray(value, "aliases", "invalid_envelope"),
+  }));
+}
+
+function readMatrixInviteRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixInviteRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixInviteRequest = {
+      user_id: readString(value, "user_id", "invalid_envelope"),
+    };
+    readOptionalString(value, "reason", (reason) => {
+      result.reason = reason;
+    });
+    return result;
+  });
+}
+
+function readMatrixInviteRoomEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixInviteRoom> {
+  return readProtocolResult(envelope, (value) => ({
+    room_id: readString(value, "room_id", "invalid_envelope"),
+    events: readRecordArray(value, "events", "invalid_envelope").map((event) => {
+      const result: MatrixInviteStateEvent = {
+        type: readString(event, "type", "invalid_envelope"),
+        state_key: readString(event, "state_key", "invalid_envelope"),
+        content: readRecord(event, "content", "invite state event"),
+      };
+      readOptionalString(event, "sender", (sender) => {
+        result.sender = sender;
+      });
+      return result;
+    }),
+  }));
+}
+
+function readMatrixRoomDirectoryErrorEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRoomDirectoryError> {
+  return readProtocolResult(envelope, (value) => ({
+    status: readNumber(value, "status", "invalid_envelope"),
+    errcode: readString(value, "errcode", "invalid_envelope"),
+    error: readString(value, "error", "invalid_envelope"),
+  }));
+}
+
+function readMatrixModerationRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixModerationRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixModerationRequest = {
+      user_id: readString(value, "user_id", "invalid_envelope"),
+    };
+    readOptionalString(value, "reason", (reason) => {
+      result.reason = reason;
+    });
+    return result;
+  });
+}
+
+function readMatrixRedactionRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRedactionRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixRedactionRequest = {};
+    readOptionalString(value, "reason", (reason) => {
+      result.reason = reason;
+    });
+    return result;
+  });
+}
+
+function readMatrixRedactionResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRedactionResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    event_id: readString(value, "event_id", "invalid_envelope"),
+  }));
+}
+
+function readMatrixReportRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixReportRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixReportRequest = {};
+    readOptionalString(value, "reason", (reason) => {
+      result.reason = reason;
+    });
+    return result;
+  });
+}
+
+function readMatrixAccountModerationCapabilityEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixAccountModerationCapability> {
+  return readProtocolResult(envelope, (value) => ({
+    lock: readBoolean(value, "lock"),
+    suspend: readBoolean(value, "suspend"),
+  }));
+}
+
+function readMatrixAdminAccountModerationStatusEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixAdminAccountModerationStatus> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixAdminAccountModerationStatus = {};
+    readOptionalBoolean(value, "locked", (locked) => {
+      result.locked = locked;
+    });
+    readOptionalBoolean(value, "suspended", (suspended) => {
+      result.suspended = suspended;
+    });
+    return result;
+  });
+}
+
+function readMatrixModerationErrorEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixModerationError> {
+  return readProtocolResult(envelope, (value) => ({
+    status: readNumber(value, "status", "invalid_envelope"),
+    errcode: readString(value, "errcode", "invalid_envelope"),
+    error: readString(value, "error", "invalid_envelope"),
+  }));
+}
+
+function readStringArrayRecord(
+  source: Record<string, unknown>,
+  field: string,
+): Record<string, string[]> {
+  const entries: [string, string[]][] = [];
+  for (const [key, value] of Object.entries(readRecord(source, field, field))) {
+    if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) {
+      throw new HouraProtocolCoreFacadeError(
+        "invalid_envelope",
+        `${field}.${key} must be a string array`,
+      );
+    }
+    entries.push([key, value]);
+  }
+  return Object.fromEntries(entries);
+}
+
+function readDeviceKeyQueryDeviceRecord(
+  source: Record<string, unknown>,
+  field: string,
+): Record<string, Record<string, MatrixDeviceKeysUploadDevice>> {
+  const users: [string, Record<string, MatrixDeviceKeysUploadDevice>][] = [];
+  for (const [userId, devices] of Object.entries(
+    readRecord(source, field, "device key query"),
+  )) {
+    const deviceEntries: [string, MatrixDeviceKeysUploadDevice][] = [];
+    for (const [deviceId, device] of Object.entries(
+      assertRecord(devices, `${field}.${userId}`),
+    )) {
+      deviceEntries.push([
+        deviceId,
+        readMatrixDeviceKeysUploadDevice(
+          assertRecord(device, `${field}.${userId}.${deviceId}`),
+        ),
+      ]);
+    }
+    users.push([userId, Object.fromEntries(deviceEntries)]);
+  }
+  return Object.fromEntries(users);
+}
+
+function readMatrixDeviceKeysUploadDevice(
+  value: Record<string, unknown>,
+): MatrixDeviceKeysUploadDevice {
+  return {
+    user_id: readString(value, "user_id", "invalid_envelope"),
+    device_id: readString(value, "device_id", "invalid_envelope"),
+    algorithms: readStringArray(value, "algorithms", "invalid_envelope"),
+    keys: readKeyPreservingStringRecord(
+      readRecord(value, "keys", "device keys upload"),
+    ),
+    signatures: readNestedStringRecord(
+      value,
+      "signatures",
+      "device keys upload",
+    ),
+  };
+}
+
+function readSignedKeyRecord(
+  source: Record<string, unknown>,
+  field: string,
+): Record<string, MatrixSignedCurve25519Key> {
+  const keys: [string, MatrixSignedCurve25519Key][] = [];
+  for (const [keyId, key] of Object.entries(readRecord(source, field, field))) {
+    keys.push([
+      keyId,
+      readMatrixSignedCurve25519Key(assertRecord(key, `${field}.${keyId}`)),
+    ]);
+  }
+  return Object.fromEntries(keys);
+}
+
+function readMatrixSignedCurve25519Key(
+  value: Record<string, unknown>,
+): MatrixSignedCurve25519Key {
+  return {
+    key: readString(value, "key", "invalid_envelope"),
+    fallback: readBoolean(value, "fallback"),
+    signatures: readNestedStringRecord(value, "signatures", "signed key"),
+  };
+}
+
+function readClaimedKeysRecord(
+  source: Record<string, unknown>,
+  field: string,
+): Record<string, Record<string, Record<string, MatrixSignedCurve25519Key>>> {
+  const users: [
+    string,
+    Record<string, Record<string, MatrixSignedCurve25519Key>>,
+  ][] = [];
+  for (const [userId, devices] of Object.entries(
+    readRecord(source, field, "keys claim response"),
+  )) {
+    const deviceEntries: [string, Record<string, MatrixSignedCurve25519Key>][] =
+      [];
+    for (const [deviceId, keys] of Object.entries(
+      assertRecord(devices, `${field}.${userId}`),
+    )) {
+      const keyEntries: [string, MatrixSignedCurve25519Key][] = [];
+      for (const [keyId, key] of Object.entries(
+        assertRecord(keys, `${field}.${userId}.${deviceId}`),
+      )) {
+        keyEntries.push([
+          keyId,
+          readMatrixSignedCurve25519Key(
+            assertRecord(key, `${field}.${userId}.${deviceId}.${keyId}`),
+          ),
+        ]);
+      }
+      deviceEntries.push([deviceId, Object.fromEntries(keyEntries)]);
+    }
+    users.push([userId, Object.fromEntries(deviceEntries)]);
+  }
+  return Object.fromEntries(users);
+}
+
+function readMatrixKeyBackupVersionCreateResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeyBackupVersionCreateResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    version: readString(value, "version", "invalid_envelope"),
+  }));
+}
+
+function readMatrixKeyBackupVersionEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeyBackupVersion> {
+  return readProtocolResult(envelope, readMatrixKeyBackupVersion);
+}
+
+function readMatrixKeyBackupVersion(
+  value: Record<string, unknown>,
+): MatrixKeyBackupVersion {
+  const result: MatrixKeyBackupVersion = {
+    algorithm: readString(value, "algorithm", "invalid_envelope"),
+    auth_data: readMatrixKeyBackupAuthData(
+      readRecord(value, "auth_data", "key backup version"),
+    ),
+  };
+  readOptionalString(value, "version", (version) => {
+    result.version = version;
+  });
+  return result;
+}
+
+function readMatrixKeyBackupAuthData(
+  value: Record<string, unknown>,
+): MatrixKeyBackupAuthData {
+  return {
+    public_key: readString(value, "public_key", "invalid_envelope"),
+    signatures: readNestedStringRecord(
+      value,
+      "signatures",
+      "key_backup.auth_data.signatures",
+    ),
+  };
+}
+
+function readMatrixKeyBackupSessionEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeyBackupSession> {
+  return readProtocolResult(envelope, (value) => ({
+    first_message_index: readNumber(value, "first_message_index", "invalid_envelope"),
+    forwarded_count: readNumber(value, "forwarded_count", "invalid_envelope"),
+    is_verified: readBoolean(value, "is_verified"),
+    session_data: readRecord(value, "session_data", "key backup session"),
+  }));
+}
+
+function readMatrixKeyBackupSessionUploadResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeyBackupSessionUploadResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    etag: readString(value, "etag", "invalid_envelope"),
+    count: readNumber(value, "count", "invalid_envelope"),
+  }));
+}
+
+function readMatrixKeyBackupErrorEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeyBackupError> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixKeyBackupError = {
+      status: readNumber(value, "status", "invalid_envelope"),
+      errcode: readString(value, "errcode", "invalid_envelope"),
+      error: readString(value, "error", "invalid_envelope"),
+    };
+    readOptionalString(value, "current_version", (currentVersion) => {
+      result.current_version = currentVersion;
+    });
+    return result;
+  });
+}
+
+function readMatrixKeyBackupOwnerScopeGateEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeyBackupOwnerScopeGate> {
+  return readProtocolResult(envelope, (value) => ({
+    owner_scope_enforced: readBoolean(value, "owner_scope_enforced"),
+    protected_backup_unchanged: readBoolean(value, "protected_backup_unchanged"),
+    checked_steps: readStringArray(value, "checked_steps", "invalid_envelope"),
+    versions_advertisement_widened: readBoolean(
+      value,
+      "versions_advertisement_widened",
+    ),
+  }));
+}
+
+function readMatrixKeyBackupRecoveryGateEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixKeyBackupRecoveryGate> {
+  return readProtocolResult(envelope, (value) => ({
+    logout_relogin_restore: readBoolean(value, "logout_relogin_restore"),
+    crypto_stack_required: readBoolean(value, "crypto_stack_required"),
+    local_olm_megolm_allowed: readBoolean(value, "local_olm_megolm_allowed"),
+    required_contracts: readStringArray(value, "required_contracts", "invalid_envelope"),
+    required_evidence: readStringArray(value, "required_evidence", "invalid_envelope"),
+    versions_advertisement_widened: readBoolean(
+      value,
+      "versions_advertisement_widened",
+    ),
+  }));
+}
+
+function readMatrixCrossSigningKey(
+  value: Record<string, unknown>,
+): MatrixCrossSigningKey {
+  const signatures: [string, Record<string, string>][] = [];
+  for (const [userId, signatureMap] of Object.entries(
+    readRecord(value, "signatures", "cross signing key"),
+  )) {
+    signatures.push([
+      userId,
+      readKeyPreservingStringRecord(
+        assertRecord(signatureMap, `cross_signing.key.signatures.${userId}`),
+      ),
+    ]);
+  }
+  return {
+    user_id: readString(value, "user_id", "invalid_envelope"),
+    usage: readStringArray(value, "usage", "invalid_envelope"),
+    keys: readKeyPreservingStringRecord(
+      readRecord(value, "keys", "cross signing key"),
+    ),
+    signatures: Object.fromEntries(signatures),
+  };
+}
+
+function readMatrixWrongDeviceIdentity(
+  value: Record<string, unknown>,
+): MatrixWrongDeviceIdentity {
+  return {
+    user_id: readString(value, "user_id", "invalid_envelope"),
+    device_id: readString(value, "device_id", "invalid_envelope"),
+    master_key: readString(value, "master_key", "invalid_envelope"),
+    device_key: readString(value, "device_key", "invalid_envelope"),
+  };
 }
 
 function readMatrixLoginFlowsEnvelope(
@@ -1076,6 +2806,18 @@ function readRecord(
   return value;
 }
 
+function readOptionalRecord(
+  source: Record<string, unknown>,
+  field: string,
+  apply: (value: Record<string, unknown>) => void,
+): void {
+  const value = source[field];
+  if (value === null || value === undefined) {
+    return;
+  }
+  apply(assertRecord(value, field));
+}
+
 function assertRecord(
   value: unknown,
   context: string,
@@ -1233,6 +2975,126 @@ function readArray(
   return value;
 }
 
+function readRecordArray(
+  source: Record<string, unknown>,
+  field: string,
+  context: string,
+): Record<string, unknown>[] {
+  return readArray(source, field, "invalid_envelope").map((entry, index) =>
+    assertRecord(entry, `${context}.${index}`),
+  );
+}
+
+function readMatrixFederationSigningKey(
+  value: Record<string, unknown>,
+): MatrixFederationSigningKey {
+  return {
+    server_name: readString(value, "server_name", "invalid_envelope"),
+    verify_keys: readFederationVerifyKeys(
+      value,
+      "verify_keys",
+      "federation.signing_key.verify_keys",
+    ),
+    old_verify_keys: readFederationOldVerifyKeys(
+      value,
+      "old_verify_keys",
+      "federation.signing_key.old_verify_keys",
+    ),
+    valid_until_ts: readNumber(value, "valid_until_ts", "invalid_envelope"),
+    signatures: readNestedStringRecord(
+      value,
+      "signatures",
+      "federation.signing_key.signatures",
+    ),
+  };
+}
+
+function readFederationVerifyKeys(
+  source: Record<string, unknown>,
+  field: string,
+  context: string,
+): Record<string, MatrixFederationVerifyKey> {
+  const keys: [string, MatrixFederationVerifyKey][] = [];
+  for (const [keyId, key] of Object.entries(readRecord(source, field, context))) {
+    keys.push([
+      keyId,
+      {
+        key: readString(assertRecord(key, `${context}.${keyId}`), "key", "invalid_envelope"),
+      },
+    ]);
+  }
+  return Object.fromEntries(keys);
+}
+
+function readFederationOldVerifyKeys(
+  source: Record<string, unknown>,
+  field: string,
+  context: string,
+): Record<string, MatrixFederationOldVerifyKey> {
+  const keys: [string, MatrixFederationOldVerifyKey][] = [];
+  for (const [keyId, key] of Object.entries(readRecord(source, field, context))) {
+    const record = assertRecord(key, `${context}.${keyId}`);
+    keys.push([
+      keyId,
+      {
+        expired_ts: readNumber(record, "expired_ts", "invalid_envelope"),
+        key: readString(record, "key", "invalid_envelope"),
+      },
+    ]);
+  }
+  return Object.fromEntries(keys);
+}
+
+function readNestedStringRecord(
+  source: Record<string, unknown>,
+  field: string,
+  context: string,
+): Record<string, Record<string, string>> {
+  const outer: [string, Record<string, string>][] = [];
+  for (const [outerKey, inner] of Object.entries(readRecord(source, field, context))) {
+    const innerValues: [string, string][] = [];
+    for (const [innerKey, value] of Object.entries(
+      assertRecord(inner, `${context}.${outerKey}`),
+    )) {
+      if (typeof value !== "string") {
+        throw new HouraProtocolCoreFacadeError(
+          "invalid_envelope",
+          `${context}.${outerKey}.${innerKey} must be a string`,
+        );
+      }
+      innerValues.push([innerKey, value]);
+    }
+    outer.push([outerKey, Object.fromEntries(innerValues)]);
+  }
+  return Object.fromEntries(outer);
+}
+
+function readNestedFederationKeyQueryCriteria(
+  source: Record<string, unknown>,
+  field: string,
+  context: string,
+): Record<string, Record<string, MatrixFederationKeyQueryCriteria>> {
+  const servers: [string, Record<string, MatrixFederationKeyQueryCriteria>][] =
+    [];
+  for (const [serverName, keyCriteria] of Object.entries(
+    readRecord(source, field, context),
+  )) {
+    const keys: [string, MatrixFederationKeyQueryCriteria][] = [];
+    for (const [keyId, criteria] of Object.entries(
+      assertRecord(keyCriteria, `${context}.${serverName}`),
+    )) {
+      const record = assertRecord(criteria, `${context}.${serverName}.${keyId}`);
+      const parsed: MatrixFederationKeyQueryCriteria = {};
+      readOptionalNumber(record, "minimum_valid_until_ts", (minimumValidUntilTs) => {
+        parsed.minimum_valid_until_ts = minimumValidUntilTs;
+      });
+      keys.push([keyId, parsed]);
+    }
+    servers.push([serverName, Object.fromEntries(keys)]);
+  }
+  return Object.fromEntries(servers);
+}
+
 function readStringArray(
   source: Record<string, unknown>,
   field: string,
@@ -1246,6 +3108,23 @@ function readStringArray(
     );
   }
   return value;
+}
+
+function readNumberRecord(
+  source: Record<string, unknown>,
+  field: string,
+): Record<string, number> {
+  const entries: [string, number][] = [];
+  for (const [key, value] of Object.entries(readRecord(source, field, field))) {
+    if (typeof value !== "number" || !Number.isInteger(value)) {
+      throw new HouraProtocolCoreFacadeError(
+        "invalid_envelope",
+        `${field}.${key} must be an integer`,
+      );
+    }
+    entries.push([key, value]);
+  }
+  return Object.fromEntries(entries);
 }
 
 function readBooleanRecord(
@@ -1278,6 +3157,22 @@ function readStringRecord(
     result[key] = value;
   }
   return result;
+}
+
+function readKeyPreservingStringRecord(
+  source: Record<string, unknown>,
+): Record<string, string> {
+  const entries: [string, string][] = [];
+  for (const [key, value] of Object.entries(source)) {
+    if (typeof value !== "string") {
+      throw new HouraProtocolCoreFacadeError(
+        "invalid_envelope",
+        `record.${key} must be a string`,
+      );
+    }
+    entries.push([key, value]);
+  }
+  return Object.fromEntries(entries);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

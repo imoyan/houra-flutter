@@ -183,10 +183,7 @@ final class HouraTransport {
       scheme: _serverBaseUri.scheme,
       host: _serverBaseUri.host,
       port: _serverBaseUri.hasPort ? _serverBaseUri.port : null,
-      pathSegments: [
-        ...baseSegments,
-        ...request.pathSegments,
-      ],
+      pathSegments: [...baseSegments, ...request.pathSegments],
       queryParameters:
           request.queryParameters.isEmpty ? null : request.queryParameters,
     );
@@ -209,8 +206,10 @@ Map<String, String> _validateQueryParameters(
     return (code: null, message: null);
   }
   return (
-    code: _optionalNonEmptyString(decoded['code']),
-    message: _optionalNonEmptyString(decoded['message']),
+    code: _optionalNonEmptyString(decoded['code']) ??
+        _optionalNonEmptyString(decoded['errcode']),
+    message: _optionalNonEmptyString(decoded['message']) ??
+        _optionalNonEmptyString(decoded['error']),
   );
 }
 

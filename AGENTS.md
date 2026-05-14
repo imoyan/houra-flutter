@@ -82,6 +82,18 @@ The current package implements:
 - SPEC-010 Timeline
 - SPEC-011 Basic Sync
 - SPEC-020 Media
+- SPEC-048 Matrix Room Directory / Aliases / Invites request descriptors,
+  public response envelopes, stripped invite state envelopes, and Matrix error
+  envelopes only
+- SPEC-049 Matrix Moderation / Reporting / Admin Controls request
+  descriptors, public response envelopes, capability envelopes, status
+  envelopes, and Matrix error envelopes only
+- SPEC-051 Matrix Key Upload / Claim request descriptors and public response
+  parsers only
+- SPEC-052 Matrix To-Device / Encrypted Room request descriptors and public
+  envelope parsers only
+- SPEC-069 Matrix Device Key Query request descriptor and public response
+  parser only
 
 Do not add storage, encryption, federation, push gateway compatibility, or full
 Matrix compatibility without a matching contract and test-vector update.

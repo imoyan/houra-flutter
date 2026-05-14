@@ -13,6 +13,14 @@ const expectedSpecIds = [
   'SPEC-038',
   'SPEC-039',
   'SPEC-040',
+  'SPEC-048',
+  'SPEC-049',
+  'SPEC-051',
+  'SPEC-053',
+  'SPEC-054',
+  'SPEC-055',
+  'SPEC-056',
+  'SPEC-069',
 ];
 
 void main(List<String> args) {
@@ -24,13 +32,40 @@ void main(List<String> args) {
     File('rust-protocol-core-wasm/Cargo.toml'),
   );
   final tsPackage = _readJsonObject(File('ts-protocol-core-wasm/package.json'));
-  final tsConstants =
-      _readTsConstants(File('ts-protocol-core-wasm/src/index.ts'));
+  final tsConstants = _readTsConstants(
+    File('ts-protocol-core-wasm/src/index.ts'),
+  );
 
   _expect(
     failures,
     rustCore['name'] == tsConstants['crateName'],
     'Rust crate name and TypeScript facade crate constant differ.',
+  );
+  _expect(
+    failures,
+    rustCore['description'] ==
+        'Rust lab prototype for shared Houra protocol parsing and validation.',
+    'Rust crate description changed without updating release evidence.',
+  );
+  _expect(
+    failures,
+    rustCore['license'] == 'Apache-2.0',
+    'Rust crate license must stay Apache-2.0.',
+  );
+  _expect(
+    failures,
+    rustCore['repository'] == 'https://github.com/imoyan/houra-labs',
+    'Rust crate repository metadata must point at houra-labs.',
+  );
+  _expect(
+    failures,
+    rustCore['readme'] == 'README.md',
+    'Rust crate readme metadata must point at the crate README.',
+  );
+  _expect(
+    failures,
+    rustCore['documentation'] == 'https://docs.rs/houra-protocol-core',
+    'Rust crate docs.rs metadata must match the package name.',
   );
   _expect(
     failures,
@@ -75,11 +110,43 @@ void main(List<String> args) {
     'protocol_core': {
       'crate_name': rustCore['name'],
       'crate_version': rustCore['version'],
+      'description': rustCore['description'],
+      'license': rustCore['license'],
+      'repository': rustCore['repository'],
+      'documentation': rustCore['documentation'],
+      'readme': rustCore['readme'],
+      'keywords': rustCore['keywords'],
+      'categories': rustCore['categories'],
       'abi_version': tsConstants['abiVersion'],
       'manifest_schema_version': tsConstants['manifestSchemaVersion'],
       'protocol_boundary': tsConstants['protocolBoundary'],
       'binding_kinds': [tsConstants['wasmBindingKind']],
       'publish': rustCore['publish'],
+      'docs_rs': rustCore['docs_rs'],
+      'publish_readiness': {
+        'issue': 79,
+        'status': 'checklist-only-publish-deferred',
+        'package_contents_check': 'cargo package --list',
+        'dry_run_check': 'cargo publish --dry-run',
+        'expected_contents': [
+          'crate metadata',
+          'rust-protocol-core README',
+          'source files',
+          'Cargo lock metadata needed for reproducible checks',
+        ],
+        'blocked_until': [
+          'crate ownership and final package name are confirmed',
+          'publish = false is removed in a focused release PR',
+          'docs.rs API surface is reviewed against the lab boundary',
+          'cargo package --list passes on the release head',
+          'cargo publish --dry-run passes on the release head',
+        ],
+        'claim_boundaries': [
+          'no Matrix compatibility claim',
+          'no server or client behavior claim',
+          'no storage, crypto, or federation ownership claim',
+        ],
+      },
     },
     'wasm_wrapper': {
       'crate_name': rustWasm['name'],
@@ -98,6 +165,358 @@ void main(List<String> args) {
       'secondary_facade_targets': ['next', 'vue'],
       'node_runtime_status': 'package-validation-and-tests-only',
     },
+    'room_directory_parser_adoption': {
+      'issue': 63,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-048'],
+      'parity_vectors': [
+        'test-vectors/rooms/matrix-public-rooms-basic.json',
+        'test-vectors/rooms/matrix-public-rooms-filter-basic.json',
+        'test-vectors/rooms/matrix-room-directory-visibility-basic.json',
+        'test-vectors/rooms/matrix-room-aliases-basic.json',
+        'test-vectors/rooms/matrix-room-alias-update-forbidden.json',
+        'test-vectors/rooms/matrix-room-invite-basic.json',
+        'test-vectors/rooms/matrix-room-invite-forbidden.json',
+      ],
+      'parser_only_surfaces': [
+        'public room directory request descriptor',
+        'public room directory response envelope',
+        'directory visibility envelope',
+        'room alias list envelope',
+        'invite request descriptor',
+        'stripped invite state envelope',
+        'room directory Matrix error envelope',
+      ],
+      'out_of_scope': [
+        'directory storage',
+        'visibility policy',
+        'federation invite signing',
+        'remote public room federation',
+        'third-party invite behavior',
+        'spaces hierarchy traversal',
+        'Matrix room directory support advertisement',
+      ],
+    },
+    'moderation_reporting_parser_adoption': {
+      'issue': 64,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-049'],
+      'parity_vectors': [
+        'test-vectors/rooms/matrix-room-moderation-kick-ban-unban.json',
+        'test-vectors/rooms/matrix-room-moderation-permission-denied.json',
+        'test-vectors/rooms/matrix-room-redaction-basic.json',
+        'test-vectors/rooms/matrix-room-redaction-forbidden.json',
+        'test-vectors/rooms/matrix-room-reporting-basic.json',
+        'test-vectors/rooms/matrix-admin-account-moderation-basic.json',
+        'test-vectors/rooms/matrix-admin-account-moderation-forbidden.json',
+      ],
+      'parser_only_surfaces': [
+        'kick/ban/unban request descriptor',
+        'redaction request descriptor',
+        'redaction response envelope',
+        'room/event/user report request descriptor',
+        'account moderation capability envelope',
+        'admin lock/suspend request and status envelope',
+        'moderation Matrix error envelope',
+      ],
+      'out_of_scope': [
+        'authorization decisions',
+        'policy enforcement',
+        'appeal process',
+        'moderation queue UI',
+        'audit logging',
+        'federation enforcement',
+        'Matrix moderation support advertisement',
+      ],
+    },
+    'device_key_parser_adoption': {
+      'issue': 66,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-051'],
+      'parity_vectors': [
+        'test-vectors/auth/matrix-keys-upload-device-one-time-fallback-basic.json',
+        'test-vectors/auth/matrix-keys-upload-malformed-device-keys.json',
+        'test-vectors/auth/matrix-keys-claim-one-time-fallback-basic.json',
+        'test-vectors/auth/matrix-keys-claim-invalid-algorithm.json',
+      ],
+      'parser_only_surfaces': [
+        'device key upload request',
+        'one-time key upload request',
+        'fallback key upload request',
+        'one-time key count upload response',
+        'one-time/fallback key claim request',
+        'one-time/fallback key claim response',
+        'device-key Matrix error envelope',
+      ],
+      'out_of_scope': [
+        'Olm or Megolm key generation',
+        'private key storage',
+        'signature verification',
+        'trust policy decisions',
+        'claim lifecycle enforcement',
+        'Matrix E2EE support advertisement',
+      ],
+    },
+    'device_key_query_parser_adoption': {
+      'issue': 65,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-069'],
+      'parity_vectors': [
+        'test-vectors/auth/matrix-keys-query-basic.json',
+        'test-vectors/auth/matrix-keys-query-all-devices.json',
+        'test-vectors/auth/matrix-keys-query-unknown-device-omitted.json',
+        'test-vectors/auth/matrix-keys-query-missing-token.json',
+        'test-vectors/auth/matrix-keys-query-timeout-not-integer.json',
+      ],
+      'parser_only_surfaces': [
+        'device key query request descriptor',
+        'all-devices query selector',
+        'public device-key query response',
+        'unknown-device omission response',
+        'device-key query Matrix error envelope',
+      ],
+      'out_of_scope': [
+        'signature verification',
+        'device trust decisions',
+        'secure storage',
+        'crypto verification',
+        'device list lifecycle',
+        'Matrix E2EE support advertisement',
+      ],
+    },
+    'key_backup_parser_adoption': {
+      'issue': 68,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-053'],
+      'parity_vectors': [
+        'test-vectors/messaging/matrix-key-backup-version-lifecycle.json',
+        'test-vectors/messaging/matrix-key-backup-session-upload-restore-basic.json',
+        'test-vectors/messaging/matrix-key-backup-wrong-version.json',
+        'test-vectors/messaging/matrix-key-backup-restore-missing-session.json',
+        'test-vectors/messaging/matrix-key-backup-owner-scope.json',
+        'test-vectors/messaging/matrix-key-backup-logout-relogin-recovery-gate.json',
+      ],
+      'parser_only_surfaces': [
+        'key backup version create response',
+        'key backup version metadata',
+        'room key backup session metadata',
+        'room key backup upload response',
+        'wrong-version and missing-session errors',
+        'owner-scope protection gate',
+        'logout/relogin recovery evidence gate',
+      ],
+      'out_of_scope': [
+        'Megolm backup encryption or decryption',
+        'room key storage',
+        'recovery secret storage',
+        'backup ownership authorization policy',
+        'logout/relogin UX',
+        'Matrix E2EE support advertisement',
+      ],
+    },
+    'verification_cross_signing_parser_adoption': {
+      'issue': 69,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-054'],
+      'parity_vectors': [
+        'test-vectors/messaging/matrix-verification-sas-to-device-happy-path.json',
+        'test-vectors/messaging/matrix-verification-sas-mismatch-cancel.json',
+        'test-vectors/messaging/matrix-cross-signing-key-lifecycle.json',
+        'test-vectors/messaging/matrix-cross-signing-invalid-signature.json',
+        'test-vectors/messaging/matrix-cross-signing-missing-token.json',
+        'test-vectors/messaging/matrix-wrong-device-failure-gate.json',
+      ],
+      'parser_only_surfaces': [
+        'SAS to-device message flow envelope',
+        'verification cancel envelope',
+        'cross-signing public key upload envelope',
+        'signature upload envelope',
+        'invalid signature failure envelope',
+        'missing-token gate envelope',
+        'wrong-device failure gate envelope',
+      ],
+      'out_of_scope': [
+        'local SAS calculation',
+        'Ed25519 verification',
+        'Olm or Megolm session handling',
+        'cross-signing private key storage',
+        'trust policy decisions',
+        'QR verification or account recovery UI',
+      ],
+    },
+    'dart_binding_candidate': {
+      'issue': 77,
+      'status': 'candidate-only-implementation-deferred',
+      'native_ffi_use_cases': [
+        'Flutter or Dart host apps that need a local Rust artifact',
+        'iOS, Android, macOS, Windows, or Linux hosts with native package ownership',
+      ],
+      'web_js_wasm_use_cases': [
+        'Flutter web or Dart web hosts that provide the generated WASM module',
+        'browser-hosted experiments that keep bundler and fetch ownership in the host',
+      ],
+      'host_owned_boundaries': [
+        'token storage',
+        'sync token persistence',
+        'Flutter UI lifecycle',
+        'route policy',
+        'secure storage',
+        'fetch, retry, and cancellation policy',
+      ],
+      'blocked_until': [
+        'platform matrix is confirmed',
+        'native and web artifact packaging policy is confirmed',
+        'binary size threshold is confirmed per target family',
+        'p95 binding overhead threshold is measured',
+        'fallback behavior is decided for hosts without native or WASM artifacts',
+        'package registry metadata is confirmed in a focused publish issue',
+      ],
+      'out_of_scope': [
+        'making the Flutter SDK prototype the canonical behavior source',
+        'publishing a Dart FFI or Dart web package from this issue',
+        'moving token or sync token persistence into the SDK core',
+        'owning production client UI lifecycle or secure storage policy',
+      ],
+    },
+    'node_napi_binding_candidate': {
+      'issue': 76,
+      'status': 'candidate-only-implementation-deferred',
+      'napi_use_cases': [
+        'Node or Next server hosts that need lower overhead than WASM',
+        'server hosts that need synchronous local artifact calls',
+        'deployment targets where native artifact operations are acceptable',
+      ],
+      'wasm_fallback_use_cases': [
+        'Next server experiments that can use the existing TypeScript facade',
+        'package validation and tests that do not need a native artifact',
+        'hosts where generated WASM module loading is operationally simpler',
+      ],
+      'host_owned_boundaries': [
+        'Node server transport',
+        'request lifecycle',
+        'retry and cancellation policy',
+        'tenant context',
+        'storage policy',
+        'secret redaction and logging policy',
+      ],
+      'blocked_until': [
+        'platform matrix is confirmed',
+        'prebuild policy is confirmed',
+        'native rebuild trigger is defined',
+        'binary size threshold is confirmed per target family',
+        'p95 binding overhead threshold is measured against WASM fallback',
+        'CI runtime impact is measured',
+        'fallback behavior is decided for hosts without native artifacts',
+      ],
+      'out_of_scope': [
+        'publishing a N-API package from this issue',
+        'moving Node transport or request lifecycle into the binding',
+        'owning host storage or tenant policy',
+        'claiming server behavior or Matrix compatibility from the binding',
+      ],
+    },
+    'ecosystem_service_parser_candidates': {
+      'issue': 73,
+      'status': 'candidate-only-implementation-deferred',
+      'spec_ids': ['SPEC-058', 'SPEC-059', 'SPEC-060'],
+      'labs_owned_candidates': {
+        'SPEC-058': [
+          'Application Service registration shape parser',
+          'namespace matching helper candidate',
+          'transaction payload parser',
+          'user and room alias query request shape parser',
+        ],
+        'SPEC-059': [
+          'Identity Service hash details parser',
+          'lookup request and response shape parser',
+          'validation session shape parser',
+          'bind and unbind request/response shape parser',
+          'signed association metadata parser candidate',
+        ],
+        'SPEC-060': [
+          'Push Gateway notify payload parser',
+          'rejected pushkey response parser',
+          'event-id-only notification shape parser',
+          'pusher data validation helper candidate',
+          'push rule payload shape parser candidate',
+        ],
+      },
+      'parity_vector_globs': [
+        'test-vectors/core/matrix-appservice-*.json',
+        'test-vectors/core/matrix-identity-*.json',
+        'test-vectors/core/matrix-push-*.json',
+      ],
+      'host_or_service_owned_boundaries': [
+        'service deployment',
+        'service token storage',
+        'network policy enforcement',
+        'privacy enforcement',
+        'provider delivery',
+        'vendor credentials',
+        'user-facing consent UI',
+        'notification rendering UI',
+      ],
+      'follow_up_split': [
+        'SPEC-058 Application Service parser-only helpers',
+        'SPEC-059 Identity Service parser-only helpers',
+        'SPEC-060 Push Gateway parser-only helpers',
+      ],
+      'out_of_scope': [
+        'claiming production service behavior from labs helpers',
+        'owning application service deployment or bridge protocol behavior',
+        'owning identity provider delivery or consent policy',
+        'owning APNS, FCM, Web Push, or vendor credential handling',
+      ],
+    },
+    'federation_state_interop_helper_candidates': {
+      'issue': 72,
+      'status': 'candidate-only-implementation-deferred',
+      'spec_ids': ['SPEC-057'],
+      'parser_only_candidates': [
+        'backfill request shape parser',
+        'backfill transaction-style response parser',
+        'event auth response parser',
+        'state IDs response parser',
+        'state-resolution interop evidence record parser',
+      ],
+      'algorithm_helper_candidates': [
+        'room-version state set helper',
+        'representative state-resolution input normalizer',
+        'auth-chain summary helper for evidence records',
+      ],
+      'parity_vectors': [
+        'test-vectors/events/matrix-federation-backfill-basic.json',
+        'test-vectors/events/matrix-federation-event-auth-basic.json',
+        'test-vectors/events/matrix-federation-state-ids-basic.json',
+        'test-vectors/events/matrix-federation-state-resolution-interop-gate.json',
+        'test-vectors/events/matrix-state-resolution-representative.json',
+      ],
+      'algorithm_gate_required_before_implementation': [
+        'parity vectors cover accepted, soft-failed, and rejected outcomes',
+        'p95 runtime threshold is defined',
+        'payload size and nesting depth limits are defined',
+        'artifact boundary is reviewed for Rust/WASM/TypeScript exposure',
+        'CI runtime impact is measured',
+      ],
+      'server_owned_boundaries': [
+        'server persistence',
+        'missing-event recovery policy',
+        'federation request authentication',
+        'federation retry and backoff',
+        'remote trust policy',
+        'full state-resolution correctness',
+      ],
+      'follow_up_split': [
+        'SPEC-057 parser-only backfill/event_auth/state_ids helpers',
+        'SPEC-057 room-version/state algorithm helper gate',
+      ],
+      'out_of_scope': [
+        'claiming production federation behavior from labs helpers',
+        'owning server persistence or missing-event recovery',
+        'owning federation authentication or remote trust policy',
+        'claiming full Matrix state-resolution compliance',
+      ],
+    },
     'checks': [
       {
         'name': 'spec-sync',
@@ -115,7 +534,7 @@ void main(List<String> args) {
         'command': 'cargo test --locked',
         'guards': [
           'artifact manifest serializes stably',
-          'covered SPEC ids include SPEC-030 through SPEC-040',
+          'covered SPEC ids include SPEC-030 through SPEC-040, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, and SPEC-069',
         ],
       },
       {
@@ -153,7 +572,7 @@ void main(List<String> args) {
         'head_sha',
         'commands',
         'result',
-        'spec_snapshot_ref'
+        'spec_snapshot_ref',
       ],
       'allowed_only_when': [
         'the recorded head_sha matches the PR head SHA',
@@ -202,7 +621,19 @@ Map<String, Object?> _readCargoPackage(File file) {
   return {
     'name': _readTomlString(packageSource, 'name'),
     'version': _readTomlString(packageSource, 'version'),
+    'description': _readTomlStringOrNull(packageSource, 'description'),
+    'license': _readTomlStringOrNull(packageSource, 'license'),
+    'repository': _readTomlStringOrNull(packageSource, 'repository'),
+    'documentation': _readTomlStringOrNull(packageSource, 'documentation'),
+    'readme': _readTomlStringOrNull(packageSource, 'readme'),
+    'keywords': _readTomlStringListOrEmpty(packageSource, 'keywords'),
+    'categories': _readTomlStringListOrEmpty(packageSource, 'categories'),
     'publish': _readTomlBool(packageSource, 'publish'),
+    'docs_rs': {
+      'all_features': _readTomlBoolOrNull(source, 'all-features'),
+      'no_default_features': _readTomlBoolOrNull(source, 'no-default-features'),
+      'rustdoc_args': _readTomlStringListOrEmpty(source, 'rustdoc-args'),
+    },
   };
 }
 
@@ -244,11 +675,42 @@ String _readTomlString(String source, String key) {
   return match.group(1)!;
 }
 
+String? _readTomlStringOrNull(String source, String key) {
+  final match = RegExp('^$key = "([^"]+)"', multiLine: true).firstMatch(source);
+  return match?.group(1);
+}
+
+List<String> _readTomlStringListOrEmpty(String source, String key) {
+  final match = RegExp(
+    '^$key = \\[(.*?)\\]',
+    multiLine: true,
+  ).firstMatch(source);
+  if (match == null) {
+    return [];
+  }
+  return RegExp(
+    '"([^"]+)"',
+  ).allMatches(match.group(1)!).map((match) => match.group(1)!).toList();
+}
+
 bool _readTomlBool(String source, String key) {
-  final match =
-      RegExp('^$key = (true|false)', multiLine: true).firstMatch(source);
+  final match = RegExp(
+    '^$key = (true|false)',
+    multiLine: true,
+  ).firstMatch(source);
   if (match == null) {
     throw FormatException('Missing TOML boolean key: $key');
+  }
+  return match.group(1) == 'true';
+}
+
+bool? _readTomlBoolOrNull(String source, String key) {
+  final match = RegExp(
+    '^$key = (true|false)',
+    multiLine: true,
+  ).firstMatch(source);
+  if (match == null) {
+    return null;
   }
   return match.group(1) == 'true';
 }
@@ -277,10 +739,9 @@ List<String> _readTsStringArray(String source, String name) {
   if (match == null) {
     throw FormatException('Missing TypeScript string array constant: $name');
   }
-  return RegExp('"([^"]+)"')
-      .allMatches(match.group(1)!)
-      .map((match) => match.group(1)!)
-      .toList();
+  return RegExp(
+    '"([^"]+)"',
+  ).allMatches(match.group(1)!).map((match) => match.group(1)!).toList();
 }
 
 Directory _canonicalSpecRoot() {
@@ -293,10 +754,12 @@ Directory _canonicalSpecRoot() {
 
 String? _gitRevParse(String workingDirectory) {
   final result = Process.runSync(
-    'git',
-    ['rev-parse', 'HEAD'],
-    workingDirectory: workingDirectory,
-  );
+      'git',
+      [
+        'rev-parse',
+        'HEAD',
+      ],
+      workingDirectory: workingDirectory);
   if (result.exitCode != 0) {
     return null;
   }

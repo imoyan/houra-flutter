@@ -87,6 +87,41 @@ pub fn parse_matrix_room_state_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_room_state_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixPublicRoomsRequestJson)]
+pub fn parse_matrix_public_rooms_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_public_rooms_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixPublicRoomsResponseJson)]
+pub fn parse_matrix_public_rooms_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_public_rooms_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixDirectoryVisibilityJson)]
+pub fn parse_matrix_directory_visibility_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_directory_visibility_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixRoomAliasesJson)]
+pub fn parse_matrix_room_aliases_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_room_aliases_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixInviteRequestJson)]
+pub fn parse_matrix_invite_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_invite_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixInviteRoomJson)]
+pub fn parse_matrix_invite_room_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_invite_room_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixRoomDirectoryErrorJson)]
+pub fn parse_matrix_room_directory_error_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_room_directory_error_json(response_body.as_bytes())
+}
+
 #[wasm_bindgen(js_name = parseMatrixMessagesResponseJson)]
 pub fn parse_matrix_messages_response_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_messages_response_json(response_body.as_bytes())
@@ -105,6 +140,218 @@ pub fn parse_matrix_media_content_uri_json(content_uri: &str) -> String {
 #[wasm_bindgen(js_name = parseMatrixMediaUploadResponseJson)]
 pub fn parse_matrix_media_upload_response_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_media_upload_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationServerNameJson)]
+pub fn parse_matrix_federation_server_name_json(server_name: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_server_name_json(server_name)
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationWellKnownServerJson)]
+pub fn parse_matrix_federation_well_known_server_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_well_known_server_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationSigningKeyJson)]
+pub fn parse_matrix_federation_signing_key_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_signing_key_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationKeyQueryRequestJson)]
+pub fn parse_matrix_federation_key_query_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_key_query_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationKeyQueryResponseJson)]
+pub fn parse_matrix_federation_key_query_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_key_query_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationDestinationResolutionFailureJson)]
+pub fn parse_matrix_federation_destination_resolution_failure_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_destination_resolution_failure_json(
+        response_body.as_bytes(),
+    )
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationTransactionJson)]
+pub fn parse_matrix_federation_transaction_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_transaction_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationTransactionResponseJson)]
+pub fn parse_matrix_federation_transaction_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_transaction_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationMakeJoinResponseJson)]
+pub fn parse_matrix_federation_make_join_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_make_join_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationSendJoinResponseJson)]
+pub fn parse_matrix_federation_send_join_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_send_join_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationInviteRequestJson)]
+pub fn parse_matrix_federation_invite_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_invite_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationInviteResponseJson)]
+pub fn parse_matrix_federation_invite_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_invite_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixVerificationSasFlowJson)]
+pub fn parse_matrix_verification_sas_flow_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_verification_sas_flow_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixVerificationCancelJson)]
+pub fn parse_matrix_verification_cancel_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_verification_cancel_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixCrossSigningDeviceSigningUploadJson)]
+pub fn parse_matrix_cross_signing_device_signing_upload_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_cross_signing_device_signing_upload_json(
+        response_body.as_bytes(),
+    )
+}
+
+#[wasm_bindgen(js_name = parseMatrixCrossSigningSignatureUploadJson)]
+pub fn parse_matrix_cross_signing_signature_upload_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_cross_signing_signature_upload_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixCrossSigningInvalidSignatureFailureJson)]
+pub fn parse_matrix_cross_signing_invalid_signature_failure_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_cross_signing_invalid_signature_failure_json(
+        response_body.as_bytes(),
+    )
+}
+
+#[wasm_bindgen(js_name = parseMatrixCrossSigningMissingTokenGateJson)]
+pub fn parse_matrix_cross_signing_missing_token_gate_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_cross_signing_missing_token_gate_json(
+        response_body.as_bytes(),
+    )
+}
+
+#[wasm_bindgen(js_name = parseMatrixWrongDeviceFailureGateJson)]
+pub fn parse_matrix_wrong_device_failure_gate_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_wrong_device_failure_gate_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeysUploadRequestJson)]
+pub fn parse_matrix_keys_upload_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_keys_upload_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeysUploadResponseJson)]
+pub fn parse_matrix_keys_upload_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_keys_upload_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeysClaimRequestJson)]
+pub fn parse_matrix_keys_claim_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_keys_claim_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeysClaimResponseJson)]
+pub fn parse_matrix_keys_claim_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_keys_claim_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixDeviceKeyErrorJson)]
+pub fn parse_matrix_device_key_error_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_device_key_error_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixDeviceKeyQueryRequestJson)]
+pub fn parse_matrix_device_key_query_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_device_key_query_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixDeviceKeyQueryResponseJson)]
+pub fn parse_matrix_device_key_query_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_device_key_query_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixModerationRequestJson)]
+pub fn parse_matrix_moderation_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_moderation_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixRedactionRequestJson)]
+pub fn parse_matrix_redaction_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_redaction_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixRedactionResponseJson)]
+pub fn parse_matrix_redaction_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_redaction_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixReportRequestJson)]
+pub fn parse_matrix_report_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_report_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixAccountModerationCapabilityJson)]
+pub fn parse_matrix_account_moderation_capability_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_account_moderation_capability_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixAdminAccountModerationStatusJson)]
+pub fn parse_matrix_admin_account_moderation_status_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_admin_account_moderation_status_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixModerationErrorJson)]
+pub fn parse_matrix_moderation_error_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_moderation_error_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeyBackupVersionCreateResponseJson)]
+pub fn parse_matrix_key_backup_version_create_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_key_backup_version_create_response_json(
+        response_body.as_bytes(),
+    )
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeyBackupVersionJson)]
+pub fn parse_matrix_key_backup_version_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_key_backup_version_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeyBackupSessionJson)]
+pub fn parse_matrix_key_backup_session_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_key_backup_session_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeyBackupSessionUploadResponseJson)]
+pub fn parse_matrix_key_backup_session_upload_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_key_backup_session_upload_response_json(
+        response_body.as_bytes(),
+    )
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeyBackupErrorJson)]
+pub fn parse_matrix_key_backup_error_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_key_backup_error_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeyBackupOwnerScopeGateJson)]
+pub fn parse_matrix_key_backup_owner_scope_gate_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_key_backup_owner_scope_gate_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixKeyBackupRecoveryGateJson)]
+pub fn parse_matrix_key_backup_recovery_gate_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_key_backup_recovery_gate_json(response_body.as_bytes())
 }
 
 #[cfg(test)]
@@ -126,6 +373,31 @@ mod tests {
             .expect("supported_specs should be an array")
             .iter()
             .any(|spec| spec == "SPEC-040"));
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
+            .any(|spec| spec == "SPEC-051"));
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
+            .any(|spec| spec == "SPEC-053"));
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
+            .any(|spec| spec == "SPEC-054"));
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
+            .any(|spec| spec == "SPEC-055"));
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
+            .any(|spec| spec == "SPEC-056"));
         assert_eq!(
             json,
             houra_protocol_core::artifact_manifest_json_for_binding_kinds(&["wasm"])
@@ -199,6 +471,278 @@ mod tests {
     }
 
     #[test]
+    fn matrix_federation_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_federation_server_name_json("delegated.example.test:8448"),
+            "{\"ok\":true,\"value\":{\"server_name\":\"delegated.example.test:8448\",\"host\":\"delegated.example.test\",\"port\":8448},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_well_known_server_json(
+                "{\"m.server\":\"delegated.example.test:8448\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"delegated_server_name\":\"delegated.example.test:8448\",\"host\":\"delegated.example.test\",\"port\":8448},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_signing_key_json(
+                "{\"server_name\":\"example.test\",\"verify_keys\":{\"ed25519:auto1\":{\"key\":\"public\"}},\"old_verify_keys\":{},\"valid_until_ts\":1779011408000,\"signatures\":{\"example.test\":{\"ed25519:auto1\":\"signature\"}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"server_name\":\"example.test\",\"verify_keys\":{\"ed25519:auto1\":{\"key\":\"public\"}},\"old_verify_keys\":{},\"valid_until_ts\":1779011408000,\"signatures\":{\"example.test\":{\"ed25519:auto1\":\"signature\"}}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_key_query_request_json(
+                "{\"server_keys\":{\"example.test\":{\"ed25519:auto1\":{\"minimum_valid_until_ts\":1779011408000}}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"server_keys\":{\"example.test\":{\"ed25519:auto1\":{\"minimum_valid_until_ts\":1779011408000}}}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_key_query_response_json(
+                "{\"server_keys\":[{\"server_name\":\"example.test\",\"verify_keys\":{\"ed25519:auto1\":{\"key\":\"public\"}},\"old_verify_keys\":{},\"valid_until_ts\":1779011408000,\"signatures\":{\"example.test\":{\"ed25519:auto1\":\"signature\"}}}]}",
+            ),
+            "{\"ok\":true,\"value\":{\"server_keys\":[{\"server_name\":\"example.test\",\"verify_keys\":{\"ed25519:auto1\":{\"key\":\"public\"}},\"old_verify_keys\":{},\"valid_until_ts\":1779011408000,\"signatures\":{\"example.test\":{\"ed25519:auto1\":\"signature\"}}}]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_destination_resolution_failure_json(
+                "{\"event\":{\"server_name\":\"broken.example.test\",\"steps\":[{\"stage\":\"failure_cache\",\"result\":{\"destination_resolved\":false,\"federation_request_sent\":false,\"backoff_recorded\":true}}]}}",
+            ),
+            "{\"ok\":true,\"value\":{\"server_name\":\"broken.example.test\",\"stages\":[\"failure_cache\"],\"destination_resolved\":false,\"federation_request_sent\":false,\"backoff_recorded\":true},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_transaction_json(
+                "{\"origin\":\"remote.example.test\",\"origin_server_ts\":1778408851000,\"pdus\":[],\"edus\":[]}",
+            ),
+            "{\"ok\":true,\"value\":{\"origin\":\"remote.example.test\",\"origin_server_ts\":1778408851000,\"pdus\":[],\"edus\":[]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_transaction_response_json(
+                "{\"pdus\":{\"$event1:remote.example.test\":{}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"pdus\":{\"$event1:remote.example.test\":{}}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_make_join_response_json(
+                "{\"room_version\":\"12\",\"event\":{\"type\":\"m.room.member\",\"content\":{\"membership\":\"join\"}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"room_version\":\"12\",\"event\":{\"content\":{\"membership\":\"join\"},\"type\":\"m.room.member\"}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_send_join_response_json(
+                "{\"origin\":\"example.test\",\"state\":[],\"auth_chain\":[],\"event\":{\"type\":\"m.room.member\",\"content\":{\"membership\":\"join\"}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"origin\":\"example.test\",\"state\":[],\"auth_chain\":[],\"event\":{\"content\":{\"membership\":\"join\"},\"type\":\"m.room.member\"}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_invite_request_json(
+                "{\"room_version\":\"12\",\"event\":{\"type\":\"m.room.member\",\"content\":{\"membership\":\"invite\"}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"room_version\":\"12\",\"event\":{\"content\":{\"membership\":\"invite\"},\"type\":\"m.room.member\"}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_invite_response_json(
+                "{\"event\":{\"type\":\"m.room.member\",\"content\":{\"membership\":\"invite\"}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"event\":{\"content\":{\"membership\":\"invite\"},\"type\":\"m.room.member\"}},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_verification_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_verification_sas_flow_json(
+                "{\"transport\":\"to_device\",\"transaction_id\":\"verif-txn-1\",\"steps\":[{\"type\":\"m.key.verification.request\",\"to_device\":true,\"content\":{\"transaction_id\":\"verif-txn-1\"}},{\"required\":true,\"result\":{\"verified\":true}}]}"
+            ),
+            "{\"ok\":true,\"value\":{\"transaction_id\":\"verif-txn-1\",\"transport\":\"to_device\",\"event_types\":[\"m.key.verification.request\"],\"verified\":true,\"local_sas_allowed\":false,\"versions_advertisement_widened\":false},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_verification_cancel_json(
+                "{\"transaction_id\":\"verif-txn-mismatch\",\"steps\":[{\"type\":\"m.key.verification.cancel\",\"to_device\":true,\"content\":{\"code\":\"m.mismatched_sas\",\"reason\":\"Short authentication string did not match\",\"transaction_id\":\"verif-txn-mismatch\"}},{\"result\":{\"verified\":false}}]}"
+            ),
+            "{\"ok\":true,\"value\":{\"transaction_id\":\"verif-txn-mismatch\",\"code\":\"m.mismatched_sas\",\"reason\":\"Short authentication string did not match\",\"verified\":false,\"versions_advertisement_widened\":false},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_cross_signing_device_signing_upload_json(
+                "{\"master_key\":{\"user_id\":\"@alice:example.test\",\"usage\":[\"master\"],\"keys\":{\"ed25519:master\":\"master-public\"},\"signatures\":{\"@alice:example.test\":{\"ed25519:ALICE1\":\"signature\"}}}}"
+            ),
+            "{\"ok\":true,\"value\":{\"master_key\":{\"user_id\":\"@alice:example.test\",\"usage\":[\"master\"],\"keys\":{\"ed25519:master\":\"master-public\"},\"signatures\":{\"@alice:example.test\":{\"ed25519:ALICE1\":\"signature\"}}}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_cross_signing_invalid_signature_failure_json(
+                "{\"status\":400,\"error\":{\"errcode\":\"M_INVALID_SIGNATURE\",\"error\":\"Invalid signature\"}}"
+            ),
+            "{\"ok\":true,\"value\":{\"status\":400,\"errcode\":\"M_INVALID_SIGNATURE\",\"error\":\"Invalid signature\"},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_device_key_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_keys_upload_request_json(
+                "{\"device_keys\":{\"user_id\":\"@alice:example.test\",\"device_id\":\"DEVICE1\",\"algorithms\":[\"m.olm.v1.curve25519-aes-sha2\",\"m.megolm.v1.aes-sha2\"],\"keys\":{\"curve25519:DEVICE1\":\"curve25519-public-device1\",\"ed25519:DEVICE1\":\"ed25519-public-device1\"},\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-device1\"}}},\"one_time_keys\":{\"signed_curve25519:otk1\":{\"key\":\"one-time-public-key-1\",\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-otk1\"}}}},\"fallback_keys\":{\"signed_curve25519:fb1\":{\"key\":\"fallback-public-key-1\",\"fallback\":true,\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-fb1\"}}}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"device_keys\":{\"user_id\":\"@alice:example.test\",\"device_id\":\"DEVICE1\",\"algorithms\":[\"m.olm.v1.curve25519-aes-sha2\",\"m.megolm.v1.aes-sha2\"],\"keys\":{\"curve25519:DEVICE1\":\"curve25519-public-device1\",\"ed25519:DEVICE1\":\"ed25519-public-device1\"},\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-device1\"}}},\"one_time_keys\":{\"signed_curve25519:otk1\":{\"key\":\"one-time-public-key-1\",\"fallback\":false,\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-otk1\"}}}},\"fallback_keys\":{\"signed_curve25519:fb1\":{\"key\":\"fallback-public-key-1\",\"fallback\":true,\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-fb1\"}}}},\"private_key_material_returned\":false},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_keys_upload_response_json(
+                "{\"one_time_key_counts\":{\"signed_curve25519\":1}}"
+            ),
+            "{\"ok\":true,\"value\":{\"one_time_key_counts\":{\"signed_curve25519\":1},\"private_key_material_returned\":false},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_keys_claim_request_json(
+                "{\"one_time_keys\":{\"@alice:example.test\":{\"DEVICE1\":\"signed_curve25519\"}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"one_time_keys\":{\"@alice:example.test\":{\"DEVICE1\":\"signed_curve25519\"}}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_keys_claim_response_json(
+                "{\"failures\":{},\"one_time_keys\":{\"@alice:example.test\":{\"DEVICE1\":{\"signed_curve25519:fb1\":{\"key\":\"fallback-public-key-1\",\"fallback\":true,\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-fb1\"}}}}}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"failures\":{},\"one_time_keys\":{\"@alice:example.test\":{\"DEVICE1\":{\"signed_curve25519:fb1\":{\"key\":\"fallback-public-key-1\",\"fallback\":true,\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-fb1\"}}}}}},\"fallback_key_returned\":true},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_device_key_error_json(
+                "{\"status\":400,\"error\":{\"errcode\":\"M_INVALID_PARAM\",\"error\":\"Unsupported one-time key algorithm.\"}}",
+            ),
+            "{\"ok\":true,\"value\":{\"status\":400,\"errcode\":\"M_INVALID_PARAM\",\"error\":\"Unsupported one-time key algorithm.\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_device_key_query_request_json(
+                "{\"device_keys\":{\"@alice:example.test\":[\"DEVICE1\"]},\"timeout\":10000}",
+            ),
+            "{\"ok\":true,\"value\":{\"device_keys\":{\"@alice:example.test\":[\"DEVICE1\"]},\"timeout\":10000},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_device_key_query_response_json(
+                "{\"failures\":{},\"device_keys\":{\"@alice:example.test\":{\"DEVICE1\":{\"user_id\":\"@alice:example.test\",\"device_id\":\"DEVICE1\",\"algorithms\":[\"m.olm.v1.curve25519-aes-sha2\",\"m.megolm.v1.aes-sha2\"],\"keys\":{\"curve25519:DEVICE1\":\"curve25519-public-device1\",\"ed25519:DEVICE1\":\"ed25519-public-device1\"},\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-device1\"}}}}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"failures\":{},\"device_keys\":{\"@alice:example.test\":{\"DEVICE1\":{\"user_id\":\"@alice:example.test\",\"device_id\":\"DEVICE1\",\"algorithms\":[\"m.olm.v1.curve25519-aes-sha2\",\"m.megolm.v1.aes-sha2\"],\"keys\":{\"curve25519:DEVICE1\":\"curve25519-public-device1\",\"ed25519:DEVICE1\":\"ed25519-public-device1\"},\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-device1\"}}}}},\"private_key_material_returned\":false,\"trust_decision_made\":false},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_room_directory_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_public_rooms_request_json(
+                "{\"limit\":10,\"filter\":{\"generic_search_term\":\"project\"},\"include_all_networks\":false}",
+            ),
+            "{\"ok\":true,\"value\":{\"limit\":10,\"generic_search_term\":\"project\",\"include_all_networks\":false},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_public_rooms_response_json(
+                "{\"chunk\":[{\"room_id\":\"!room:example.test\",\"num_joined_members\":2,\"world_readable\":false,\"guest_can_join\":false,\"canonical_alias\":\"#project:example.test\",\"join_rule\":\"public\"}],\"total_room_count_estimate\":1}",
+            ),
+            "{\"ok\":true,\"value\":{\"chunk\":[{\"room_id\":\"!room:example.test\",\"num_joined_members\":2,\"world_readable\":false,\"guest_can_join\":false,\"canonical_alias\":\"#project:example.test\",\"join_rule\":\"public\"}],\"total_room_count_estimate\":1},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_directory_visibility_json("{\"visibility\":\"public\"}"),
+            "{\"ok\":true,\"value\":{\"visibility\":\"public\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_room_aliases_json("{\"aliases\":[\"#project:example.test\"]}"),
+            "{\"ok\":true,\"value\":{\"aliases\":[\"#project:example.test\"]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_invite_request_json(
+                "{\"user_id\":\"@bob:example.test\",\"reason\":\"Join the project room\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"user_id\":\"@bob:example.test\",\"reason\":\"Join the project room\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_invite_room_json(
+                "{\"room_id\":\"!room:example.test\",\"invite_state\":{\"events\":[{\"type\":\"m.room.member\",\"sender\":\"@alice:example.test\",\"state_key\":\"@bob:example.test\",\"content\":{\"membership\":\"invite\"}}]}}",
+            ),
+            "{\"ok\":true,\"value\":{\"room_id\":\"!room:example.test\",\"events\":[{\"type\":\"m.room.member\",\"sender\":\"@alice:example.test\",\"state_key\":\"@bob:example.test\",\"content\":{\"membership\":\"invite\"}}]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_room_directory_error_json(
+                "{\"status\":403,\"error\":{\"errcode\":\"M_FORBIDDEN\",\"error\":\"No permission\"}}",
+            ),
+            "{\"ok\":true,\"value\":{\"status\":403,\"errcode\":\"M_FORBIDDEN\",\"error\":\"No permission\"},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_moderation_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_moderation_request_json(
+                "{\"user_id\":\"@bob:example.test\",\"reason\":\"Off topic\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"user_id\":\"@bob:example.test\",\"reason\":\"Off topic\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_redaction_request_json("{\"reason\":\"Remove spam\"}"),
+            "{\"ok\":true,\"value\":{\"reason\":\"Remove spam\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_redaction_response_json("{\"event_id\":\"$redaction1:example.test\"}"),
+            "{\"ok\":true,\"value\":{\"event_id\":\"$redaction1:example.test\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_report_request_json("{\"reason\":\"Room contains spam\"}"),
+            "{\"ok\":true,\"value\":{\"reason\":\"Room contains spam\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_account_moderation_capability_json(
+                "{\"capabilities\":{\"m.account_moderation\":{\"lock\":true,\"suspend\":true}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"lock\":true,\"suspend\":true},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_admin_account_moderation_status_json("{\"locked\":true}"),
+            "{\"ok\":true,\"value\":{\"locked\":true},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_moderation_error_json(
+                "{\"status\":403,\"error\":{\"errcode\":\"M_FORBIDDEN\",\"error\":\"No permission\"}}",
+            ),
+            "{\"ok\":true,\"value\":{\"status\":403,\"errcode\":\"M_FORBIDDEN\",\"error\":\"No permission\"},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_key_backup_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_key_backup_version_create_response_json("{\"version\":\"1\"}"),
+            "{\"ok\":true,\"value\":{\"version\":\"1\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_key_backup_version_json(
+                "{\"version\":\"1\",\"algorithm\":\"m.megolm_backup.v1.curve25519-aes-sha2\",\"auth_data\":{\"public_key\":\"curve25519-public\",\"signatures\":{\"@alice:example.test\":{\"ed25519:ALICE1\":\"signature\"}}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"version\":\"1\",\"algorithm\":\"m.megolm_backup.v1.curve25519-aes-sha2\",\"auth_data\":{\"public_key\":\"curve25519-public\",\"signatures\":{\"@alice:example.test\":{\"ed25519:ALICE1\":\"signature\"}}}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_key_backup_session_json(
+                "{\"first_message_index\":1,\"forwarded_count\":0,\"is_verified\":true,\"session_data\":{\"ephemeral\":\"ephemeral\",\"ciphertext\":\"ciphertext\",\"mac\":\"mac\"}}",
+            ),
+            "{\"ok\":true,\"value\":{\"first_message_index\":1,\"forwarded_count\":0,\"is_verified\":true,\"session_data\":{\"ciphertext\":\"ciphertext\",\"ephemeral\":\"ephemeral\",\"mac\":\"mac\"}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_key_backup_session_upload_response_json(
+                "{\"etag\":\"etag-1\",\"count\":1}"
+            ),
+            "{\"ok\":true,\"value\":{\"etag\":\"etag-1\",\"count\":1},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_key_backup_error_json(
+                "{\"status\":403,\"error\":{\"errcode\":\"M_WRONG_ROOM_KEYS_VERSION\",\"error\":\"Wrong room keys version.\",\"current_version\":\"1\"}}",
+            ),
+            "{\"ok\":true,\"value\":{\"status\":403,\"errcode\":\"M_WRONG_ROOM_KEYS_VERSION\",\"error\":\"Wrong room keys version.\",\"current_version\":\"1\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_key_backup_owner_scope_gate_json(
+                "{\"steps\":[{\"id\":\"alice-read-own-backup\",\"expected_status\":404,\"expected_error\":{\"errcode\":\"M_NOT_FOUND\"},\"must_not_disclose_protected_backup\":true},{\"id\":\"bob-read-alice-backup\",\"expected_status\":404,\"expected_error\":{\"errcode\":\"M_NOT_FOUND\"},\"must_not_disclose_protected_backup\":true},{\"id\":\"bob-overwrite-alice-backup\",\"expected_status\":404,\"expected_error\":{\"errcode\":\"M_NOT_FOUND\"},\"must_not_mutate_protected_backup\":true},{\"id\":\"alice-read-backup-after-bob-attempt\",\"expected_status\":404,\"expected_error\":{\"errcode\":\"M_NOT_FOUND\"},\"must_not_disclose_protected_backup\":true}]}",
+            ),
+            "{\"ok\":true,\"value\":{\"owner_scope_enforced\":true,\"protected_backup_unchanged\":true,\"checked_steps\":[\"alice-read-own-backup\",\"bob-read-alice-backup\",\"bob-overwrite-alice-backup\",\"alice-read-backup-after-bob-attempt\"],\"versions_advertisement_widened\":false},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_key_backup_recovery_gate_json(
+                "{\"crypto_stack_required\":true,\"local_olm_megolm_allowed\":false,\"required_contracts\":[\"SPEC-050\",\"SPEC-052\",\"SPEC-053\"],\"required_evidence\":[\"decrypted_event_matches_pre_logout_plaintext\"],\"steps\":[{\"required\":true},{\"required\":true},{\"required\":true},{\"required\":true},{\"required\":true},{\"required\":true}]}",
+            ),
+            "{\"ok\":true,\"value\":{\"logout_relogin_restore\":true,\"crypto_stack_required\":true,\"local_olm_megolm_allowed\":false,\"required_contracts\":[\"SPEC-050\",\"SPEC-052\",\"SPEC-053\"],\"required_evidence\":[\"decrypted_event_matches_pre_logout_plaintext\"],\"versions_advertisement_widened\":false},\"error\":null}"
+        );
+    }
+
+    #[test]
     fn matrix_registration_parsers_delegate_to_core_json_envelopes() {
         assert_eq!(
             parse_matrix_registration_availability_json("{\"available\":true}"),
@@ -255,6 +799,46 @@ mod tests {
                 "[{\"event_id\":\"$name:example.test\",\"room_id\":\"!room:example.test\",\"sender\":\"@alice:example.test\",\"origin_server_ts\":1710000000000,\"type\":\"m.room.name\",\"state_key\":\"\",\"content\":{\"name\":\"General\"}}]",
             ),
             "{\"ok\":true,\"value\":{\"events\":[{\"content\":{\"name\":\"General\"},\"event_id\":\"$name:example.test\",\"origin_server_ts\":1710000000000,\"room_id\":\"!room:example.test\",\"sender\":\"@alice:example.test\",\"state_key\":\"\",\"type\":\"m.room.name\"}]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_public_rooms_request_json(
+                "{\"limit\":10,\"filter\":{\"generic_search_term\":\"project\"},\"include_all_networks\":false}",
+            ),
+            "{\"ok\":true,\"value\":{\"limit\":10,\"generic_search_term\":\"project\",\"include_all_networks\":false},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_public_rooms_response_json(
+                "{\"chunk\":[{\"room_id\":\"!room:example.test\",\"num_joined_members\":3,\"world_readable\":true,\"guest_can_join\":false,\"canonical_alias\":\"#project:example.test\"}],\"total_room_count_estimate\":1}",
+            ),
+            "{\"ok\":true,\"value\":{\"chunk\":[{\"room_id\":\"!room:example.test\",\"num_joined_members\":3,\"world_readable\":true,\"guest_can_join\":false,\"canonical_alias\":\"#project:example.test\"}],\"total_room_count_estimate\":1},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_directory_visibility_json("{\"visibility\":\"public\"}"),
+            "{\"ok\":true,\"value\":{\"visibility\":\"public\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_room_aliases_json(
+                "{\"aliases\":[\"#project:example.test\",\"#project-alt:example.test\"]}",
+            ),
+            "{\"ok\":true,\"value\":{\"aliases\":[\"#project:example.test\",\"#project-alt:example.test\"]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_invite_request_json(
+                "{\"user_id\":\"@bob:example.test\",\"reason\":\"Join the project room\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"user_id\":\"@bob:example.test\",\"reason\":\"Join the project room\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_invite_room_json(
+                "{\"room_id\":\"!room:example.test\",\"invite_state\":{\"events\":[{\"type\":\"m.room.member\",\"sender\":\"@alice:example.test\",\"state_key\":\"@bob:example.test\",\"content\":{\"membership\":\"invite\"}}]}}",
+            ),
+            "{\"ok\":true,\"value\":{\"room_id\":\"!room:example.test\",\"events\":[{\"type\":\"m.room.member\",\"sender\":\"@alice:example.test\",\"state_key\":\"@bob:example.test\",\"content\":{\"membership\":\"invite\"}}]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_room_directory_error_json(
+                "{\"status\":403,\"error\":{\"errcode\":\"M_FORBIDDEN\",\"error\":\"User cannot invite others to this room.\"}}",
+            ),
+            "{\"ok\":true,\"value\":{\"status\":403,\"errcode\":\"M_FORBIDDEN\",\"error\":\"User cannot invite others to this room.\"},\"error\":null}"
         );
     }
 

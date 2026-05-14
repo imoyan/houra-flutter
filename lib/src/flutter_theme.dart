@@ -37,10 +37,7 @@ final class HouraFlutterTheme {
     );
   }
 
-  static TextTheme _textTheme(
-    HouraResolvedTheme theme,
-    Brightness brightness,
-  ) {
+  static TextTheme _textTheme(HouraResolvedTheme theme, Brightness brightness) {
     final base = brightness == Brightness.dark
         ? Typography.material2021().white
         : Typography.material2021().black;

@@ -122,6 +122,825 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixFederationInviteRequestJson() {
+      return JSON.stringify(
+        overrides.federationInviteRequestEnvelope ?? {
+          ok: true,
+          value: {
+            room_version: "12",
+            event: {
+              type: "m.room.member",
+              content: { membership: "invite" },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationInviteResponseJson() {
+      return JSON.stringify(
+        overrides.federationInviteResponseEnvelope ?? {
+          ok: true,
+          value: {
+            event: {
+              type: "m.room.member",
+              content: { membership: "invite" },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationDestinationResolutionFailureJson() {
+      return JSON.stringify(
+        overrides.federationDestinationResolutionFailureEnvelope ?? {
+          ok: true,
+          value: {
+            server_name: "broken.example.test",
+            stages: [
+              "well_known",
+              "srv_matrix_fed",
+              "srv_matrix_deprecated",
+              "address_records",
+              "failure_cache",
+            ],
+            destination_resolved: false,
+            federation_request_sent: false,
+            backoff_recorded: true,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationKeyQueryRequestJson() {
+      return JSON.stringify(
+        overrides.federationKeyQueryRequestEnvelope ?? {
+          ok: true,
+          value: {
+            server_keys: {
+              "example.test": {
+                "ed25519:auto1": {
+                  minimum_valid_until_ts: 1779011408000,
+                },
+              },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationKeyQueryResponseJson() {
+      return JSON.stringify(
+        overrides.federationKeyQueryResponseEnvelope ?? {
+          ok: true,
+          value: {
+            server_keys: [
+              {
+                server_name: "example.test",
+                verify_keys: {
+                  "ed25519:auto1": {
+                    key: "public",
+                  },
+                },
+                old_verify_keys: {},
+                valid_until_ts: 1779011408000,
+                signatures: {
+                  "example.test": {
+                    "ed25519:auto1": "signature",
+                  },
+                },
+              },
+            ],
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationMakeJoinResponseJson() {
+      return JSON.stringify(
+        overrides.federationMakeJoinResponseEnvelope ?? {
+          ok: true,
+          value: {
+            room_version: "12",
+            event: {
+              type: "m.room.member",
+              content: { membership: "join" },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationServerNameJson() {
+      return JSON.stringify(
+        overrides.federationServerNameEnvelope ?? {
+          ok: true,
+          value: {
+            server_name: "delegated.example.test:8448",
+            host: "delegated.example.test",
+            port: 8448,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationSendJoinResponseJson() {
+      return JSON.stringify(
+        overrides.federationSendJoinResponseEnvelope ?? {
+          ok: true,
+          value: {
+            origin: "example.test",
+            state: [],
+            auth_chain: [],
+            event: {
+              type: "m.room.member",
+              content: { membership: "join" },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationSigningKeyJson() {
+      return JSON.stringify(
+        overrides.federationSigningKeyEnvelope ?? {
+          ok: true,
+          value: {
+            server_name: "example.test",
+            verify_keys: {
+              "ed25519:auto1": {
+                key: "public",
+              },
+            },
+            old_verify_keys: {
+              "ed25519:old1": {
+                expired_ts: 1777801808000,
+                key: "old-public",
+              },
+            },
+            valid_until_ts: 1779011408000,
+            signatures: {
+              "example.test": {
+                "ed25519:auto1": "signature",
+              },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationTransactionJson() {
+      return JSON.stringify(
+        overrides.federationTransactionEnvelope ?? {
+          ok: true,
+          value: {
+            origin: "remote.example.test",
+            origin_server_ts: 1778408851000,
+            pdus: [],
+            edus: [],
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationTransactionResponseJson() {
+      return JSON.stringify(
+        overrides.federationTransactionResponseEnvelope ?? {
+          ok: true,
+          value: {
+            pdus: {
+              "$event1:remote.example.test": {},
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationWellKnownServerJson() {
+      return JSON.stringify(
+        overrides.federationWellKnownServerEnvelope ?? {
+          ok: true,
+          value: {
+            delegated_server_name: "delegated.example.test:8448",
+            host: "delegated.example.test",
+            port: 8448,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixVerificationSasFlowJson() {
+      return JSON.stringify(
+        overrides.verificationSasFlowEnvelope ?? {
+          ok: true,
+          value: {
+            transaction_id: "verif-txn-1",
+            transport: "to_device",
+            event_types: [
+              "m.key.verification.request",
+              "m.key.verification.ready",
+              "m.key.verification.start",
+              "m.key.verification.accept",
+              "m.key.verification.key",
+              "m.key.verification.mac",
+            ],
+            verified: true,
+            local_sas_allowed: false,
+            versions_advertisement_widened: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixVerificationCancelJson() {
+      return JSON.stringify(
+        overrides.verificationCancelEnvelope ?? {
+          ok: true,
+          value: {
+            transaction_id: "verif-txn-mismatch",
+            code: "m.mismatched_sas",
+            reason: "Short authentication string did not match",
+            verified: false,
+            versions_advertisement_widened: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixCrossSigningDeviceSigningUploadJson() {
+      return JSON.stringify(
+        overrides.crossSigningDeviceSigningUploadEnvelope ?? {
+          ok: true,
+          value: {
+            master_key: {
+              user_id: "@alice:example.test",
+              usage: ["master"],
+              keys: {
+                "ed25519:master-public": "master-public",
+              },
+              signatures: {
+                "@alice:example.test": {
+                  "ed25519:ALICE1": "signature-of-master-by-device",
+                },
+              },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixCrossSigningSignatureUploadJson() {
+      return JSON.stringify(
+        overrides.crossSigningSignatureUploadEnvelope ?? {
+          ok: true,
+          value: {
+            signed_objects: {
+              "@alice:example.test": {
+                ALICE2: {
+                  user_id: "@alice:example.test",
+                  device_id: "ALICE2",
+                },
+              },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixCrossSigningInvalidSignatureFailureJson() {
+      return JSON.stringify(
+        overrides.crossSigningInvalidSignatureFailureEnvelope ?? {
+          ok: true,
+          value: {
+            status: 400,
+            errcode: "M_INVALID_SIGNATURE",
+            error: "Invalid signature",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixCrossSigningMissingTokenGateJson() {
+      return JSON.stringify(
+        overrides.crossSigningMissingTokenGateEnvelope ?? {
+          ok: true,
+          value: {
+            protected_key_operations_require_token: true,
+            semantic_errors_suppressed_until_authenticated: true,
+            auth_precedes_signature_validation: true,
+            operations: [
+              "missing-token-device-signing-upload",
+              "missing-token-keys-query",
+              "missing-token-signatures-upload",
+            ],
+            errcode: "M_MISSING_TOKEN",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixWrongDeviceFailureGateJson() {
+      return JSON.stringify(
+        overrides.wrongDeviceFailureGateEnvelope ?? {
+          ok: true,
+          value: {
+            trusted_identity: {
+              user_id: "@bob:example.test",
+              device_id: "BOB1",
+              master_key: "trusted-master-public",
+              device_key: "trusted-ed25519-device-public",
+            },
+            observed_identity: {
+              user_id: "@bob:example.test",
+              device_id: "BOB1",
+              master_key: "unexpected-master-public",
+              device_key: "unexpected-ed25519-device-public",
+            },
+            required_steps: [
+              "load-established-trust-chain",
+              "observe-device-or-master-key-mismatch",
+              "refuse-to-mark-device-verified",
+              "refuse-outbound-session-share",
+              "record-verification-failure",
+            ],
+            required_evidence: ["trusted_fingerprint", "observed_fingerprint"],
+            cancel_code: "m.key_mismatch",
+            device_verified: false,
+            outbound_session_shared: false,
+            requires_user_reverification: true,
+            versions_advertisement_widened: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeysUploadRequestJson() {
+      return JSON.stringify(
+        overrides.keysUploadRequestEnvelope ?? {
+          ok: true,
+          value: {
+            device_keys: {
+              user_id: "@alice:example.test",
+              device_id: "DEVICE1",
+              algorithms: [
+                "m.olm.v1.curve25519-aes-sha2",
+                "m.megolm.v1.aes-sha2",
+              ],
+              keys: {
+                "curve25519:DEVICE1": "curve25519-public-device1",
+                "ed25519:DEVICE1": "ed25519-public-device1",
+              },
+              signatures: {
+                "@alice:example.test": {
+                  "ed25519:DEVICE1": "signature-device1",
+                },
+              },
+            },
+            one_time_keys: {
+              "signed_curve25519:otk1": {
+                key: "one-time-public-key-1",
+                fallback: false,
+                signatures: {
+                  "@alice:example.test": {
+                    "ed25519:DEVICE1": "signature-otk1",
+                  },
+                },
+              },
+            },
+            fallback_keys: {
+              "signed_curve25519:fb1": {
+                key: "fallback-public-key-1",
+                fallback: true,
+                signatures: {
+                  "@alice:example.test": {
+                    "ed25519:DEVICE1": "signature-fb1",
+                  },
+                },
+              },
+            },
+            private_key_material_returned: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeysUploadResponseJson() {
+      return JSON.stringify(
+        overrides.keysUploadResponseEnvelope ?? {
+          ok: true,
+          value: {
+            one_time_key_counts: {
+              signed_curve25519: 1,
+            },
+            private_key_material_returned: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeysClaimRequestJson() {
+      return JSON.stringify(
+        overrides.keysClaimRequestEnvelope ?? {
+          ok: true,
+          value: {
+            one_time_keys: {
+              "@alice:example.test": {
+                DEVICE1: "signed_curve25519",
+              },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeysClaimResponseJson() {
+      return JSON.stringify(
+        overrides.keysClaimResponseEnvelope ?? {
+          ok: true,
+          value: {
+            failures: {},
+            one_time_keys: {
+              "@alice:example.test": {
+                DEVICE1: {
+                  "signed_curve25519:fb1": {
+                    key: "fallback-public-key-1",
+                    fallback: true,
+                    signatures: {
+                      "@alice:example.test": {
+                        "ed25519:DEVICE1": "signature-fb1",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            fallback_key_returned: true,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixDeviceKeyErrorJson() {
+      return JSON.stringify(
+        overrides.deviceKeyErrorEnvelope ?? {
+          ok: true,
+          value: {
+            status: 400,
+            errcode: "M_INVALID_PARAM",
+            error: "Unsupported one-time key algorithm.",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixDeviceKeyQueryRequestJson() {
+      return JSON.stringify(
+        overrides.deviceKeyQueryRequestEnvelope ?? {
+          ok: true,
+          value: {
+            device_keys: {
+              "@alice:example.test": ["DEVICE1"],
+            },
+            timeout: 10000,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixDeviceKeyQueryResponseJson() {
+      return JSON.stringify(
+        overrides.deviceKeyQueryResponseEnvelope ?? {
+          ok: true,
+          value: {
+            failures: {},
+            device_keys: {
+              "@alice:example.test": {
+                DEVICE1: {
+                  user_id: "@alice:example.test",
+                  device_id: "DEVICE1",
+                  algorithms: [
+                    "m.olm.v1.curve25519-aes-sha2",
+                    "m.megolm.v1.aes-sha2",
+                  ],
+                  keys: {
+                    "curve25519:DEVICE1": "curve25519-public-device1",
+                    "ed25519:DEVICE1": "ed25519-public-device1",
+                  },
+                  signatures: {
+                    "@alice:example.test": {
+                      "ed25519:DEVICE1": "signature-device1",
+                    },
+                  },
+                },
+              },
+            },
+            private_key_material_returned: false,
+            trust_decision_made: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixPublicRoomsRequestJson() {
+      return JSON.stringify(
+        overrides.publicRoomsRequestEnvelope ?? {
+          ok: true,
+          value: {
+            limit: 10,
+            generic_search_term: "project",
+            include_all_networks: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixPublicRoomsResponseJson() {
+      return JSON.stringify(
+        overrides.publicRoomsResponseEnvelope ?? {
+          ok: true,
+          value: {
+            chunk: [
+              {
+                room_id: "!room:example.test",
+                num_joined_members: 2,
+                world_readable: false,
+                guest_can_join: false,
+                canonical_alias: "#project:example.test",
+                join_rule: "public",
+              },
+            ],
+            total_room_count_estimate: 1,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixDirectoryVisibilityJson() {
+      return JSON.stringify(
+        overrides.directoryVisibilityEnvelope ?? {
+          ok: true,
+          value: {
+            visibility: "public",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRoomAliasesJson() {
+      return JSON.stringify(
+        overrides.roomAliasesEnvelope ?? {
+          ok: true,
+          value: {
+            aliases: ["#project:example.test", "#project-alt:example.test"],
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixInviteRequestJson() {
+      return JSON.stringify(
+        overrides.inviteRequestEnvelope ?? {
+          ok: true,
+          value: {
+            user_id: "@bob:example.test",
+            reason: "Join the project room",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixInviteRoomJson() {
+      return JSON.stringify(
+        overrides.inviteRoomEnvelope ?? {
+          ok: true,
+          value: {
+            room_id: "!room:example.test",
+            events: [
+              {
+                type: "m.room.member",
+                sender: "@alice:example.test",
+                state_key: "@bob:example.test",
+                content: {
+                  membership: "invite",
+                },
+              },
+            ],
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRoomDirectoryErrorJson() {
+      return JSON.stringify(
+        overrides.roomDirectoryErrorEnvelope ?? {
+          ok: true,
+          value: {
+            status: 403,
+            errcode: "M_FORBIDDEN",
+            error: "User cannot invite others to this room.",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixModerationRequestJson() {
+      return JSON.stringify(
+        overrides.moderationRequestEnvelope ?? {
+          ok: true,
+          value: {
+            user_id: "@bob:example.test",
+            reason: "Off topic",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRedactionRequestJson() {
+      return JSON.stringify(
+        overrides.redactionRequestEnvelope ?? {
+          ok: true,
+          value: {
+            reason: "Remove spam",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRedactionResponseJson() {
+      return JSON.stringify(
+        overrides.redactionResponseEnvelope ?? {
+          ok: true,
+          value: {
+            event_id: "$redaction1:example.test",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixReportRequestJson() {
+      return JSON.stringify(
+        overrides.reportRequestEnvelope ?? {
+          ok: true,
+          value: {
+            reason: "Room contains spam",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixAccountModerationCapabilityJson() {
+      return JSON.stringify(
+        overrides.accountModerationCapabilityEnvelope ?? {
+          ok: true,
+          value: {
+            lock: true,
+            suspend: true,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixAdminAccountModerationStatusJson() {
+      return JSON.stringify(
+        overrides.adminAccountModerationStatusEnvelope ?? {
+          ok: true,
+          value: {
+            locked: true,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixModerationErrorJson() {
+      return JSON.stringify(
+        overrides.moderationErrorEnvelope ?? {
+          ok: true,
+          value: {
+            status: 403,
+            errcode: "M_FORBIDDEN",
+            error: "No permission.",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeyBackupVersionCreateResponseJson() {
+      return JSON.stringify(
+        overrides.keyBackupVersionCreateResponseEnvelope ?? {
+          ok: true,
+          value: {
+            version: "1",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeyBackupVersionJson() {
+      return JSON.stringify(
+        overrides.keyBackupVersionEnvelope ?? {
+          ok: true,
+          value: {
+            version: "1",
+            algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+            auth_data: {
+              public_key: "curve25519-public",
+              signatures: {
+                "@alice:example.test": {
+                  "ed25519:ALICE1": "signature",
+                },
+              },
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeyBackupSessionJson() {
+      return JSON.stringify(
+        overrides.keyBackupSessionEnvelope ?? {
+          ok: true,
+          value: {
+            first_message_index: 1,
+            forwarded_count: 0,
+            is_verified: true,
+            session_data: {
+              ephemeral: "ephemeral",
+              ciphertext: "ciphertext",
+              mac: "mac",
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeyBackupSessionUploadResponseJson() {
+      return JSON.stringify(
+        overrides.keyBackupSessionUploadResponseEnvelope ?? {
+          ok: true,
+          value: {
+            etag: "etag-1",
+            count: 1,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeyBackupErrorJson() {
+      return JSON.stringify(
+        overrides.keyBackupErrorEnvelope ?? {
+          ok: true,
+          value: {
+            status: 403,
+            errcode: "M_WRONG_ROOM_KEYS_VERSION",
+            error: "Wrong room keys version.",
+            current_version: "1",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeyBackupOwnerScopeGateJson() {
+      return JSON.stringify(
+        overrides.keyBackupOwnerScopeGateEnvelope ?? {
+          ok: true,
+          value: {
+            owner_scope_enforced: true,
+            protected_backup_unchanged: true,
+            checked_steps: [
+              "alice-read-own-backup",
+              "bob-read-alice-backup",
+              "bob-overwrite-alice-backup",
+              "alice-read-backup-after-bob-attempt",
+            ],
+            versions_advertisement_widened: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixKeyBackupRecoveryGateJson() {
+      return JSON.stringify(
+        overrides.keyBackupRecoveryGateEnvelope ?? {
+          ok: true,
+          value: {
+            logout_relogin_restore: true,
+            crypto_stack_required: true,
+            local_olm_megolm_allowed: false,
+            required_contracts: ["SPEC-050", "SPEC-052", "SPEC-053"],
+            required_evidence: [
+              "backup_version_created_before_logout",
+              "session_uploaded_before_logout",
+              "fresh_device_has_no_local_room_key_before_restore",
+              "restore_uses_backup_version_with_recovery_secret",
+              "decrypted_event_matches_pre_logout_plaintext",
+              "versions_advertisement_unchanged",
+            ],
+            versions_advertisement_widened: false,
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixMessagesResponseJson() {
       return JSON.stringify(
         overrides.messagesResponseEnvelope ?? {
@@ -473,6 +1292,796 @@ test("accepts SPEC-040 event DAG/auth event vector coverage", () => {
       "duplicate_auth_state_key",
     ],
   );
+});
+
+test("maps SPEC-055 federation discovery and signing-key envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const wellKnown = readSpecVector(
+    "test-vectors/core/matrix-federation-well-known-server-basic.json",
+  );
+  const signingKey = readSpecVector(
+    "test-vectors/core/matrix-federation-signing-key-basic.json",
+  );
+  const keyQuery = readSpecVector(
+    "test-vectors/core/matrix-federation-key-query-basic.json",
+  );
+  const failure = readSpecVector(
+    "test-vectors/core/matrix-federation-destination-resolution-failure.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-055"));
+  assert.equal(wellKnown.contract, "SPEC-055");
+  assert.equal(signingKey.contract, "SPEC-055");
+  assert.equal(keyQuery.contract, "SPEC-055");
+  assert.equal(failure.contract, "SPEC-055");
+  assert.deepEqual(core.parseMatrixFederationServerName("ignored"), {
+    ok: true,
+    value: {
+      server_name: "delegated.example.test:8448",
+      host: "delegated.example.test",
+      port: 8448,
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixFederationWellKnownServer("{}"), {
+    ok: true,
+    value: {
+      delegated_server_name: "delegated.example.test:8448",
+      host: "delegated.example.test",
+      port: 8448,
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixFederationSigningKey("{}"), {
+    ok: true,
+    value: {
+      server_name: "example.test",
+      verify_keys: {
+        "ed25519:auto1": { key: "public" },
+      },
+      old_verify_keys: {
+        "ed25519:old1": {
+          expired_ts: 1777801808000,
+          key: "old-public",
+        },
+      },
+      valid_until_ts: 1779011408000,
+      signatures: {
+        "example.test": { "ed25519:auto1": "signature" },
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixFederationKeyQueryRequest("{}"), {
+    ok: true,
+    value: {
+      server_keys: {
+        "example.test": {
+          "ed25519:auto1": {
+            minimum_valid_until_ts: 1779011408000,
+          },
+        },
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixFederationKeyQueryResponse("{}"), {
+    ok: true,
+    value: {
+      server_keys: [
+        {
+          server_name: "example.test",
+          verify_keys: {
+            "ed25519:auto1": { key: "public" },
+          },
+          old_verify_keys: {},
+          valid_until_ts: 1779011408000,
+          signatures: {
+            "example.test": { "ed25519:auto1": "signature" },
+          },
+        },
+      ],
+    },
+    error: null,
+  });
+  assert.deepEqual(
+    core.parseMatrixFederationDestinationResolutionFailure("{}"),
+    {
+      ok: true,
+      value: {
+        server_name: "broken.example.test",
+        stages: [
+          "well_known",
+          "srv_matrix_fed",
+          "srv_matrix_deprecated",
+          "address_records",
+          "failure_cache",
+        ],
+        destination_resolved: false,
+        federation_request_sent: false,
+        backoff_recorded: true,
+      },
+      error: null,
+    },
+  );
+});
+
+test("maps SPEC-054 verification and cross-signing envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const sas = readSpecVector(
+    "test-vectors/messaging/matrix-verification-sas-to-device-happy-path.json",
+  );
+  const cancel = readSpecVector(
+    "test-vectors/messaging/matrix-verification-sas-mismatch-cancel.json",
+  );
+  const lifecycle = readSpecVector(
+    "test-vectors/messaging/matrix-cross-signing-key-lifecycle.json",
+  );
+  const invalidSignature = readSpecVector(
+    "test-vectors/messaging/matrix-cross-signing-invalid-signature.json",
+  );
+  const missingToken = readSpecVector(
+    "test-vectors/messaging/matrix-cross-signing-missing-token.json",
+  );
+  const wrongDevice = readSpecVector(
+    "test-vectors/messaging/matrix-wrong-device-failure-gate.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-054"));
+  assert.equal(sas.contract, "SPEC-054");
+  assert.equal(cancel.contract, "SPEC-054");
+  assert.equal(lifecycle.contract, "SPEC-054");
+  assert.equal(invalidSignature.contract, "SPEC-054");
+  assert.equal(missingToken.contract, "SPEC-054");
+  assert.equal(wrongDevice.contract, "SPEC-054");
+  assert.deepEqual(core.parseMatrixVerificationSasFlow("{}"), {
+    ok: true,
+    value: {
+      transaction_id: "verif-txn-1",
+      transport: "to_device",
+      event_types: [
+        "m.key.verification.request",
+        "m.key.verification.ready",
+        "m.key.verification.start",
+        "m.key.verification.accept",
+        "m.key.verification.key",
+        "m.key.verification.mac",
+      ],
+      verified: true,
+      local_sas_allowed: false,
+      versions_advertisement_widened: false,
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixVerificationCancel("{}"), {
+    ok: true,
+    value: {
+      transaction_id: "verif-txn-mismatch",
+      code: "m.mismatched_sas",
+      reason: "Short authentication string did not match",
+      verified: false,
+      versions_advertisement_widened: false,
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixCrossSigningDeviceSigningUpload("{}"), {
+    ok: true,
+    value: {
+      master_key: {
+        user_id: "@alice:example.test",
+        usage: ["master"],
+        keys: {
+          "ed25519:master-public": "master-public",
+        },
+        signatures: {
+          "@alice:example.test": {
+            "ed25519:ALICE1": "signature-of-master-by-device",
+          },
+        },
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixCrossSigningSignatureUpload("{}"), {
+    ok: true,
+    value: {
+      signed_objects: {
+        "@alice:example.test": {
+          ALICE2: {
+            user_id: "@alice:example.test",
+            device_id: "ALICE2",
+          },
+        },
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(
+    core.parseMatrixCrossSigningInvalidSignatureFailure("{}"),
+    {
+      ok: true,
+      value: {
+        status: 400,
+        errcode: "M_INVALID_SIGNATURE",
+        error: "Invalid signature",
+      },
+      error: null,
+    },
+  );
+  assert.equal(
+    core.parseMatrixCrossSigningMissingTokenGate("{}").value.errcode,
+    "M_MISSING_TOKEN",
+  );
+  const parsedWrongDevice = core.parseMatrixWrongDeviceFailureGate("{}");
+  assert.equal(parsedWrongDevice.value.device_verified, false);
+  assert.equal(parsedWrongDevice.value.outbound_session_shared, false);
+  assert.equal(parsedWrongDevice.value.requires_user_reverification, true);
+
+  const protoKeyCore = createHouraProtocolCore(
+    binding({
+      crossSigningDeviceSigningUploadEnvelope: {
+        ok: true,
+        value: {
+          master_key: {
+            user_id: "@alice:example.test",
+            usage: ["master"],
+            keys: {
+              ["__proto__"]: "master-public",
+            },
+            signatures: {
+              ["__proto__"]: {
+                ["__proto__"]: "signature",
+              },
+            },
+          },
+        },
+        error: null,
+      },
+      crossSigningSignatureUploadEnvelope: {
+        ok: true,
+        value: {
+          signed_objects: {
+            ["__proto__"]: {
+              ["__proto__"]: {
+                user_id: "@alice:example.test",
+              },
+            },
+          },
+        },
+        error: null,
+      },
+    }),
+  );
+  const protoKeyUpload =
+    protoKeyCore.parseMatrixCrossSigningDeviceSigningUpload("{}");
+  assert.equal(protoKeyUpload.value.master_key.keys.__proto__, "master-public");
+  assert.equal(
+    protoKeyUpload.value.master_key.signatures.__proto__.__proto__,
+    "signature",
+  );
+  const protoSignatureUpload =
+    protoKeyCore.parseMatrixCrossSigningSignatureUpload("{}");
+  assert.equal(
+    protoSignatureUpload.value.signed_objects.__proto__.__proto__.user_id,
+    "@alice:example.test",
+  );
+});
+
+test("maps SPEC-051 device, one-time, and fallback key envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const upload = readSpecVector(
+    "test-vectors/auth/matrix-keys-upload-device-one-time-fallback-basic.json",
+  );
+  const claim = readSpecVector(
+    "test-vectors/auth/matrix-keys-claim-one-time-fallback-basic.json",
+  );
+  const malformedUpload = readSpecVector(
+    "test-vectors/auth/matrix-keys-upload-malformed-device-keys.json",
+  );
+  const invalidClaim = readSpecVector(
+    "test-vectors/auth/matrix-keys-claim-invalid-algorithm.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-051"));
+  for (const vector of [upload, claim, malformedUpload, invalidClaim]) {
+    assert.equal(vector.contract, "SPEC-051");
+  }
+  assert.deepEqual(core.parseMatrixKeysUploadRequest("{}"), {
+    ok: true,
+    value: {
+      device_keys: {
+        user_id: "@alice:example.test",
+        device_id: "DEVICE1",
+        algorithms: [
+          "m.olm.v1.curve25519-aes-sha2",
+          "m.megolm.v1.aes-sha2",
+        ],
+        keys: {
+          "curve25519:DEVICE1": "curve25519-public-device1",
+          "ed25519:DEVICE1": "ed25519-public-device1",
+        },
+        signatures: {
+          "@alice:example.test": {
+            "ed25519:DEVICE1": "signature-device1",
+          },
+        },
+      },
+      one_time_keys: {
+        "signed_curve25519:otk1": {
+          key: "one-time-public-key-1",
+          fallback: false,
+          signatures: {
+            "@alice:example.test": {
+              "ed25519:DEVICE1": "signature-otk1",
+            },
+          },
+        },
+      },
+      fallback_keys: {
+        "signed_curve25519:fb1": {
+          key: "fallback-public-key-1",
+          fallback: true,
+          signatures: {
+            "@alice:example.test": {
+              "ed25519:DEVICE1": "signature-fb1",
+            },
+          },
+        },
+      },
+      private_key_material_returned: false,
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixKeysUploadResponse("{}"), {
+    ok: true,
+    value: {
+      one_time_key_counts: {
+        signed_curve25519: 1,
+      },
+      private_key_material_returned: false,
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixKeysClaimRequest("{}"), {
+    ok: true,
+    value: {
+      one_time_keys: {
+        "@alice:example.test": {
+          DEVICE1: "signed_curve25519",
+        },
+      },
+    },
+    error: null,
+  });
+  assert.equal(
+    core.parseMatrixKeysClaimResponse("{}").value.fallback_key_returned,
+    true,
+  );
+  assert.equal(core.parseMatrixDeviceKeyError("{}").value.errcode, "M_INVALID_PARAM");
+
+  const protoKeyCore = createHouraProtocolCore(
+    binding({
+      keysUploadRequestEnvelope: {
+        ok: true,
+        value: {
+          one_time_keys: {
+            ["__proto__"]: {
+              key: "one-time-public-key-1",
+              fallback: false,
+              signatures: {
+                ["__proto__"]: {
+                  ["__proto__"]: "signature",
+                },
+              },
+            },
+          },
+          fallback_keys: {},
+          private_key_material_returned: false,
+        },
+        error: null,
+      },
+    }),
+  );
+  assert.equal(
+    protoKeyCore.parseMatrixKeysUploadRequest("{}").value.one_time_keys.__proto__
+      .signatures.__proto__.__proto__,
+    "signature",
+  );
+});
+
+test("maps SPEC-069 device key query envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const basic = readSpecVector("test-vectors/auth/matrix-keys-query-basic.json");
+  const allDevices = readSpecVector(
+    "test-vectors/auth/matrix-keys-query-all-devices.json",
+  );
+  const unknownDevice = readSpecVector(
+    "test-vectors/auth/matrix-keys-query-unknown-device-omitted.json",
+  );
+  const missingToken = readSpecVector(
+    "test-vectors/auth/matrix-keys-query-missing-token.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-069"));
+  for (const vector of [basic, allDevices, unknownDevice, missingToken]) {
+    assert.equal(vector.contract, "SPEC-069");
+  }
+  assert.deepEqual(core.parseMatrixDeviceKeyQueryRequest("{}"), {
+    ok: true,
+    value: {
+      device_keys: {
+        "@alice:example.test": ["DEVICE1"],
+      },
+      timeout: 10000,
+    },
+    error: null,
+  });
+  const response = core.parseMatrixDeviceKeyQueryResponse("{}");
+  assert.equal(
+    response.value.device_keys["@alice:example.test"].DEVICE1.keys[
+      "ed25519:DEVICE1"
+    ],
+    "ed25519-public-device1",
+  );
+  assert.equal(response.value.private_key_material_returned, false);
+  assert.equal(response.value.trust_decision_made, false);
+  assert.equal(
+    createHouraProtocolCore(
+      binding({
+        deviceKeyErrorEnvelope: {
+          ok: true,
+          value: {
+            status: 401,
+            errcode: "M_MISSING_TOKEN",
+            error: "Missing access token.",
+          },
+          error: null,
+        },
+      }),
+    ).parseMatrixDeviceKeyError("{}").value.errcode,
+    "M_MISSING_TOKEN",
+  );
+});
+
+test("maps SPEC-049 moderation, reporting, and admin envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const moderation = readSpecVector(
+    "test-vectors/rooms/matrix-room-moderation-kick-ban-unban.json",
+  );
+  const redaction = readSpecVector(
+    "test-vectors/rooms/matrix-room-redaction-basic.json",
+  );
+  const reporting = readSpecVector(
+    "test-vectors/rooms/matrix-room-reporting-basic.json",
+  );
+  const admin = readSpecVector(
+    "test-vectors/rooms/matrix-admin-account-moderation-basic.json",
+  );
+  const permissionDenied = readSpecVector(
+    "test-vectors/rooms/matrix-room-moderation-permission-denied.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-049"));
+  for (const vector of [
+    moderation,
+    redaction,
+    reporting,
+    admin,
+    permissionDenied,
+  ]) {
+    assert.equal(vector.contract, "SPEC-049");
+  }
+
+  assert.deepEqual(core.parseMatrixModerationRequest("{}"), {
+    ok: true,
+    value: {
+      user_id: "@bob:example.test",
+      reason: "Off topic",
+    },
+    error: null,
+  });
+  assert.equal(
+    core.parseMatrixRedactionRequest("{}").value.reason,
+    "Remove spam",
+  );
+  assert.equal(
+    core.parseMatrixRedactionResponse("{}").value.event_id,
+    "$redaction1:example.test",
+  );
+  assert.equal(core.parseMatrixReportRequest("{}").value.reason, "Room contains spam");
+  assert.deepEqual(core.parseMatrixAccountModerationCapability("{}").value, {
+    lock: true,
+    suspend: true,
+  });
+  assert.deepEqual(core.parseMatrixAdminAccountModerationStatus("{}").value, {
+    locked: true,
+  });
+  assert.equal(core.parseMatrixModerationError("{}").value.errcode, "M_FORBIDDEN");
+});
+
+test("maps SPEC-048 room directory, alias, and invite envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const publicRooms = readSpecVector(
+    "test-vectors/rooms/matrix-public-rooms-basic.json",
+  );
+  const filtered = readSpecVector(
+    "test-vectors/rooms/matrix-public-rooms-filter-basic.json",
+  );
+  const aliases = readSpecVector(
+    "test-vectors/rooms/matrix-room-aliases-basic.json",
+  );
+  const invite = readSpecVector("test-vectors/rooms/matrix-room-invite-basic.json");
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-048"));
+  for (const vector of [publicRooms, filtered, aliases, invite]) {
+    assert.equal(vector.contract, "SPEC-048");
+  }
+  assert.equal(core.parseMatrixPublicRoomsRequest("{}").value.limit, 10);
+  assert.equal(
+    core.parseMatrixPublicRoomsResponse("{}").value.chunk[0].canonical_alias,
+    "#project:example.test",
+  );
+  assert.equal(
+    core.parseMatrixDirectoryVisibility("{}").value.visibility,
+    "public",
+  );
+  assert.deepEqual(core.parseMatrixRoomAliases("{}").value.aliases, [
+    "#project:example.test",
+    "#project-alt:example.test",
+  ]);
+  assert.equal(core.parseMatrixInviteRequest("{}").value.user_id, "@bob:example.test");
+  assert.equal(
+    core.parseMatrixInviteRoom("{}").value.events[0].content.membership,
+    "invite",
+  );
+  assert.equal(
+    core.parseMatrixRoomDirectoryError("{}").value.errcode,
+    "M_FORBIDDEN",
+  );
+});
+
+test("maps SPEC-053 key backup metadata envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const lifecycle = readSpecVector(
+    "test-vectors/messaging/matrix-key-backup-version-lifecycle.json",
+  );
+  const restore = readSpecVector(
+    "test-vectors/messaging/matrix-key-backup-session-upload-restore-basic.json",
+  );
+  const wrongVersion = readSpecVector(
+    "test-vectors/messaging/matrix-key-backup-wrong-version.json",
+  );
+  const missingSession = readSpecVector(
+    "test-vectors/messaging/matrix-key-backup-restore-missing-session.json",
+  );
+  const ownerScope = readSpecVector(
+    "test-vectors/messaging/matrix-key-backup-owner-scope.json",
+  );
+  const recoveryGate = readSpecVector(
+    "test-vectors/messaging/matrix-key-backup-logout-relogin-recovery-gate.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-053"));
+  for (const vector of [
+    lifecycle,
+    restore,
+    wrongVersion,
+    missingSession,
+    ownerScope,
+    recoveryGate,
+  ]) {
+    assert.equal(vector.contract, "SPEC-053");
+  }
+  assert.equal(lifecycle.event.steps.length, 4);
+  assert.equal(restore.event.steps.length, 2);
+  assert.deepEqual(core.parseMatrixKeyBackupVersionCreateResponse("{}"), {
+    ok: true,
+    value: {
+      version: "1",
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixKeyBackupVersion("{}"), {
+    ok: true,
+    value: {
+      version: "1",
+      algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+      auth_data: {
+        public_key: "curve25519-public",
+        signatures: {
+          "@alice:example.test": {
+            "ed25519:ALICE1": "signature",
+          },
+        },
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixKeyBackupSession("{}"), {
+    ok: true,
+    value: {
+      first_message_index: 1,
+      forwarded_count: 0,
+      is_verified: true,
+      session_data: {
+        ephemeral: "ephemeral",
+        ciphertext: "ciphertext",
+        mac: "mac",
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixKeyBackupSessionUploadResponse("{}"), {
+    ok: true,
+    value: {
+      etag: "etag-1",
+      count: 1,
+    },
+    error: null,
+  });
+  assert.equal(
+    core.parseMatrixKeyBackupError("{}").value.errcode,
+    "M_WRONG_ROOM_KEYS_VERSION",
+  );
+  assert.equal(core.parseMatrixKeyBackupError("{}").value.current_version, "1");
+  assert.equal(
+    createHouraProtocolCore(
+      binding({
+        keyBackupErrorEnvelope: {
+          ok: true,
+          value: {
+            status: 404,
+            errcode: "M_NOT_FOUND",
+            error: "Room key session not found.",
+          },
+          error: null,
+        },
+      }),
+    ).parseMatrixKeyBackupError("{}").value.errcode,
+    "M_NOT_FOUND",
+  );
+  assert.equal(
+    core.parseMatrixKeyBackupOwnerScopeGate("{}").value.owner_scope_enforced,
+    true,
+  );
+  assert.equal(
+    core.parseMatrixKeyBackupRecoveryGate("{}").value.local_olm_megolm_allowed,
+    false,
+  );
+
+  const protoKeyCore = createHouraProtocolCore(
+    binding({
+      keyBackupVersionEnvelope: {
+        ok: true,
+        value: {
+          algorithm: "m.megolm_backup.v1.curve25519-aes-sha2",
+          auth_data: {
+            public_key: "curve25519-public",
+            signatures: {
+              ["__proto__"]: {
+                ["__proto__"]: "signature",
+              },
+            },
+          },
+        },
+        error: null,
+      },
+    }),
+  );
+  assert.equal(
+    protoKeyCore.parseMatrixKeyBackupVersion("{}").value.auth_data.signatures
+      .__proto__.__proto__,
+    "signature",
+  );
+});
+
+test("maps SPEC-056 federation transaction, join, and invite envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const transaction = readSpecVector(
+    "test-vectors/events/matrix-federation-send-transaction-basic.json",
+  );
+  const failedTransaction = readSpecVector(
+    "test-vectors/events/matrix-federation-send-transaction-pdu-failure.json",
+  );
+  const join = readSpecVector(
+    "test-vectors/events/matrix-federation-make-send-join-basic.json",
+  );
+  const invite = readSpecVector(
+    "test-vectors/events/matrix-federation-invite-v2-basic.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-056"));
+  assert.equal(transaction.contract, "SPEC-056");
+  assert.equal(failedTransaction.contract, "SPEC-056");
+  assert.equal(join.contract, "SPEC-056");
+  assert.equal(invite.contract, "SPEC-056");
+  assert.deepEqual(core.parseMatrixFederationTransaction("{}"), {
+    ok: true,
+    value: {
+      origin: "remote.example.test",
+      origin_server_ts: 1778408851000,
+      pdus: [],
+      edus: [],
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixFederationTransactionResponse("{}"), {
+    ok: true,
+    value: {
+      pdus: {
+        "$event1:remote.example.test": {},
+      },
+    },
+    error: null,
+  });
+  const protoKeyCore = createHouraProtocolCore(
+    binding({
+      federationTransactionResponseEnvelope: {
+        ok: true,
+        value: {
+          pdus: {
+            ["__proto__"]: { error: "blocked" },
+          },
+        },
+        error: null,
+      },
+    }),
+  );
+  const protoKeyResponse =
+    protoKeyCore.parseMatrixFederationTransactionResponse("{}");
+  assert.equal(Object.prototype.blocked, undefined);
+  assert.equal(
+    Object.prototype.hasOwnProperty.call(protoKeyResponse.value.pdus, "__proto__"),
+    true,
+  );
+  assert.equal(protoKeyResponse.value.pdus.__proto__.error, "blocked");
+  assert.equal(join.event.steps[1].body.event.content.membership, "join");
+  assert.deepEqual(core.parseMatrixFederationMakeJoinResponse("{}"), {
+    ok: true,
+    value: {
+      room_version: "12",
+      event: {
+        type: "m.room.member",
+        content: { membership: "join" },
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixFederationSendJoinResponse("{}"), {
+    ok: true,
+    value: {
+      origin: "example.test",
+      state: [],
+      auth_chain: [],
+      event: {
+        type: "m.room.member",
+        content: { membership: "join" },
+      },
+    },
+    error: null,
+  });
+  assert.equal(invite.request.body.event.content.membership, "invite");
+  assert.deepEqual(core.parseMatrixFederationInviteRequest("{}"), {
+    ok: true,
+    value: {
+      room_version: "12",
+      event: {
+        type: "m.room.member",
+        content: { membership: "invite" },
+      },
+    },
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixFederationInviteResponse("{}"), {
+    ok: true,
+    value: {
+      event: {
+        type: "m.room.member",
+        content: { membership: "invite" },
+      },
+    },
+    error: null,
+  });
 });
 
 test("maps SPEC-031 Matrix error and foundation validation envelopes", () => {

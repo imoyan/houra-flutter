@@ -1,3 +1,16 @@
+//! Shared Houra protocol parsing and validation helpers.
+//!
+//! This crate is a lab prototype for parser, checker, ABI, and artifact
+//! manifest surfaces that can be checked against the canonical `houra-spec`
+//! contracts and test vectors. It is not the canonical behavior source, not a
+//! production client or server implementation, and not a Matrix compatibility
+//! claim.
+//!
+//! Public APIs exposed here are intended for docs.rs review and thin binding
+//! experiments only. Hosts remain responsible for HTTP transport, retry policy,
+//! token storage, sync-token persistence, media storage, UI state, crypto, and
+//! federation behavior.
+
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -11,7 +24,8 @@ pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
-    "SPEC-038", "SPEC-039", "SPEC-040",
+    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-048", "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054",
+    "SPEC-055", "SPEC-056", "SPEC-069",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -248,6 +262,448 @@ pub struct MatrixMediaUploadResponse {
     pub content_uri: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationTransaction {
+    pub origin: String,
+    pub origin_server_ts: u64,
+    pub pdus: Vec<Value>,
+    pub edus: Vec<Value>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationPduResult {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationTransactionResponse {
+    pub pdus: BTreeMap<String, MatrixFederationPduResult>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationMakeJoinResponse {
+    pub room_version: String,
+    pub event: Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationSendJoinResponse {
+    pub origin: String,
+    pub state: Vec<Value>,
+    pub auth_chain: Vec<Value>,
+    pub event: Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationInviteRequest {
+    pub room_version: String,
+    pub event: Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationInviteResponse {
+    pub event: Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationServerName {
+    pub server_name: String,
+    pub host: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub port: Option<u16>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationWellKnownServer {
+    pub delegated_server_name: String,
+    pub host: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub port: Option<u16>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationVerifyKey {
+    pub key: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationOldVerifyKey {
+    pub expired_ts: u64,
+    pub key: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationSigningKey {
+    pub server_name: String,
+    pub verify_keys: BTreeMap<String, MatrixFederationVerifyKey>,
+    pub old_verify_keys: BTreeMap<String, MatrixFederationOldVerifyKey>,
+    pub valid_until_ts: u64,
+    pub signatures: BTreeMap<String, BTreeMap<String, String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationKeyQueryCriteria {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub minimum_valid_until_ts: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationKeyQueryRequest {
+    pub server_keys: BTreeMap<String, BTreeMap<String, MatrixFederationKeyQueryCriteria>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationKeyQueryResponse {
+    pub server_keys: Vec<MatrixFederationSigningKey>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationDestinationResolutionFailure {
+    pub server_name: String,
+    pub stages: Vec<String>,
+    pub destination_resolved: bool,
+    pub federation_request_sent: bool,
+    pub backoff_recorded: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixVerificationSasFlow {
+    pub transaction_id: String,
+    pub transport: String,
+    pub event_types: Vec<String>,
+    pub verified: bool,
+    pub local_sas_allowed: bool,
+    pub versions_advertisement_widened: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixVerificationCancel {
+    pub transaction_id: String,
+    pub code: String,
+    pub reason: String,
+    pub verified: bool,
+    pub versions_advertisement_widened: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCrossSigningKey {
+    pub user_id: String,
+    pub usage: Vec<String>,
+    pub keys: BTreeMap<String, String>,
+    pub signatures: BTreeMap<String, BTreeMap<String, String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCrossSigningDeviceSigningUpload {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub master_key: Option<MatrixCrossSigningKey>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub self_signing_key: Option<MatrixCrossSigningKey>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_signing_key: Option<MatrixCrossSigningKey>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixCrossSigningSignatureUpload {
+    pub signed_objects: BTreeMap<String, BTreeMap<String, Value>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCrossSigningInvalidSignatureFailure {
+    pub status: u64,
+    pub errcode: String,
+    pub error: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCrossSigningMissingTokenGate {
+    pub protected_key_operations_require_token: bool,
+    pub semantic_errors_suppressed_until_authenticated: bool,
+    pub auth_precedes_signature_validation: bool,
+    pub operations: Vec<String>,
+    pub errcode: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixWrongDeviceIdentity {
+    pub user_id: String,
+    pub device_id: String,
+    pub master_key: String,
+    pub device_key: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixWrongDeviceFailureGate {
+    pub trusted_identity: MatrixWrongDeviceIdentity,
+    pub observed_identity: MatrixWrongDeviceIdentity,
+    pub required_steps: Vec<String>,
+    pub required_evidence: Vec<String>,
+    pub cancel_code: String,
+    pub device_verified: bool,
+    pub outbound_session_shared: bool,
+    pub requires_user_reverification: bool,
+    pub versions_advertisement_widened: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDeviceKeysUploadDevice {
+    pub user_id: String,
+    pub device_id: String,
+    pub algorithms: Vec<String>,
+    pub keys: BTreeMap<String, String>,
+    pub signatures: BTreeMap<String, BTreeMap<String, String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixSignedCurve25519Key {
+    pub key: String,
+    pub fallback: bool,
+    pub signatures: BTreeMap<String, BTreeMap<String, String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysUploadRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub device_keys: Option<MatrixDeviceKeysUploadDevice>,
+    pub one_time_keys: BTreeMap<String, MatrixSignedCurve25519Key>,
+    pub fallback_keys: BTreeMap<String, MatrixSignedCurve25519Key>,
+    pub private_key_material_returned: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysUploadResponse {
+    pub one_time_key_counts: BTreeMap<String, u64>,
+    pub private_key_material_returned: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysClaimRequest {
+    pub one_time_keys: BTreeMap<String, BTreeMap<String, String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysClaimResponse {
+    pub failures: BTreeMap<String, BTreeMap<String, String>>,
+    pub one_time_keys:
+        BTreeMap<String, BTreeMap<String, BTreeMap<String, MatrixSignedCurve25519Key>>>,
+    pub fallback_key_returned: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDeviceKeyError {
+    pub status: u64,
+    pub errcode: String,
+    pub error: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDeviceKeyQueryRequest {
+    pub device_keys: BTreeMap<String, Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDeviceKeyQueryResponse {
+    pub failures: BTreeMap<String, BTreeMap<String, String>>,
+    pub device_keys: BTreeMap<String, BTreeMap<String, MatrixDeviceKeysUploadDevice>>,
+    pub private_key_material_returned: bool,
+    pub trust_decision_made: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPublicRoomsRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub limit: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub since: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub server: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub generic_search_term: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_all_networks: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub third_party_instance_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPublicRoom {
+    pub room_id: String,
+    pub num_joined_members: u64,
+    pub world_readable: bool,
+    pub guest_can_join: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub topic: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub canonical_alias: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar_url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub join_rule: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub room_type: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPublicRoomsResponse {
+    pub chunk: Vec<MatrixPublicRoom>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_batch: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prev_batch: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_room_count_estimate: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDirectoryVisibility {
+    pub visibility: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRoomAliases {
+    pub aliases: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixInviteRequest {
+    pub user_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixInviteStateEvent {
+    #[serde(rename = "type")]
+    pub event_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sender: Option<String>,
+    pub state_key: String,
+    pub content: BTreeMap<String, Value>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixInviteRoom {
+    pub room_id: String,
+    pub events: Vec<MatrixInviteStateEvent>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRoomDirectoryError {
+    pub status: u64,
+    pub errcode: String,
+    pub error: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixModerationRequest {
+    pub user_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRedactionRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRedactionResponse {
+    pub event_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixReportRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixAccountModerationCapability {
+    pub lock: bool,
+    pub suspend: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixAdminAccountModerationStatus {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub locked: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub suspended: Option<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixModerationError {
+    pub status: u64,
+    pub errcode: String,
+    pub error: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupAuthData {
+    pub public_key: String,
+    pub signatures: BTreeMap<String, BTreeMap<String, String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupVersionCreateResponse {
+    pub version: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupVersion {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    pub algorithm: String,
+    pub auth_data: MatrixKeyBackupAuthData,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixKeyBackupSession {
+    pub first_message_index: u64,
+    pub forwarded_count: u64,
+    pub is_verified: bool,
+    pub session_data: BTreeMap<String, Value>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupSessionUploadResponse {
+    pub etag: String,
+    pub count: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupError {
+    pub status: u64,
+    pub errcode: String,
+    pub error: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_version: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupOwnerScopeGate {
+    pub owner_scope_enforced: bool,
+    pub protected_backup_unchanged: bool,
+    pub checked_steps: Vec<String>,
+    pub versions_advertisement_widened: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupRecoveryGate {
+    pub logout_relogin_restore: bool,
+    pub crypto_stack_required: bool,
+    pub local_olm_megolm_allowed: bool,
+    pub required_contracts: Vec<String>,
+    pub required_evidence: Vec<String>,
+    pub versions_advertisement_widened: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ProtocolErrorEnvelope {
     pub code: String,
@@ -395,6 +851,335 @@ pub struct MatrixMediaUploadResponseParseEnvelope {
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationTransactionParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationTransaction>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationTransactionResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationTransactionResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationMakeJoinResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationMakeJoinResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationSendJoinResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationSendJoinResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationInviteRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationInviteRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationInviteResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationInviteResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationServerNameParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationServerName>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationWellKnownServerParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationWellKnownServer>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationSigningKeyParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationSigningKey>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationKeyQueryRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationKeyQueryRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationKeyQueryResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationKeyQueryResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationDestinationResolutionFailureParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationDestinationResolutionFailure>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixVerificationSasFlowParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixVerificationSasFlow>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixVerificationCancelParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixVerificationCancel>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCrossSigningDeviceSigningUploadParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixCrossSigningDeviceSigningUpload>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixCrossSigningSignatureUploadParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixCrossSigningSignatureUpload>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCrossSigningInvalidSignatureFailureParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixCrossSigningInvalidSignatureFailure>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixCrossSigningMissingTokenGateParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixCrossSigningMissingTokenGate>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixWrongDeviceFailureGateParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixWrongDeviceFailureGate>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysUploadRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeysUploadRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysUploadResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeysUploadResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysClaimRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeysClaimRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeysClaimResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeysClaimResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDeviceKeyErrorParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixDeviceKeyError>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDeviceKeyQueryRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixDeviceKeyQueryRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDeviceKeyQueryResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixDeviceKeyQueryResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPublicRoomsRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixPublicRoomsRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixPublicRoomsResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixPublicRoomsResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixDirectoryVisibilityParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixDirectoryVisibility>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRoomAliasesParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRoomAliases>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixInviteRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixInviteRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixInviteRoomParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixInviteRoom>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRoomDirectoryErrorParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRoomDirectoryError>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixModerationRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixModerationRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRedactionRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRedactionRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRedactionResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRedactionResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixReportRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixReportRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixAccountModerationCapabilityParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixAccountModerationCapability>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixAdminAccountModerationStatusParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixAdminAccountModerationStatus>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixModerationErrorParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixModerationError>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupVersionCreateResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeyBackupVersionCreateResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupVersionParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeyBackupVersion>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixKeyBackupSessionParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeyBackupSession>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupSessionUploadResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeyBackupSessionUploadResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupErrorParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeyBackupError>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupOwnerScopeGateParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeyBackupOwnerScopeGate>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixKeyBackupRecoveryGateParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixKeyBackupRecoveryGate>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProtocolError {
     Json(String),
@@ -410,6 +1195,12 @@ pub enum ProtocolError {
     InvalidDeviceField { field: String },
     InvalidRoomField { field: String },
     InvalidMediaField { field: String },
+    InvalidFederationField { field: String },
+    InvalidVerificationField { field: String },
+    InvalidDeviceKeyField { field: String },
+    InvalidRoomDirectoryField { field: String },
+    InvalidModerationField { field: String },
+    InvalidKeyBackupField { field: String },
 }
 
 impl ProtocolError {
@@ -430,6 +1221,12 @@ impl ProtocolError {
             ProtocolError::InvalidDeviceField { .. } => "invalid_device_field",
             ProtocolError::InvalidRoomField { .. } => "invalid_room_field",
             ProtocolError::InvalidMediaField { .. } => "invalid_media_field",
+            ProtocolError::InvalidFederationField { .. } => "invalid_federation_field",
+            ProtocolError::InvalidVerificationField { .. } => "invalid_verification_field",
+            ProtocolError::InvalidDeviceKeyField { .. } => "invalid_device_key_field",
+            ProtocolError::InvalidRoomDirectoryField { .. } => "invalid_room_directory_field",
+            ProtocolError::InvalidModerationField { .. } => "invalid_moderation_field",
+            ProtocolError::InvalidKeyBackupField { .. } => "invalid_key_backup_field",
         }
     }
 
@@ -461,6 +1258,24 @@ impl ProtocolError {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidMediaField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidFederationField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidVerificationField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidDeviceKeyField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidRoomDirectoryField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidModerationField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidKeyBackupField { field } => {
                 details.insert("field".to_owned(), field.clone());
             }
             _ => {}
@@ -519,6 +1334,33 @@ impl std::fmt::Display for ProtocolError {
             ProtocolError::InvalidMediaField { field } => {
                 write!(formatter, "{field} is not a valid Matrix media value")
             }
+            ProtocolError::InvalidFederationField { field } => {
+                write!(formatter, "{field} is not a valid Matrix federation value")
+            }
+            ProtocolError::InvalidVerificationField { field } => {
+                write!(
+                    formatter,
+                    "{field} is not a valid Matrix verification value"
+                )
+            }
+            ProtocolError::InvalidDeviceKeyField { field } => {
+                write!(formatter, "{field} is not a valid Matrix device key value")
+            }
+            ProtocolError::InvalidRoomDirectoryField { field } => {
+                write!(
+                    formatter,
+                    "{field} is not a valid Matrix room directory value"
+                )
+            }
+            ProtocolError::InvalidModerationField { field } => {
+                write!(
+                    formatter,
+                    "{field} is not a valid Matrix moderation/reporting value"
+                )
+            }
+            ProtocolError::InvalidKeyBackupField { field } => {
+                write!(formatter, "{field} is not a valid Matrix key backup value")
+            }
         }
     }
 }
@@ -537,6 +1379,7 @@ struct MatrixErrorWire {
     errcode: Option<String>,
     error: Option<String>,
     retry_after_ms: Option<u64>,
+    current_version: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -710,6 +1553,403 @@ struct MatrixSyncUnreadNotificationsWire {
 #[derive(Debug, Deserialize)]
 struct MatrixMediaUploadResponseWire {
     content_uri: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationTransactionWire {
+    origin: Option<String>,
+    origin_server_ts: Option<i64>,
+    pdus: Option<Vec<Value>>,
+    #[serde(default)]
+    edus: Vec<Value>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationPduResultWire {
+    error: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationTransactionResponseWire {
+    pdus: Option<BTreeMap<String, MatrixFederationPduResultWire>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationMakeJoinResponseWire {
+    room_version: Option<String>,
+    event: Option<Value>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationSendJoinResponseWire {
+    origin: Option<String>,
+    state: Option<Vec<Value>>,
+    auth_chain: Option<Vec<Value>>,
+    event: Option<Value>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationInviteWire {
+    room_version: Option<String>,
+    event: Option<Value>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationInviteResponseWire {
+    event: Option<Value>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationWellKnownServerWire {
+    #[serde(rename = "m.server")]
+    delegated_server_name: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationVerifyKeyWire {
+    key: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationOldVerifyKeyWire {
+    expired_ts: Option<i64>,
+    key: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationSigningKeyWire {
+    server_name: Option<String>,
+    verify_keys: Option<BTreeMap<String, MatrixFederationVerifyKeyWire>>,
+    #[serde(default)]
+    old_verify_keys: BTreeMap<String, MatrixFederationOldVerifyKeyWire>,
+    valid_until_ts: Option<i64>,
+    signatures: Option<BTreeMap<String, BTreeMap<String, String>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationKeyQueryCriteriaWire {
+    minimum_valid_until_ts: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationKeyQueryRequestWire {
+    server_keys: Option<BTreeMap<String, BTreeMap<String, MatrixFederationKeyQueryCriteriaWire>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationKeyQueryResponseWire {
+    server_keys: Option<Vec<MatrixFederationSigningKeyWire>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixVerificationEventWire {
+    #[serde(default)]
+    transport: Option<String>,
+    transaction_id: Option<String>,
+    steps: Option<Vec<MatrixVerificationStepWire>>,
+    auth_precedes_signature_validation: Option<bool>,
+    trusted_identity: Option<MatrixWrongDeviceIdentityWire>,
+    observed_identity: Option<MatrixWrongDeviceIdentityWire>,
+    required_evidence: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeyBackupVersionWire {
+    version: Option<String>,
+    algorithm: Option<String>,
+    auth_data: Option<MatrixKeyBackupAuthDataWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeyBackupAuthDataWire {
+    public_key: Option<String>,
+    signatures: Option<BTreeMap<String, BTreeMap<String, String>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeyBackupSessionWire {
+    first_message_index: Option<i64>,
+    forwarded_count: Option<i64>,
+    is_verified: Option<bool>,
+    session_data: Option<BTreeMap<String, Value>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeyBackupSessionUploadResponseWire {
+    etag: Option<String>,
+    count: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeyBackupErrorWire {
+    status: Option<i64>,
+    error: Option<MatrixErrorWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeyBackupGateEventWire {
+    required_contracts: Option<Vec<String>>,
+    crypto_stack_required: Option<bool>,
+    local_olm_megolm_allowed: Option<bool>,
+    steps: Option<Vec<MatrixKeyBackupGateStepWire>>,
+    required_evidence: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeyBackupGateStepWire {
+    id: Option<String>,
+    required: Option<bool>,
+    expected_status: Option<i64>,
+    expected_error: Option<MatrixErrorWire>,
+    must_not_disclose_protected_backup: Option<bool>,
+    must_not_mutate_protected_backup: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixDeviceKeysUploadDeviceWire {
+    user_id: Option<String>,
+    device_id: Option<String>,
+    algorithms: Option<Vec<String>>,
+    keys: Option<BTreeMap<String, String>>,
+    signatures: Option<BTreeMap<String, BTreeMap<String, String>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixSignedCurve25519KeyWire {
+    key: Option<String>,
+    fallback: Option<bool>,
+    signatures: Option<BTreeMap<String, BTreeMap<String, String>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeysUploadRequestWire {
+    device_keys: Option<MatrixDeviceKeysUploadDeviceWire>,
+    #[serde(default)]
+    one_time_keys: BTreeMap<String, MatrixSignedCurve25519KeyWire>,
+    #[serde(default)]
+    fallback_keys: BTreeMap<String, MatrixSignedCurve25519KeyWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeysUploadResponseWire {
+    one_time_key_counts: Option<BTreeMap<String, i64>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeysClaimRequestWire {
+    one_time_keys: Option<BTreeMap<String, BTreeMap<String, String>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixKeysClaimResponseWire {
+    failures: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    one_time_keys:
+        Option<BTreeMap<String, BTreeMap<String, BTreeMap<String, MatrixSignedCurve25519KeyWire>>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixDeviceKeyErrorWire {
+    status: Option<i64>,
+    error: Option<MatrixErrorWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixDeviceKeyQueryRequestWire {
+    device_keys: Option<BTreeMap<String, Vec<String>>>,
+    timeout: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixDeviceKeyQueryResponseWire {
+    failures: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    device_keys: Option<BTreeMap<String, BTreeMap<String, MatrixDeviceKeysUploadDeviceWire>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixPublicRoomsRequestWire {
+    limit: Option<i64>,
+    since: Option<String>,
+    server: Option<String>,
+    filter: Option<MatrixPublicRoomsFilterWire>,
+    include_all_networks: Option<bool>,
+    third_party_instance_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixPublicRoomsFilterWire {
+    generic_search_term: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixPublicRoomsResponseWire {
+    chunk: Option<Vec<MatrixPublicRoomWire>>,
+    next_batch: Option<String>,
+    prev_batch: Option<String>,
+    total_room_count_estimate: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixPublicRoomWire {
+    room_id: Option<String>,
+    num_joined_members: Option<i64>,
+    world_readable: Option<bool>,
+    guest_can_join: Option<bool>,
+    name: Option<String>,
+    topic: Option<String>,
+    canonical_alias: Option<String>,
+    avatar_url: Option<String>,
+    join_rule: Option<String>,
+    room_type: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixDirectoryVisibilityWire {
+    visibility: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRoomAliasesWire {
+    aliases: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixInviteRequestWire {
+    user_id: Option<String>,
+    reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixInviteRoomWire {
+    room_id: Option<String>,
+    invite_state: Option<MatrixInviteStateWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixInviteStateWire {
+    events: Option<Vec<MatrixInviteStateEventWire>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixInviteStateEventWire {
+    #[serde(rename = "type")]
+    event_type: Option<String>,
+    sender: Option<String>,
+    state_key: Option<String>,
+    content: Option<BTreeMap<String, Value>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRoomDirectoryErrorWire {
+    status: Option<i64>,
+    error: Option<MatrixErrorWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixModerationRequestWire {
+    user_id: Option<String>,
+    reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRedactionRequestWire {
+    reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRedactionResponseWire {
+    event_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixReportRequestWire {
+    reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixAccountModerationCapabilityWire {
+    lock: Option<bool>,
+    suspend: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixCapabilitiesAccountModerationWire {
+    #[serde(rename = "m.account_moderation")]
+    account_moderation: Option<MatrixAccountModerationCapabilityWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixCapabilitiesWire {
+    capabilities: Option<MatrixCapabilitiesAccountModerationWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixAdminAccountModerationStatusWire {
+    locked: Option<bool>,
+    suspended: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixModerationErrorWire {
+    status: Option<i64>,
+    error: Option<MatrixErrorWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixVerificationStepWire {
+    id: Option<String>,
+    #[serde(rename = "type")]
+    event_type: Option<String>,
+    to_device: Option<bool>,
+    content: Option<MatrixVerificationContentWire>,
+    result: Option<MatrixVerificationResultWire>,
+    expected_status: Option<u64>,
+    expected_error: Option<MatrixErrorWire>,
+    cancel_code: Option<String>,
+    required: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixVerificationContentWire {
+    transaction_id: Option<String>,
+    code: Option<String>,
+    reason: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixVerificationResultWire {
+    verified: Option<bool>,
+    device_verified: Option<bool>,
+    outbound_session_shared: Option<bool>,
+    requires_user_reverification: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixCrossSigningKeyWire {
+    user_id: Option<String>,
+    usage: Option<Vec<String>>,
+    keys: Option<BTreeMap<String, String>>,
+    signatures: Option<BTreeMap<String, BTreeMap<String, String>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixCrossSigningDeviceSigningUploadWire {
+    master_key: Option<MatrixCrossSigningKeyWire>,
+    self_signing_key: Option<MatrixCrossSigningKeyWire>,
+    user_signing_key: Option<MatrixCrossSigningKeyWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixCrossSigningInvalidSignatureFailureWire {
+    status: Option<u64>,
+    error: Option<MatrixErrorWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixWrongDeviceIdentityWire {
+    user_id: Option<String>,
+    device_id: Option<String>,
+    master_key: Option<String>,
+    device_key: Option<String>,
 }
 
 pub fn abi_version() -> u32 {
@@ -1486,6 +2726,2130 @@ pub fn parse_matrix_media_upload_response_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_federation_transaction(
+    bytes: &[u8],
+) -> Result<MatrixFederationTransaction, ProtocolError> {
+    let wire: MatrixFederationTransactionWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let origin_server_ts = required_federation_timestamp(
+        wire.origin_server_ts,
+        "federation.transaction.origin_server_ts",
+    )?;
+    let pdus = required_federation_object_array(wire.pdus, "federation.transaction.pdus")?;
+    if pdus.len() > 50 {
+        return Err(invalid_federation_field("federation.transaction.pdus"));
+    }
+    if wire.edus.len() > 100 {
+        return Err(invalid_federation_field("federation.transaction.edus"));
+    }
+
+    Ok(MatrixFederationTransaction {
+        origin: required_federation_string(wire.origin, "federation.transaction.origin")?,
+        origin_server_ts,
+        pdus,
+        edus: federation_object_array(wire.edus, "federation.transaction.edus")?,
+    })
+}
+
+pub fn parse_matrix_federation_transaction_envelope(
+    bytes: &[u8],
+) -> MatrixFederationTransactionParseEnvelope {
+    match parse_matrix_federation_transaction(bytes) {
+        Ok(value) => MatrixFederationTransactionParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationTransactionParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_transaction_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_transaction_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_transaction_response(
+    bytes: &[u8],
+) -> Result<MatrixFederationTransactionResponse, ProtocolError> {
+    let wire: MatrixFederationTransactionResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let pdus = wire
+        .pdus
+        .ok_or_else(|| invalid_federation_field("federation.transaction_response.pdus"))?
+        .into_iter()
+        .map(|(event_id, result)| {
+            if event_id.is_empty() {
+                return Err(invalid_federation_field(
+                    "federation.transaction_response.pdus",
+                ));
+            }
+            Ok((
+                event_id,
+                MatrixFederationPduResult {
+                    error: optional_federation_string(
+                        result.error,
+                        "federation.transaction_response.pdus.error",
+                    )?,
+                },
+            ))
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?;
+
+    Ok(MatrixFederationTransactionResponse { pdus })
+}
+
+pub fn parse_matrix_federation_transaction_response_envelope(
+    bytes: &[u8],
+) -> MatrixFederationTransactionResponseParseEnvelope {
+    match parse_matrix_federation_transaction_response(bytes) {
+        Ok(value) => MatrixFederationTransactionResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationTransactionResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_transaction_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_transaction_response_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_make_join_response(
+    bytes: &[u8],
+) -> Result<MatrixFederationMakeJoinResponse, ProtocolError> {
+    let wire: MatrixFederationMakeJoinResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let event = required_federation_object(wire.event, "federation.make_join.event")?;
+
+    Ok(MatrixFederationMakeJoinResponse {
+        room_version: required_federation_string(
+            wire.room_version,
+            "federation.make_join.room_version",
+        )?,
+        event,
+    })
+}
+
+pub fn parse_matrix_federation_make_join_response_envelope(
+    bytes: &[u8],
+) -> MatrixFederationMakeJoinResponseParseEnvelope {
+    match parse_matrix_federation_make_join_response(bytes) {
+        Ok(value) => MatrixFederationMakeJoinResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationMakeJoinResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_make_join_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_make_join_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_send_join_response(
+    bytes: &[u8],
+) -> Result<MatrixFederationSendJoinResponse, ProtocolError> {
+    let wire: MatrixFederationSendJoinResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+
+    Ok(MatrixFederationSendJoinResponse {
+        origin: required_federation_string(wire.origin, "federation.send_join.origin")?,
+        state: required_federation_object_array(wire.state, "federation.send_join.state")?,
+        auth_chain: required_federation_object_array(
+            wire.auth_chain,
+            "federation.send_join.auth_chain",
+        )?,
+        event: required_federation_object(wire.event, "federation.send_join.event")?,
+    })
+}
+
+pub fn parse_matrix_federation_send_join_response_envelope(
+    bytes: &[u8],
+) -> MatrixFederationSendJoinResponseParseEnvelope {
+    match parse_matrix_federation_send_join_response(bytes) {
+        Ok(value) => MatrixFederationSendJoinResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationSendJoinResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_send_join_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_send_join_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_invite_request(
+    bytes: &[u8],
+) -> Result<MatrixFederationInviteRequest, ProtocolError> {
+    let wire: MatrixFederationInviteWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+
+    Ok(MatrixFederationInviteRequest {
+        room_version: required_federation_string(
+            wire.room_version,
+            "federation.invite.room_version",
+        )?,
+        event: required_federation_object(wire.event, "federation.invite.event")?,
+    })
+}
+
+pub fn parse_matrix_federation_invite_request_envelope(
+    bytes: &[u8],
+) -> MatrixFederationInviteRequestParseEnvelope {
+    match parse_matrix_federation_invite_request(bytes) {
+        Ok(value) => MatrixFederationInviteRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationInviteRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_invite_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_invite_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_invite_response(
+    bytes: &[u8],
+) -> Result<MatrixFederationInviteResponse, ProtocolError> {
+    let wire: MatrixFederationInviteResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+
+    Ok(MatrixFederationInviteResponse {
+        event: required_federation_object(wire.event, "federation.invite_response.event")?,
+    })
+}
+
+pub fn parse_matrix_federation_invite_response_envelope(
+    bytes: &[u8],
+) -> MatrixFederationInviteResponseParseEnvelope {
+    match parse_matrix_federation_invite_response(bytes) {
+        Ok(value) => MatrixFederationInviteResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationInviteResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_invite_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_invite_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_server_name(
+    server_name: &str,
+) -> Result<MatrixFederationServerName, ProtocolError> {
+    let server_name = required_federation_borrowed_string(server_name, "federation.server_name")?;
+    if server_name.contains('/') || server_name.contains('@') || server_name.contains('#') {
+        return Err(invalid_federation_field("federation.server_name"));
+    }
+    let (host, port) = split_federation_server_name(server_name)?;
+
+    Ok(MatrixFederationServerName {
+        server_name: server_name.to_owned(),
+        host,
+        port,
+    })
+}
+
+pub fn parse_matrix_federation_server_name_envelope(
+    server_name: &str,
+) -> MatrixFederationServerNameParseEnvelope {
+    match parse_matrix_federation_server_name(server_name) {
+        Ok(value) => MatrixFederationServerNameParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationServerNameParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_server_name_json(server_name: &str) -> String {
+    serde_json::to_string(&parse_matrix_federation_server_name_envelope(server_name))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_well_known_server(
+    bytes: &[u8],
+) -> Result<MatrixFederationWellKnownServer, ProtocolError> {
+    let wire: MatrixFederationWellKnownServerWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let delegated_server_name =
+        required_federation_string(wire.delegated_server_name, "federation.well_known.m.server")?;
+    let parsed = parse_matrix_federation_server_name(&delegated_server_name)?;
+
+    Ok(MatrixFederationWellKnownServer {
+        delegated_server_name: parsed.server_name,
+        host: parsed.host,
+        port: parsed.port,
+    })
+}
+
+pub fn parse_matrix_federation_well_known_server_envelope(
+    bytes: &[u8],
+) -> MatrixFederationWellKnownServerParseEnvelope {
+    match parse_matrix_federation_well_known_server(bytes) {
+        Ok(value) => MatrixFederationWellKnownServerParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationWellKnownServerParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_well_known_server_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_well_known_server_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_signing_key(
+    bytes: &[u8],
+) -> Result<MatrixFederationSigningKey, ProtocolError> {
+    let wire: MatrixFederationSigningKeyWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    matrix_federation_signing_key_from_wire(wire)
+}
+
+pub fn parse_matrix_federation_signing_key_envelope(
+    bytes: &[u8],
+) -> MatrixFederationSigningKeyParseEnvelope {
+    match parse_matrix_federation_signing_key(bytes) {
+        Ok(value) => MatrixFederationSigningKeyParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationSigningKeyParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_signing_key_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_signing_key_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_key_query_request(
+    bytes: &[u8],
+) -> Result<MatrixFederationKeyQueryRequest, ProtocolError> {
+    let wire: MatrixFederationKeyQueryRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let server_keys = wire
+        .server_keys
+        .ok_or_else(|| invalid_federation_field("federation.key_query_request.server_keys"))?
+        .into_iter()
+        .map(|(server_name, key_criteria)| {
+            parse_matrix_federation_server_name(&server_name)?;
+            if key_criteria.is_empty() {
+                return Err(invalid_federation_field(
+                    "federation.key_query_request.server_keys",
+                ));
+            }
+            let criteria = key_criteria
+                .into_iter()
+                .map(|(key_id, criteria)| {
+                    required_federation_key_id(&key_id, "federation.key_query_request.key_id")?;
+                    Ok((
+                        key_id,
+                        MatrixFederationKeyQueryCriteria {
+                            minimum_valid_until_ts: optional_federation_timestamp(
+                                criteria.minimum_valid_until_ts,
+                                "federation.key_query_request.minimum_valid_until_ts",
+                            )?,
+                        },
+                    ))
+                })
+                .collect::<Result<BTreeMap<_, _>, _>>()?;
+            Ok((server_name, criteria))
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?;
+
+    Ok(MatrixFederationKeyQueryRequest { server_keys })
+}
+
+pub fn parse_matrix_federation_key_query_request_envelope(
+    bytes: &[u8],
+) -> MatrixFederationKeyQueryRequestParseEnvelope {
+    match parse_matrix_federation_key_query_request(bytes) {
+        Ok(value) => MatrixFederationKeyQueryRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationKeyQueryRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_key_query_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_key_query_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_key_query_response(
+    bytes: &[u8],
+) -> Result<MatrixFederationKeyQueryResponse, ProtocolError> {
+    let wire: MatrixFederationKeyQueryResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let server_keys = wire
+        .server_keys
+        .ok_or_else(|| invalid_federation_field("federation.key_query_response.server_keys"))?
+        .into_iter()
+        .map(matrix_federation_signing_key_from_wire)
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(MatrixFederationKeyQueryResponse { server_keys })
+}
+
+pub fn parse_matrix_federation_key_query_response_envelope(
+    bytes: &[u8],
+) -> MatrixFederationKeyQueryResponseParseEnvelope {
+    match parse_matrix_federation_key_query_response(bytes) {
+        Ok(value) => MatrixFederationKeyQueryResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationKeyQueryResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_key_query_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_key_query_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_destination_resolution_failure(
+    bytes: &[u8],
+) -> Result<MatrixFederationDestinationResolutionFailure, ProtocolError> {
+    let value: Value =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let event = value
+        .get("event")
+        .and_then(Value::as_object)
+        .ok_or_else(|| invalid_federation_field("federation.destination_failure.event"))?;
+    let server_name = event
+        .get("server_name")
+        .and_then(Value::as_str)
+        .ok_or_else(|| invalid_federation_field("federation.destination_failure.server_name"))?;
+    parse_matrix_federation_server_name(server_name)?;
+    let steps = event
+        .get("steps")
+        .and_then(Value::as_array)
+        .ok_or_else(|| invalid_federation_field("federation.destination_failure.steps"))?;
+    let mut stages = Vec::new();
+    let mut destination_resolved = true;
+    let mut federation_request_sent = true;
+    let mut backoff_recorded = false;
+    for step in steps {
+        let step = step
+            .as_object()
+            .ok_or_else(|| invalid_federation_field("federation.destination_failure.steps"))?;
+        let stage = step
+            .get("stage")
+            .and_then(Value::as_str)
+            .ok_or_else(|| invalid_federation_field("federation.destination_failure.stage"))?;
+        stages.push(stage.to_owned());
+        if let Some(result) = step.get("result").and_then(Value::as_object) {
+            if let Some(value) = result.get("destination_resolved").and_then(Value::as_bool) {
+                destination_resolved = value;
+            }
+            if let Some(value) = result
+                .get("federation_request_sent")
+                .and_then(Value::as_bool)
+            {
+                federation_request_sent = value;
+            }
+            if let Some(value) = result.get("backoff_recorded").and_then(Value::as_bool) {
+                backoff_recorded = value;
+            }
+        }
+    }
+
+    Ok(MatrixFederationDestinationResolutionFailure {
+        server_name: server_name.to_owned(),
+        stages,
+        destination_resolved,
+        federation_request_sent,
+        backoff_recorded,
+    })
+}
+
+pub fn parse_matrix_federation_destination_resolution_failure_envelope(
+    bytes: &[u8],
+) -> MatrixFederationDestinationResolutionFailureParseEnvelope {
+    match parse_matrix_federation_destination_resolution_failure(bytes) {
+        Ok(value) => MatrixFederationDestinationResolutionFailureParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationDestinationResolutionFailureParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_destination_resolution_failure_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_destination_resolution_failure_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_verification_sas_flow(
+    bytes: &[u8],
+) -> Result<MatrixVerificationSasFlow, ProtocolError> {
+    let wire: MatrixVerificationEventWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let transaction_id =
+        required_verification_string(wire.transaction_id, "verification.transaction_id")?;
+    let transport = required_verification_string(wire.transport, "verification.transport")?;
+    let mut event_types = Vec::new();
+    let mut verified = false;
+    for (index, step) in verification_steps(wire.steps)?.into_iter().enumerate() {
+        if let Some(event_type) = step.event_type {
+            required_verification_borrowed_string(
+                &event_type,
+                &format!("verification.steps.{index}.type"),
+            )?;
+            if step.to_device != Some(true) {
+                return Err(invalid_verification_field(&format!(
+                    "verification.steps.{index}.to_device"
+                )));
+            }
+            let content = step.content.ok_or_else(|| {
+                invalid_verification_field(&format!("verification.steps.{index}.content"))
+            })?;
+            let step_transaction_id = required_verification_string(
+                content.transaction_id,
+                &format!("verification.steps.{index}.content.transaction_id"),
+            )?;
+            if step_transaction_id != transaction_id {
+                return Err(invalid_verification_field(&format!(
+                    "verification.steps.{index}.content.transaction_id"
+                )));
+            }
+            event_types.push(event_type);
+        }
+        if let Some(result) = step.result {
+            if result.verified == Some(true) {
+                verified = true;
+            }
+        }
+    }
+    if event_types.is_empty() {
+        return Err(invalid_verification_field("verification.steps.type"));
+    }
+
+    Ok(MatrixVerificationSasFlow {
+        transaction_id,
+        transport,
+        event_types,
+        verified,
+        local_sas_allowed: false,
+        versions_advertisement_widened: false,
+    })
+}
+
+pub fn parse_matrix_verification_sas_flow_envelope(
+    bytes: &[u8],
+) -> MatrixVerificationSasFlowParseEnvelope {
+    match parse_matrix_verification_sas_flow(bytes) {
+        Ok(value) => MatrixVerificationSasFlowParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixVerificationSasFlowParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_verification_sas_flow_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_verification_sas_flow_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_verification_cancel(
+    bytes: &[u8],
+) -> Result<MatrixVerificationCancel, ProtocolError> {
+    let wire: MatrixVerificationEventWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let transaction_id =
+        required_verification_string(wire.transaction_id, "verification.transaction_id")?;
+    let mut cancel_code = None;
+    let mut cancel_reason = None;
+    let mut verified = false;
+    for (index, step) in verification_steps(wire.steps)?.into_iter().enumerate() {
+        if step.event_type.as_deref() == Some("m.key.verification.cancel") {
+            if step.to_device != Some(true) {
+                return Err(invalid_verification_field(&format!(
+                    "verification.steps.{index}.to_device"
+                )));
+            }
+            let content = step.content.ok_or_else(|| {
+                invalid_verification_field(&format!("verification.steps.{index}.content"))
+            })?;
+            let step_transaction_id = required_verification_string(
+                content.transaction_id,
+                &format!("verification.steps.{index}.content.transaction_id"),
+            )?;
+            if step_transaction_id != transaction_id {
+                return Err(invalid_verification_field(&format!(
+                    "verification.steps.{index}.content.transaction_id"
+                )));
+            }
+            cancel_code = Some(required_verification_string(
+                content.code,
+                &format!("verification.steps.{index}.content.code"),
+            )?);
+            cancel_reason = Some(required_verification_string(
+                content.reason,
+                &format!("verification.steps.{index}.content.reason"),
+            )?);
+        }
+        if let Some(result) = step.result {
+            if result.verified == Some(false) {
+                verified = false;
+            }
+        }
+    }
+
+    Ok(MatrixVerificationCancel {
+        transaction_id,
+        code: cancel_code
+            .ok_or_else(|| invalid_verification_field("verification.steps.content.code"))?,
+        reason: cancel_reason
+            .ok_or_else(|| invalid_verification_field("verification.steps.content.reason"))?,
+        verified,
+        versions_advertisement_widened: false,
+    })
+}
+
+pub fn parse_matrix_verification_cancel_envelope(
+    bytes: &[u8],
+) -> MatrixVerificationCancelParseEnvelope {
+    match parse_matrix_verification_cancel(bytes) {
+        Ok(value) => MatrixVerificationCancelParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixVerificationCancelParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_verification_cancel_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_verification_cancel_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_cross_signing_device_signing_upload(
+    bytes: &[u8],
+) -> Result<MatrixCrossSigningDeviceSigningUpload, ProtocolError> {
+    let wire: MatrixCrossSigningDeviceSigningUploadWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let upload = MatrixCrossSigningDeviceSigningUpload {
+        master_key: optional_cross_signing_key(
+            wire.master_key,
+            "cross_signing.device_signing_upload.master_key",
+        )?,
+        self_signing_key: optional_cross_signing_key(
+            wire.self_signing_key,
+            "cross_signing.device_signing_upload.self_signing_key",
+        )?,
+        user_signing_key: optional_cross_signing_key(
+            wire.user_signing_key,
+            "cross_signing.device_signing_upload.user_signing_key",
+        )?,
+    };
+    if upload.master_key.is_none()
+        && upload.self_signing_key.is_none()
+        && upload.user_signing_key.is_none()
+    {
+        return Err(invalid_verification_field(
+            "cross_signing.device_signing_upload",
+        ));
+    }
+    Ok(upload)
+}
+
+pub fn parse_matrix_cross_signing_device_signing_upload_envelope(
+    bytes: &[u8],
+) -> MatrixCrossSigningDeviceSigningUploadParseEnvelope {
+    match parse_matrix_cross_signing_device_signing_upload(bytes) {
+        Ok(value) => MatrixCrossSigningDeviceSigningUploadParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixCrossSigningDeviceSigningUploadParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_cross_signing_device_signing_upload_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_cross_signing_device_signing_upload_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_cross_signing_signature_upload(
+    bytes: &[u8],
+) -> Result<MatrixCrossSigningSignatureUpload, ProtocolError> {
+    let signed_objects: BTreeMap<String, BTreeMap<String, Value>> =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    if signed_objects.is_empty() {
+        return Err(invalid_verification_field(
+            "cross_signing.signatures_upload",
+        ));
+    }
+    for (user_id, devices) in &signed_objects {
+        required_verification_borrowed_string(user_id, "cross_signing.signatures_upload.user_id")?;
+        if devices.is_empty() {
+            return Err(invalid_verification_field(
+                "cross_signing.signatures_upload.devices",
+            ));
+        }
+        for (device_id, object) in devices {
+            required_verification_borrowed_string(
+                device_id,
+                "cross_signing.signatures_upload.device_id",
+            )?;
+            if !object.is_object() {
+                return Err(invalid_verification_field(
+                    "cross_signing.signatures_upload.signed_object",
+                ));
+            }
+        }
+    }
+    Ok(MatrixCrossSigningSignatureUpload { signed_objects })
+}
+
+pub fn parse_matrix_cross_signing_signature_upload_envelope(
+    bytes: &[u8],
+) -> MatrixCrossSigningSignatureUploadParseEnvelope {
+    match parse_matrix_cross_signing_signature_upload(bytes) {
+        Ok(value) => MatrixCrossSigningSignatureUploadParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixCrossSigningSignatureUploadParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_cross_signing_signature_upload_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_cross_signing_signature_upload_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_cross_signing_invalid_signature_failure(
+    bytes: &[u8],
+) -> Result<MatrixCrossSigningInvalidSignatureFailure, ProtocolError> {
+    let wire: MatrixCrossSigningInvalidSignatureFailureWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let error = wire
+        .error
+        .ok_or_else(|| invalid_verification_field("cross_signing.invalid_signature.error"))?;
+    let status = wire
+        .status
+        .ok_or_else(|| invalid_verification_field("cross_signing.invalid_signature.status"))?;
+    if status != 400 {
+        return Err(invalid_verification_field(
+            "cross_signing.invalid_signature.status",
+        ));
+    }
+    let errcode =
+        required_verification_string(error.errcode, "cross_signing.invalid_signature.errcode")?;
+    if errcode != "M_INVALID_SIGNATURE" {
+        return Err(invalid_verification_field(
+            "cross_signing.invalid_signature.errcode",
+        ));
+    }
+    Ok(MatrixCrossSigningInvalidSignatureFailure {
+        status,
+        errcode,
+        error: required_verification_string(error.error, "cross_signing.invalid_signature.error")?,
+    })
+}
+
+pub fn parse_matrix_cross_signing_invalid_signature_failure_envelope(
+    bytes: &[u8],
+) -> MatrixCrossSigningInvalidSignatureFailureParseEnvelope {
+    match parse_matrix_cross_signing_invalid_signature_failure(bytes) {
+        Ok(value) => MatrixCrossSigningInvalidSignatureFailureParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixCrossSigningInvalidSignatureFailureParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_cross_signing_invalid_signature_failure_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_cross_signing_invalid_signature_failure_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_cross_signing_missing_token_gate(
+    bytes: &[u8],
+) -> Result<MatrixCrossSigningMissingTokenGate, ProtocolError> {
+    let wire: MatrixVerificationEventWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let mut operations = Vec::new();
+    let mut errcode = None;
+    for (index, step) in verification_steps(wire.steps)?.into_iter().enumerate() {
+        let id = required_verification_string(
+            step.id,
+            &format!("cross_signing.missing_token.steps.{index}.id"),
+        )?;
+        if step.expected_status != Some(401) {
+            return Err(invalid_verification_field(&format!(
+                "cross_signing.missing_token.steps.{index}.expected_status"
+            )));
+        }
+        let error = step.expected_error.ok_or_else(|| {
+            invalid_verification_field(&format!(
+                "cross_signing.missing_token.steps.{index}.expected_error"
+            ))
+        })?;
+        let step_errcode = required_verification_string(
+            error.errcode,
+            &format!("cross_signing.missing_token.steps.{index}.expected_error.errcode"),
+        )?;
+        if step_errcode != "M_MISSING_TOKEN" {
+            return Err(invalid_verification_field(&format!(
+                "cross_signing.missing_token.steps.{index}.expected_error.errcode"
+            )));
+        }
+        errcode = Some(step_errcode);
+        operations.push(id);
+    }
+
+    Ok(MatrixCrossSigningMissingTokenGate {
+        protected_key_operations_require_token: true,
+        semantic_errors_suppressed_until_authenticated: true,
+        auth_precedes_signature_validation: wire.auth_precedes_signature_validation == Some(true),
+        operations,
+        errcode: errcode.ok_or_else(|| {
+            invalid_verification_field("cross_signing.missing_token.expected_error.errcode")
+        })?,
+    })
+}
+
+pub fn parse_matrix_cross_signing_missing_token_gate_envelope(
+    bytes: &[u8],
+) -> MatrixCrossSigningMissingTokenGateParseEnvelope {
+    match parse_matrix_cross_signing_missing_token_gate(bytes) {
+        Ok(value) => MatrixCrossSigningMissingTokenGateParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixCrossSigningMissingTokenGateParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_cross_signing_missing_token_gate_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_cross_signing_missing_token_gate_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_wrong_device_failure_gate(
+    bytes: &[u8],
+) -> Result<MatrixWrongDeviceFailureGate, ProtocolError> {
+    let wire: MatrixVerificationEventWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let mut required_steps = Vec::new();
+    let mut cancel_code = None;
+    let mut device_verified = false;
+    let mut outbound_session_shared = false;
+    let mut requires_user_reverification = true;
+    for (index, step) in verification_steps(wire.steps)?.into_iter().enumerate() {
+        let step_id = step.id.clone();
+        if step.required == Some(true) {
+            required_steps.push(required_verification_string(
+                step_id.clone(),
+                &format!("wrong_device.steps.{index}.id"),
+            )?);
+        }
+        if step_id.as_deref() == Some("refuse-to-mark-device-verified") {
+            device_verified = false;
+        }
+        if step_id.as_deref() == Some("refuse-outbound-session-share") {
+            outbound_session_shared = false;
+        }
+        if step_id.as_deref() == Some("record-verification-failure") {
+            requires_user_reverification = true;
+        }
+        if let Some(code) = step.cancel_code {
+            cancel_code = Some(
+                required_verification_borrowed_string(
+                    &code,
+                    &format!("wrong_device.steps.{index}.cancel_code"),
+                )?
+                .to_owned(),
+            );
+        }
+        if let Some(result) = step.result {
+            if result.device_verified == Some(false) {
+                device_verified = false;
+            }
+            if result.outbound_session_shared == Some(false) {
+                outbound_session_shared = false;
+            }
+            if result.requires_user_reverification == Some(true) {
+                requires_user_reverification = true;
+            }
+        }
+    }
+    let expected_steps = [
+        "load-established-trust-chain",
+        "observe-device-or-master-key-mismatch",
+        "refuse-to-mark-device-verified",
+        "refuse-outbound-session-share",
+        "record-verification-failure",
+    ];
+    if !expected_steps
+        .iter()
+        .all(|step| required_steps.iter().any(|required| required == step))
+    {
+        return Err(invalid_verification_field("wrong_device.required_steps"));
+    }
+
+    Ok(MatrixWrongDeviceFailureGate {
+        trusted_identity: wrong_device_identity(
+            wire.trusted_identity,
+            "wrong_device.trusted_identity",
+        )?,
+        observed_identity: wrong_device_identity(
+            wire.observed_identity,
+            "wrong_device.observed_identity",
+        )?,
+        required_steps,
+        required_evidence: required_verification_string_array(
+            wire.required_evidence,
+            "wrong_device.required_evidence",
+        )?,
+        cancel_code: cancel_code
+            .ok_or_else(|| invalid_verification_field("wrong_device.cancel_code"))?,
+        device_verified,
+        outbound_session_shared,
+        requires_user_reverification,
+        versions_advertisement_widened: false,
+    })
+}
+
+pub fn parse_matrix_wrong_device_failure_gate_envelope(
+    bytes: &[u8],
+) -> MatrixWrongDeviceFailureGateParseEnvelope {
+    match parse_matrix_wrong_device_failure_gate(bytes) {
+        Ok(value) => MatrixWrongDeviceFailureGateParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixWrongDeviceFailureGateParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_wrong_device_failure_gate_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_wrong_device_failure_gate_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_keys_upload_request(
+    bytes: &[u8],
+) -> Result<MatrixKeysUploadRequest, ProtocolError> {
+    let wire: MatrixKeysUploadRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    if wire.device_keys.is_none() && wire.one_time_keys.is_empty() && wire.fallback_keys.is_empty()
+    {
+        return Err(invalid_device_key_field("keys_upload"));
+    }
+    let device_keys = wire
+        .device_keys
+        .map(|device_keys| device_keys_from_wire(device_keys, "keys_upload.device_keys"))
+        .transpose()?;
+    let one_time_keys =
+        signed_key_map_from_wire(wire.one_time_keys, "keys_upload.one_time_keys", false)?;
+    let fallback_keys =
+        signed_key_map_from_wire(wire.fallback_keys, "keys_upload.fallback_keys", true)?;
+    Ok(MatrixKeysUploadRequest {
+        device_keys,
+        one_time_keys,
+        fallback_keys,
+        private_key_material_returned: false,
+    })
+}
+
+pub fn parse_matrix_keys_upload_request_envelope(
+    bytes: &[u8],
+) -> MatrixKeysUploadRequestParseEnvelope {
+    match parse_matrix_keys_upload_request(bytes) {
+        Ok(value) => MatrixKeysUploadRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeysUploadRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_keys_upload_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_keys_upload_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_keys_upload_response(
+    bytes: &[u8],
+) -> Result<MatrixKeysUploadResponse, ProtocolError> {
+    let wire: MatrixKeysUploadResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let counts = wire
+        .one_time_key_counts
+        .ok_or_else(|| invalid_device_key_field("keys_upload_response.one_time_key_counts"))?;
+    if counts.is_empty() {
+        return Err(invalid_device_key_field(
+            "keys_upload_response.one_time_key_counts",
+        ));
+    }
+    let mut one_time_key_counts = BTreeMap::new();
+    for (algorithm, count) in counts {
+        required_device_key_borrowed_string(
+            &algorithm,
+            "keys_upload_response.one_time_key_counts.algorithm",
+        )?;
+        if count < 0 {
+            return Err(invalid_device_key_field(
+                "keys_upload_response.one_time_key_counts.count",
+            ));
+        }
+        one_time_key_counts.insert(algorithm, count as u64);
+    }
+    Ok(MatrixKeysUploadResponse {
+        one_time_key_counts,
+        private_key_material_returned: false,
+    })
+}
+
+pub fn parse_matrix_keys_upload_response_envelope(
+    bytes: &[u8],
+) -> MatrixKeysUploadResponseParseEnvelope {
+    match parse_matrix_keys_upload_response(bytes) {
+        Ok(value) => MatrixKeysUploadResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeysUploadResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_keys_upload_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_keys_upload_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_keys_claim_request(
+    bytes: &[u8],
+) -> Result<MatrixKeysClaimRequest, ProtocolError> {
+    let wire: MatrixKeysClaimRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let one_time_keys =
+        device_algorithm_map_from_wire(wire.one_time_keys, "keys_claim_request.one_time_keys")?;
+    Ok(MatrixKeysClaimRequest { one_time_keys })
+}
+
+pub fn parse_matrix_keys_claim_request_envelope(
+    bytes: &[u8],
+) -> MatrixKeysClaimRequestParseEnvelope {
+    match parse_matrix_keys_claim_request(bytes) {
+        Ok(value) => MatrixKeysClaimRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeysClaimRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_keys_claim_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_keys_claim_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_keys_claim_response(
+    bytes: &[u8],
+) -> Result<MatrixKeysClaimResponse, ProtocolError> {
+    let wire: MatrixKeysClaimResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let one_time_keys =
+        claimed_keys_from_wire(wire.one_time_keys, "keys_claim_response.one_time_keys")?;
+    let fallback_key_returned = one_time_keys.values().any(|devices| {
+        devices.values().any(|keys| {
+            keys.values()
+                .any(|key| key.fallback || key.key.contains("fallback"))
+        })
+    });
+    Ok(MatrixKeysClaimResponse {
+        failures: wire.failures.unwrap_or_default(),
+        one_time_keys,
+        fallback_key_returned,
+    })
+}
+
+pub fn parse_matrix_keys_claim_response_envelope(
+    bytes: &[u8],
+) -> MatrixKeysClaimResponseParseEnvelope {
+    match parse_matrix_keys_claim_response(bytes) {
+        Ok(value) => MatrixKeysClaimResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeysClaimResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_keys_claim_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_keys_claim_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_device_key_error(bytes: &[u8]) -> Result<MatrixDeviceKeyError, ProtocolError> {
+    let wire: MatrixDeviceKeyErrorWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let error = wire
+        .error
+        .ok_or_else(|| invalid_device_key_field("device_key_error.error"))?;
+    Ok(MatrixDeviceKeyError {
+        status: required_device_key_non_negative_i64(wire.status, "device_key_error.status")?,
+        errcode: required_device_key_string(error.errcode, "device_key_error.errcode")?,
+        error: required_device_key_string(error.error, "device_key_error.error")?,
+    })
+}
+
+pub fn parse_matrix_device_key_error_envelope(bytes: &[u8]) -> MatrixDeviceKeyErrorParseEnvelope {
+    match parse_matrix_device_key_error(bytes) {
+        Ok(value) => MatrixDeviceKeyErrorParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixDeviceKeyErrorParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_device_key_error_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_device_key_error_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_device_key_query_request(
+    bytes: &[u8],
+) -> Result<MatrixDeviceKeyQueryRequest, ProtocolError> {
+    let wire: MatrixDeviceKeyQueryRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let device_keys =
+        device_key_query_selection_map(wire.device_keys, "device_key_query.device_keys")?;
+    let timeout = match wire.timeout {
+        Some(value) if value >= 0 => Some(value as u64),
+        Some(_) => return Err(invalid_device_key_field("device_key_query.timeout")),
+        None => None,
+    };
+    Ok(MatrixDeviceKeyQueryRequest {
+        device_keys,
+        timeout,
+    })
+}
+
+pub fn parse_matrix_device_key_query_request_envelope(
+    bytes: &[u8],
+) -> MatrixDeviceKeyQueryRequestParseEnvelope {
+    match parse_matrix_device_key_query_request(bytes) {
+        Ok(value) => MatrixDeviceKeyQueryRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixDeviceKeyQueryRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_device_key_query_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_device_key_query_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_device_key_query_response(
+    bytes: &[u8],
+) -> Result<MatrixDeviceKeyQueryResponse, ProtocolError> {
+    let wire: MatrixDeviceKeyQueryResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let mut device_keys = BTreeMap::new();
+    let users = wire
+        .device_keys
+        .ok_or_else(|| invalid_device_key_field("device_key_query_response.device_keys"))?;
+    for (user_id, devices) in users {
+        required_device_key_borrowed_string(&user_id, "device_key_query_response.user_id")?;
+        let mut device_map = BTreeMap::new();
+        for (device_id, device) in devices {
+            required_device_key_borrowed_string(&device_id, "device_key_query_response.device_id")?;
+            device_map.insert(
+                device_id,
+                device_keys_from_wire(device, "device_key_query_response.device_keys")?,
+            );
+        }
+        device_keys.insert(user_id, device_map);
+    }
+    Ok(MatrixDeviceKeyQueryResponse {
+        failures: wire.failures.unwrap_or_default(),
+        device_keys,
+        private_key_material_returned: false,
+        trust_decision_made: false,
+    })
+}
+
+pub fn parse_matrix_device_key_query_response_envelope(
+    bytes: &[u8],
+) -> MatrixDeviceKeyQueryResponseParseEnvelope {
+    match parse_matrix_device_key_query_response(bytes) {
+        Ok(value) => MatrixDeviceKeyQueryResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixDeviceKeyQueryResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_device_key_query_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_device_key_query_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_public_rooms_request(
+    bytes: &[u8],
+) -> Result<MatrixPublicRoomsRequest, ProtocolError> {
+    let wire: MatrixPublicRoomsRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixPublicRoomsRequest {
+        limit: optional_room_directory_non_negative_i64(wire.limit, "public_rooms_request.limit")?,
+        since: optional_room_directory_string(wire.since, "public_rooms_request.since")?,
+        server: optional_room_directory_string(wire.server, "public_rooms_request.server")?,
+        generic_search_term: match wire.filter {
+            Some(filter) => optional_room_directory_string(
+                filter.generic_search_term,
+                "public_rooms_request.filter.generic_search_term",
+            )?,
+            None => None,
+        },
+        include_all_networks: wire.include_all_networks,
+        third_party_instance_id: optional_room_directory_string(
+            wire.third_party_instance_id,
+            "public_rooms_request.third_party_instance_id",
+        )?,
+    })
+}
+
+pub fn parse_matrix_public_rooms_request_envelope(
+    bytes: &[u8],
+) -> MatrixPublicRoomsRequestParseEnvelope {
+    match parse_matrix_public_rooms_request(bytes) {
+        Ok(value) => MatrixPublicRoomsRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixPublicRoomsRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_public_rooms_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_public_rooms_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_public_rooms_response(
+    bytes: &[u8],
+) -> Result<MatrixPublicRoomsResponse, ProtocolError> {
+    let wire: MatrixPublicRoomsResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let rooms = wire
+        .chunk
+        .ok_or_else(|| invalid_room_directory_field("public_rooms_response.chunk"))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, room)| public_room_from_wire(room, &format!("public_rooms.{index}")))
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(MatrixPublicRoomsResponse {
+        chunk: rooms,
+        next_batch: optional_room_directory_string(
+            wire.next_batch,
+            "public_rooms_response.next_batch",
+        )?,
+        prev_batch: optional_room_directory_string(
+            wire.prev_batch,
+            "public_rooms_response.prev_batch",
+        )?,
+        total_room_count_estimate: optional_room_directory_non_negative_i64(
+            wire.total_room_count_estimate,
+            "public_rooms_response.total_room_count_estimate",
+        )?,
+    })
+}
+
+pub fn parse_matrix_public_rooms_response_envelope(
+    bytes: &[u8],
+) -> MatrixPublicRoomsResponseParseEnvelope {
+    match parse_matrix_public_rooms_response(bytes) {
+        Ok(value) => MatrixPublicRoomsResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixPublicRoomsResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_public_rooms_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_public_rooms_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_directory_visibility(
+    bytes: &[u8],
+) -> Result<MatrixDirectoryVisibility, ProtocolError> {
+    let wire: MatrixDirectoryVisibilityWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let visibility =
+        required_room_directory_string(wire.visibility, "directory_visibility.visibility")?;
+    if visibility != "public" && visibility != "private" {
+        return Err(invalid_room_directory_field(
+            "directory_visibility.visibility",
+        ));
+    }
+    Ok(MatrixDirectoryVisibility { visibility })
+}
+
+pub fn parse_matrix_directory_visibility_envelope(
+    bytes: &[u8],
+) -> MatrixDirectoryVisibilityParseEnvelope {
+    match parse_matrix_directory_visibility(bytes) {
+        Ok(value) => MatrixDirectoryVisibilityParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixDirectoryVisibilityParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_directory_visibility_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_directory_visibility_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_room_aliases(bytes: &[u8]) -> Result<MatrixRoomAliases, ProtocolError> {
+    let wire: MatrixRoomAliasesWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixRoomAliases {
+        aliases: room_directory_string_array(wire.aliases, "room_aliases.aliases")?,
+    })
+}
+
+pub fn parse_matrix_room_aliases_envelope(bytes: &[u8]) -> MatrixRoomAliasesParseEnvelope {
+    match parse_matrix_room_aliases(bytes) {
+        Ok(value) => MatrixRoomAliasesParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRoomAliasesParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_room_aliases_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_room_aliases_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_invite_request(bytes: &[u8]) -> Result<MatrixInviteRequest, ProtocolError> {
+    let wire: MatrixInviteRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixInviteRequest {
+        user_id: required_room_directory_string(wire.user_id, "invite_request.user_id")?,
+        reason: optional_room_directory_string(wire.reason, "invite_request.reason")?,
+    })
+}
+
+pub fn parse_matrix_invite_request_envelope(bytes: &[u8]) -> MatrixInviteRequestParseEnvelope {
+    match parse_matrix_invite_request(bytes) {
+        Ok(value) => MatrixInviteRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixInviteRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_invite_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_invite_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_invite_room(bytes: &[u8]) -> Result<MatrixInviteRoom, ProtocolError> {
+    let wire: MatrixInviteRoomWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let invite_state = wire
+        .invite_state
+        .ok_or_else(|| invalid_room_directory_field("invite_room.invite_state"))?;
+    let events = invite_state
+        .events
+        .ok_or_else(|| invalid_room_directory_field("invite_room.invite_state.events"))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, event)| {
+            invite_state_event_from_wire(event, &format!("invite_room.events.{index}"))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(MatrixInviteRoom {
+        room_id: required_room_directory_string(wire.room_id, "invite_room.room_id")?,
+        events,
+    })
+}
+
+pub fn parse_matrix_invite_room_envelope(bytes: &[u8]) -> MatrixInviteRoomParseEnvelope {
+    match parse_matrix_invite_room(bytes) {
+        Ok(value) => MatrixInviteRoomParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixInviteRoomParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_invite_room_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_invite_room_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_room_directory_error(
+    bytes: &[u8],
+) -> Result<MatrixRoomDirectoryError, ProtocolError> {
+    let wire: MatrixRoomDirectoryErrorWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let error = wire
+        .error
+        .ok_or_else(|| invalid_room_directory_field("room_directory_error.error"))?;
+    Ok(MatrixRoomDirectoryError {
+        status: required_room_directory_non_negative_i64(
+            wire.status,
+            "room_directory_error.status",
+        )?,
+        errcode: required_room_directory_string(error.errcode, "room_directory_error.errcode")?,
+        error: required_room_directory_string(error.error, "room_directory_error.error")?,
+    })
+}
+
+pub fn parse_matrix_room_directory_error_envelope(
+    bytes: &[u8],
+) -> MatrixRoomDirectoryErrorParseEnvelope {
+    match parse_matrix_room_directory_error(bytes) {
+        Ok(value) => MatrixRoomDirectoryErrorParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRoomDirectoryErrorParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_room_directory_error_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_room_directory_error_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_moderation_request(
+    bytes: &[u8],
+) -> Result<MatrixModerationRequest, ProtocolError> {
+    let wire: MatrixModerationRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixModerationRequest {
+        user_id: required_moderation_string(wire.user_id, "moderation_request.user_id")?,
+        reason: optional_moderation_string(wire.reason, "moderation_request.reason")?,
+    })
+}
+
+pub fn parse_matrix_moderation_request_envelope(
+    bytes: &[u8],
+) -> MatrixModerationRequestParseEnvelope {
+    match parse_matrix_moderation_request(bytes) {
+        Ok(value) => MatrixModerationRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixModerationRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_moderation_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_moderation_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_redaction_request(
+    bytes: &[u8],
+) -> Result<MatrixRedactionRequest, ProtocolError> {
+    let wire: MatrixRedactionRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixRedactionRequest {
+        reason: optional_moderation_string(wire.reason, "redaction_request.reason")?,
+    })
+}
+
+pub fn parse_matrix_redaction_request_envelope(
+    bytes: &[u8],
+) -> MatrixRedactionRequestParseEnvelope {
+    match parse_matrix_redaction_request(bytes) {
+        Ok(value) => MatrixRedactionRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRedactionRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_redaction_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_redaction_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_redaction_response(
+    bytes: &[u8],
+) -> Result<MatrixRedactionResponse, ProtocolError> {
+    let wire: MatrixRedactionResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixRedactionResponse {
+        event_id: required_moderation_string(wire.event_id, "redaction_response.event_id")?,
+    })
+}
+
+pub fn parse_matrix_redaction_response_envelope(
+    bytes: &[u8],
+) -> MatrixRedactionResponseParseEnvelope {
+    match parse_matrix_redaction_response(bytes) {
+        Ok(value) => MatrixRedactionResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRedactionResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_redaction_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_redaction_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_report_request(bytes: &[u8]) -> Result<MatrixReportRequest, ProtocolError> {
+    let wire: MatrixReportRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixReportRequest {
+        reason: optional_moderation_string(wire.reason, "report_request.reason")?,
+    })
+}
+
+pub fn parse_matrix_report_request_envelope(bytes: &[u8]) -> MatrixReportRequestParseEnvelope {
+    match parse_matrix_report_request(bytes) {
+        Ok(value) => MatrixReportRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixReportRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_report_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_report_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_account_moderation_capability(
+    bytes: &[u8],
+) -> Result<MatrixAccountModerationCapability, ProtocolError> {
+    let wire: MatrixCapabilitiesWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let capability = wire
+        .capabilities
+        .and_then(|capabilities| capabilities.account_moderation)
+        .ok_or_else(|| invalid_moderation_field("capabilities.m.account_moderation"))?;
+    Ok(MatrixAccountModerationCapability {
+        lock: capability
+            .lock
+            .ok_or_else(|| invalid_moderation_field("capabilities.m.account_moderation.lock"))?,
+        suspend: capability
+            .suspend
+            .ok_or_else(|| invalid_moderation_field("capabilities.m.account_moderation.suspend"))?,
+    })
+}
+
+pub fn parse_matrix_account_moderation_capability_envelope(
+    bytes: &[u8],
+) -> MatrixAccountModerationCapabilityParseEnvelope {
+    match parse_matrix_account_moderation_capability(bytes) {
+        Ok(value) => MatrixAccountModerationCapabilityParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixAccountModerationCapabilityParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_account_moderation_capability_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_account_moderation_capability_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_admin_account_moderation_status(
+    bytes: &[u8],
+) -> Result<MatrixAdminAccountModerationStatus, ProtocolError> {
+    let wire: MatrixAdminAccountModerationStatusWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    if wire.locked.is_none() && wire.suspended.is_none() {
+        return Err(invalid_moderation_field("admin_account_moderation_status"));
+    }
+    Ok(MatrixAdminAccountModerationStatus {
+        locked: wire.locked,
+        suspended: wire.suspended,
+    })
+}
+
+pub fn parse_matrix_admin_account_moderation_status_envelope(
+    bytes: &[u8],
+) -> MatrixAdminAccountModerationStatusParseEnvelope {
+    match parse_matrix_admin_account_moderation_status(bytes) {
+        Ok(value) => MatrixAdminAccountModerationStatusParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixAdminAccountModerationStatusParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_admin_account_moderation_status_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_admin_account_moderation_status_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_moderation_error(bytes: &[u8]) -> Result<MatrixModerationError, ProtocolError> {
+    let wire: MatrixModerationErrorWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let error = wire
+        .error
+        .ok_or_else(|| invalid_moderation_field("moderation_error.error"))?;
+    Ok(MatrixModerationError {
+        status: required_moderation_non_negative_i64(wire.status, "moderation_error.status")?,
+        errcode: required_moderation_string(error.errcode, "moderation_error.errcode")?,
+        error: required_moderation_string(error.error, "moderation_error.error")?,
+    })
+}
+
+pub fn parse_matrix_moderation_error_envelope(bytes: &[u8]) -> MatrixModerationErrorParseEnvelope {
+    match parse_matrix_moderation_error(bytes) {
+        Ok(value) => MatrixModerationErrorParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixModerationErrorParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_moderation_error_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_moderation_error_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_key_backup_version_create_response(
+    bytes: &[u8],
+) -> Result<MatrixKeyBackupVersionCreateResponse, ProtocolError> {
+    let wire: MatrixKeyBackupVersionWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixKeyBackupVersionCreateResponse {
+        version: required_key_backup_string(wire.version, "key_backup.version")?,
+    })
+}
+
+pub fn parse_matrix_key_backup_version_create_response_envelope(
+    bytes: &[u8],
+) -> MatrixKeyBackupVersionCreateResponseParseEnvelope {
+    match parse_matrix_key_backup_version_create_response(bytes) {
+        Ok(value) => MatrixKeyBackupVersionCreateResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeyBackupVersionCreateResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_key_backup_version_create_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_key_backup_version_create_response_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_key_backup_version(
+    bytes: &[u8],
+) -> Result<MatrixKeyBackupVersion, ProtocolError> {
+    let wire: MatrixKeyBackupVersionWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    key_backup_version_from_wire(wire, "key_backup.version")
+}
+
+pub fn parse_matrix_key_backup_version_envelope(
+    bytes: &[u8],
+) -> MatrixKeyBackupVersionParseEnvelope {
+    match parse_matrix_key_backup_version(bytes) {
+        Ok(value) => MatrixKeyBackupVersionParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeyBackupVersionParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_key_backup_version_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_key_backup_version_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_key_backup_session(
+    bytes: &[u8],
+) -> Result<MatrixKeyBackupSession, ProtocolError> {
+    let wire: MatrixKeyBackupSessionWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    key_backup_session_from_wire(wire, "key_backup.session")
+}
+
+pub fn parse_matrix_key_backup_session_envelope(
+    bytes: &[u8],
+) -> MatrixKeyBackupSessionParseEnvelope {
+    match parse_matrix_key_backup_session(bytes) {
+        Ok(value) => MatrixKeyBackupSessionParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeyBackupSessionParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_key_backup_session_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_key_backup_session_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_key_backup_session_upload_response(
+    bytes: &[u8],
+) -> Result<MatrixKeyBackupSessionUploadResponse, ProtocolError> {
+    let wire: MatrixKeyBackupSessionUploadResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixKeyBackupSessionUploadResponse {
+        etag: required_key_backup_string(wire.etag, "key_backup.session_upload.etag")?,
+        count: required_key_backup_non_negative_i64(wire.count, "key_backup.session_upload.count")?,
+    })
+}
+
+pub fn parse_matrix_key_backup_session_upload_response_envelope(
+    bytes: &[u8],
+) -> MatrixKeyBackupSessionUploadResponseParseEnvelope {
+    match parse_matrix_key_backup_session_upload_response(bytes) {
+        Ok(value) => MatrixKeyBackupSessionUploadResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeyBackupSessionUploadResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_key_backup_session_upload_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_key_backup_session_upload_response_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_key_backup_error(bytes: &[u8]) -> Result<MatrixKeyBackupError, ProtocolError> {
+    let wire: MatrixKeyBackupErrorWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let error = wire
+        .error
+        .ok_or_else(|| invalid_key_backup_field("key_backup.error"))?;
+    Ok(MatrixKeyBackupError {
+        status: required_key_backup_non_negative_i64(wire.status, "key_backup.status")?,
+        errcode: required_key_backup_string(error.errcode, "key_backup.error.errcode")?,
+        error: required_key_backup_string(error.error, "key_backup.error.error")?,
+        current_version: optional_key_backup_string(
+            error.current_version,
+            "key_backup.error.current_version",
+        )?,
+    })
+}
+
+pub fn parse_matrix_key_backup_error_envelope(bytes: &[u8]) -> MatrixKeyBackupErrorParseEnvelope {
+    match parse_matrix_key_backup_error(bytes) {
+        Ok(value) => MatrixKeyBackupErrorParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeyBackupErrorParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_key_backup_error_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_key_backup_error_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_key_backup_owner_scope_gate(
+    bytes: &[u8],
+) -> Result<MatrixKeyBackupOwnerScopeGate, ProtocolError> {
+    let wire: MatrixKeyBackupGateEventWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let mut checked_steps = Vec::new();
+    for (index, step) in key_backup_steps(wire.steps)?.into_iter().enumerate() {
+        let id = required_key_backup_string(
+            step.id,
+            &format!("key_backup.owner_scope.steps.{index}.id"),
+        )?;
+        let status = step.expected_status.ok_or_else(|| {
+            invalid_key_backup_field(&format!(
+                "key_backup.owner_scope.steps.{index}.expected_status"
+            ))
+        })?;
+        if status != 404 {
+            return Err(invalid_key_backup_field(&format!(
+                "key_backup.owner_scope.steps.{index}.expected_status"
+            )));
+        }
+        let error = step.expected_error.ok_or_else(|| {
+            invalid_key_backup_field(&format!(
+                "key_backup.owner_scope.steps.{index}.expected_error"
+            ))
+        })?;
+        let errcode = required_key_backup_string(
+            error.errcode,
+            &format!("key_backup.owner_scope.steps.{index}.expected_error.errcode"),
+        )?;
+        if errcode != "M_NOT_FOUND" {
+            return Err(invalid_key_backup_field(&format!(
+                "key_backup.owner_scope.steps.{index}.expected_error.errcode"
+            )));
+        }
+        if id.contains("read") && step.must_not_disclose_protected_backup != Some(true) {
+            return Err(invalid_key_backup_field(&format!(
+                "key_backup.owner_scope.steps.{index}.must_not_disclose_protected_backup"
+            )));
+        }
+        if id.contains("overwrite") && step.must_not_mutate_protected_backup != Some(true) {
+            return Err(invalid_key_backup_field(&format!(
+                "key_backup.owner_scope.steps.{index}.must_not_mutate_protected_backup"
+            )));
+        }
+        checked_steps.push(id);
+    }
+    if checked_steps.len() < 4 {
+        return Err(invalid_key_backup_field("key_backup.owner_scope.steps"));
+    }
+    Ok(MatrixKeyBackupOwnerScopeGate {
+        owner_scope_enforced: true,
+        protected_backup_unchanged: true,
+        checked_steps,
+        versions_advertisement_widened: false,
+    })
+}
+
+pub fn parse_matrix_key_backup_owner_scope_gate_envelope(
+    bytes: &[u8],
+) -> MatrixKeyBackupOwnerScopeGateParseEnvelope {
+    match parse_matrix_key_backup_owner_scope_gate(bytes) {
+        Ok(value) => MatrixKeyBackupOwnerScopeGateParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeyBackupOwnerScopeGateParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_key_backup_owner_scope_gate_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_key_backup_owner_scope_gate_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_key_backup_recovery_gate(
+    bytes: &[u8],
+) -> Result<MatrixKeyBackupRecoveryGate, ProtocolError> {
+    let wire: MatrixKeyBackupGateEventWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let steps = key_backup_steps(wire.steps)?;
+    let required_contracts = required_key_backup_string_array(
+        wire.required_contracts,
+        "key_backup.recovery.required_contracts",
+    )?;
+    let required_evidence = required_key_backup_string_array(
+        wire.required_evidence,
+        "key_backup.recovery.required_evidence",
+    )?;
+    if steps.len() < 6 || steps.iter().any(|step| step.required != Some(true)) {
+        return Err(invalid_key_backup_field("key_backup.recovery.steps"));
+    }
+    Ok(MatrixKeyBackupRecoveryGate {
+        logout_relogin_restore: true,
+        crypto_stack_required: wire.crypto_stack_required == Some(true),
+        local_olm_megolm_allowed: wire.local_olm_megolm_allowed == Some(true),
+        required_contracts,
+        required_evidence,
+        versions_advertisement_widened: false,
+    })
+}
+
+pub fn parse_matrix_key_backup_recovery_gate_envelope(
+    bytes: &[u8],
+) -> MatrixKeyBackupRecoveryGateParseEnvelope {
+    match parse_matrix_key_backup_recovery_gate(bytes) {
+        Ok(value) => MatrixKeyBackupRecoveryGateParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixKeyBackupRecoveryGateParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_key_backup_recovery_gate_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_key_backup_recovery_gate_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 fn required_non_empty(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
     match value {
         Some(value) if !value.is_empty() => Ok(value),
@@ -1822,6 +5186,819 @@ fn invalid_media_field(field: &str) -> ProtocolError {
     }
 }
 
+fn invalid_federation_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidFederationField {
+        field: field.to_owned(),
+    }
+}
+
+fn invalid_verification_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidVerificationField {
+        field: field.to_owned(),
+    }
+}
+
+fn invalid_device_key_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidDeviceKeyField {
+        field: field.to_owned(),
+    }
+}
+
+fn invalid_room_directory_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidRoomDirectoryField {
+        field: field.to_owned(),
+    }
+}
+
+fn invalid_moderation_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidModerationField {
+        field: field.to_owned(),
+    }
+}
+
+fn required_device_key_borrowed_string<'a>(
+    value: &'a str,
+    field: &str,
+) -> Result<&'a str, ProtocolError> {
+    if value.is_empty() {
+        Err(invalid_device_key_field(field))
+    } else {
+        Ok(value)
+    }
+}
+
+fn required_device_key_string(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_device_key_field(field)),
+    }
+}
+
+fn required_room_directory_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_room_directory_field(field)),
+    }
+}
+
+fn optional_room_directory_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<Option<String>, ProtocolError> {
+    match value {
+        Some(value) if value.is_empty() => Err(invalid_room_directory_field(field)),
+        value => Ok(value),
+    }
+}
+
+fn required_moderation_string(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_moderation_field(field)),
+    }
+}
+
+fn optional_moderation_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<Option<String>, ProtocolError> {
+    match value {
+        Some(value) if value.is_empty() => Err(invalid_moderation_field(field)),
+        value => Ok(value),
+    }
+}
+
+fn required_device_key_non_negative_i64(
+    value: Option<i64>,
+    field: &str,
+) -> Result<u64, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(value as u64),
+        _ => Err(invalid_device_key_field(field)),
+    }
+}
+
+fn required_room_directory_non_negative_i64(
+    value: Option<i64>,
+    field: &str,
+) -> Result<u64, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(value as u64),
+        _ => Err(invalid_room_directory_field(field)),
+    }
+}
+
+fn optional_room_directory_non_negative_i64(
+    value: Option<i64>,
+    field: &str,
+) -> Result<Option<u64>, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(Some(value as u64)),
+        Some(_) => Err(invalid_room_directory_field(field)),
+        None => Ok(None),
+    }
+}
+
+fn required_moderation_non_negative_i64(
+    value: Option<i64>,
+    field: &str,
+) -> Result<u64, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(value as u64),
+        _ => Err(invalid_moderation_field(field)),
+    }
+}
+
+fn required_device_key_string_array(
+    value: Option<Vec<String>>,
+    field: &str,
+) -> Result<Vec<String>, ProtocolError> {
+    let values = value.ok_or_else(|| invalid_device_key_field(field))?;
+    if values.is_empty() || values.iter().any(String::is_empty) {
+        Err(invalid_device_key_field(field))
+    } else {
+        Ok(values)
+    }
+}
+
+fn room_directory_string_array(
+    value: Option<Vec<String>>,
+    field: &str,
+) -> Result<Vec<String>, ProtocolError> {
+    let values = value.ok_or_else(|| invalid_room_directory_field(field))?;
+    if values.iter().any(String::is_empty) {
+        Err(invalid_room_directory_field(field))
+    } else {
+        Ok(values)
+    }
+}
+
+fn public_room_from_wire(
+    wire: MatrixPublicRoomWire,
+    context: &str,
+) -> Result<MatrixPublicRoom, ProtocolError> {
+    Ok(MatrixPublicRoom {
+        room_id: required_room_directory_string(wire.room_id, &format!("{context}.room_id"))?,
+        num_joined_members: required_room_directory_non_negative_i64(
+            wire.num_joined_members,
+            &format!("{context}.num_joined_members"),
+        )?,
+        world_readable: wire
+            .world_readable
+            .ok_or_else(|| invalid_room_directory_field(&format!("{context}.world_readable")))?,
+        guest_can_join: wire
+            .guest_can_join
+            .ok_or_else(|| invalid_room_directory_field(&format!("{context}.guest_can_join")))?,
+        name: optional_room_directory_string(wire.name, &format!("{context}.name"))?,
+        topic: optional_room_directory_string(wire.topic, &format!("{context}.topic"))?,
+        canonical_alias: optional_room_directory_string(
+            wire.canonical_alias,
+            &format!("{context}.canonical_alias"),
+        )?,
+        avatar_url: optional_room_directory_string(
+            wire.avatar_url,
+            &format!("{context}.avatar_url"),
+        )?,
+        join_rule: optional_room_directory_string(wire.join_rule, &format!("{context}.join_rule"))?,
+        room_type: optional_room_directory_string(wire.room_type, &format!("{context}.room_type"))?,
+    })
+}
+
+fn invite_state_event_from_wire(
+    wire: MatrixInviteStateEventWire,
+    context: &str,
+) -> Result<MatrixInviteStateEvent, ProtocolError> {
+    Ok(MatrixInviteStateEvent {
+        event_type: required_room_directory_string(wire.event_type, &format!("{context}.type"))?,
+        sender: optional_room_directory_string(wire.sender, &format!("{context}.sender"))?,
+        state_key: wire
+            .state_key
+            .ok_or_else(|| invalid_room_directory_field(&format!("{context}.state_key")))?,
+        content: wire
+            .content
+            .ok_or_else(|| invalid_room_directory_field(&format!("{context}.content")))?,
+    })
+}
+
+fn device_keys_from_wire(
+    wire: MatrixDeviceKeysUploadDeviceWire,
+    context: &str,
+) -> Result<MatrixDeviceKeysUploadDevice, ProtocolError> {
+    Ok(MatrixDeviceKeysUploadDevice {
+        user_id: required_device_key_string(wire.user_id, &format!("{context}.user_id"))?,
+        device_id: required_device_key_string(wire.device_id, &format!("{context}.device_id"))?,
+        algorithms: required_device_key_string_array(
+            wire.algorithms,
+            &format!("{context}.algorithms"),
+        )?,
+        keys: device_key_string_map(wire.keys, &format!("{context}.keys"))?,
+        signatures: device_key_nested_string_map(
+            wire.signatures,
+            &format!("{context}.signatures"),
+        )?,
+    })
+}
+
+fn signed_key_map_from_wire(
+    map: BTreeMap<String, MatrixSignedCurve25519KeyWire>,
+    context: &str,
+    fallback_required: bool,
+) -> Result<BTreeMap<String, MatrixSignedCurve25519Key>, ProtocolError> {
+    let mut signed_keys = BTreeMap::new();
+    for (key_id, key) in map {
+        required_device_key_borrowed_string(&key_id, &format!("{context}.key_id"))?;
+        if !key_id.starts_with("signed_curve25519:") {
+            return Err(invalid_device_key_field(&format!("{context}.key_id")));
+        }
+        signed_keys.insert(
+            key_id,
+            signed_key_from_wire(key, context, fallback_required)?,
+        );
+    }
+    Ok(signed_keys)
+}
+
+fn signed_key_from_wire(
+    wire: MatrixSignedCurve25519KeyWire,
+    context: &str,
+    fallback_required: bool,
+) -> Result<MatrixSignedCurve25519Key, ProtocolError> {
+    let fallback = wire.fallback.unwrap_or(false);
+    if fallback_required && !fallback {
+        return Err(invalid_device_key_field(&format!("{context}.fallback")));
+    }
+    Ok(MatrixSignedCurve25519Key {
+        key: required_device_key_string(wire.key, &format!("{context}.key"))?,
+        fallback,
+        signatures: device_key_nested_string_map(
+            wire.signatures,
+            &format!("{context}.signatures"),
+        )?,
+    })
+}
+
+fn device_algorithm_map_from_wire(
+    value: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    field: &str,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, ProtocolError> {
+    let map = value.ok_or_else(|| invalid_device_key_field(field))?;
+    if map.is_empty() {
+        return Err(invalid_device_key_field(field));
+    }
+    for (user_id, devices) in &map {
+        if user_id.is_empty() || devices.is_empty() {
+            return Err(invalid_device_key_field(field));
+        }
+        for (device_id, algorithm) in devices {
+            if device_id.is_empty() || algorithm != "signed_curve25519" {
+                return Err(invalid_device_key_field(field));
+            }
+        }
+    }
+    Ok(map)
+}
+
+fn device_key_query_selection_map(
+    value: Option<BTreeMap<String, Vec<String>>>,
+    field: &str,
+) -> Result<BTreeMap<String, Vec<String>>, ProtocolError> {
+    let map = value.ok_or_else(|| invalid_device_key_field(field))?;
+    if map.is_empty() {
+        return Err(invalid_device_key_field(field));
+    }
+    for (user_id, devices) in &map {
+        if user_id.is_empty() || devices.iter().any(String::is_empty) {
+            return Err(invalid_device_key_field(field));
+        }
+    }
+    Ok(map)
+}
+
+fn claimed_keys_from_wire(
+    value: Option<
+        BTreeMap<String, BTreeMap<String, BTreeMap<String, MatrixSignedCurve25519KeyWire>>>,
+    >,
+    field: &str,
+) -> Result<
+    BTreeMap<String, BTreeMap<String, BTreeMap<String, MatrixSignedCurve25519Key>>>,
+    ProtocolError,
+> {
+    let map = value.ok_or_else(|| invalid_device_key_field(field))?;
+    if map.is_empty() {
+        return Err(invalid_device_key_field(field));
+    }
+    let mut users = BTreeMap::new();
+    for (user_id, devices) in map {
+        required_device_key_borrowed_string(&user_id, &format!("{field}.user_id"))?;
+        if devices.is_empty() {
+            return Err(invalid_device_key_field(&format!("{field}.devices")));
+        }
+        let mut device_map = BTreeMap::new();
+        for (device_id, keys) in devices {
+            required_device_key_borrowed_string(&device_id, &format!("{field}.device_id"))?;
+            if keys.is_empty() {
+                return Err(invalid_device_key_field(&format!("{field}.keys")));
+            }
+            let mut key_map = BTreeMap::new();
+            for (key_id, key) in keys {
+                required_device_key_borrowed_string(&key_id, &format!("{field}.key_id"))?;
+                if !key_id.starts_with("signed_curve25519:") {
+                    return Err(invalid_device_key_field(&format!("{field}.key_id")));
+                }
+                let fallback = key.fallback == Some(true) || key_id.contains(":fb");
+                key_map.insert(key_id, signed_key_from_wire(key, field, fallback)?);
+            }
+            device_map.insert(device_id, key_map);
+        }
+        users.insert(user_id, device_map);
+    }
+    Ok(users)
+}
+
+fn device_key_string_map(
+    value: Option<BTreeMap<String, String>>,
+    field: &str,
+) -> Result<BTreeMap<String, String>, ProtocolError> {
+    let map = value.ok_or_else(|| invalid_device_key_field(field))?;
+    if map.is_empty()
+        || map
+            .iter()
+            .any(|(key_id, value)| key_id.is_empty() || value.is_empty())
+    {
+        return Err(invalid_device_key_field(field));
+    }
+    Ok(map)
+}
+
+fn device_key_nested_string_map(
+    value: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    field: &str,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, ProtocolError> {
+    let map = value.ok_or_else(|| invalid_device_key_field(field))?;
+    if map.is_empty() {
+        return Err(invalid_device_key_field(field));
+    }
+    for (outer_key, inner) in &map {
+        if outer_key.is_empty() || inner.is_empty() {
+            return Err(invalid_device_key_field(field));
+        }
+        if inner
+            .iter()
+            .any(|(inner_key, value)| inner_key.is_empty() || value.is_empty())
+        {
+            return Err(invalid_device_key_field(field));
+        }
+    }
+    Ok(map)
+}
+
+fn invalid_key_backup_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidKeyBackupField {
+        field: field.to_owned(),
+    }
+}
+
+fn required_key_backup_string(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_key_backup_field(field)),
+    }
+}
+
+fn optional_key_backup_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<Option<String>, ProtocolError> {
+    match value {
+        Some(value) if value.is_empty() => Err(invalid_key_backup_field(field)),
+        value => Ok(value),
+    }
+}
+
+fn required_key_backup_non_negative_i64(
+    value: Option<i64>,
+    field: &str,
+) -> Result<u64, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(value as u64),
+        _ => Err(invalid_key_backup_field(field)),
+    }
+}
+
+fn required_key_backup_string_array(
+    value: Option<Vec<String>>,
+    field: &str,
+) -> Result<Vec<String>, ProtocolError> {
+    let values = value.ok_or_else(|| invalid_key_backup_field(field))?;
+    if values.is_empty() || values.iter().any(String::is_empty) {
+        Err(invalid_key_backup_field(field))
+    } else {
+        Ok(values)
+    }
+}
+
+fn key_backup_version_from_wire(
+    wire: MatrixKeyBackupVersionWire,
+    context: &str,
+) -> Result<MatrixKeyBackupVersion, ProtocolError> {
+    Ok(MatrixKeyBackupVersion {
+        version: optional_key_backup_string(wire.version, &format!("{context}.version"))?,
+        algorithm: required_key_backup_string(wire.algorithm, &format!("{context}.algorithm"))?,
+        auth_data: key_backup_auth_data_from_wire(
+            wire.auth_data
+                .ok_or_else(|| invalid_key_backup_field(&format!("{context}.auth_data")))?,
+            &format!("{context}.auth_data"),
+        )?,
+    })
+}
+
+fn key_backup_auth_data_from_wire(
+    wire: MatrixKeyBackupAuthDataWire,
+    context: &str,
+) -> Result<MatrixKeyBackupAuthData, ProtocolError> {
+    Ok(MatrixKeyBackupAuthData {
+        public_key: required_key_backup_string(wire.public_key, &format!("{context}.public_key"))?,
+        signatures: optional_key_backup_nested_string_map(
+            wire.signatures,
+            &format!("{context}.signatures"),
+        )?,
+    })
+}
+
+fn key_backup_session_from_wire(
+    wire: MatrixKeyBackupSessionWire,
+    context: &str,
+) -> Result<MatrixKeyBackupSession, ProtocolError> {
+    let session_data = wire
+        .session_data
+        .ok_or_else(|| invalid_key_backup_field(&format!("{context}.session_data")))?;
+    if session_data.is_empty() {
+        return Err(invalid_key_backup_field(&format!("{context}.session_data")));
+    }
+    Ok(MatrixKeyBackupSession {
+        first_message_index: required_key_backup_non_negative_i64(
+            wire.first_message_index,
+            &format!("{context}.first_message_index"),
+        )?,
+        forwarded_count: required_key_backup_non_negative_i64(
+            wire.forwarded_count,
+            &format!("{context}.forwarded_count"),
+        )?,
+        is_verified: wire
+            .is_verified
+            .ok_or_else(|| invalid_key_backup_field(&format!("{context}.is_verified")))?,
+        session_data,
+    })
+}
+
+fn key_backup_steps(
+    value: Option<Vec<MatrixKeyBackupGateStepWire>>,
+) -> Result<Vec<MatrixKeyBackupGateStepWire>, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_key_backup_field("key_backup.steps")),
+    }
+}
+
+fn optional_key_backup_nested_string_map(
+    value: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    field: &str,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, ProtocolError> {
+    match value {
+        Some(map) => validate_key_backup_nested_string_map(map, field),
+        None => Ok(BTreeMap::new()),
+    }
+}
+
+fn validate_key_backup_nested_string_map(
+    map: BTreeMap<String, BTreeMap<String, String>>,
+    field: &str,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, ProtocolError> {
+    if map.is_empty() {
+        return Err(invalid_key_backup_field(field));
+    }
+    for (outer_key, inner) in &map {
+        if outer_key.is_empty() || inner.is_empty() {
+            return Err(invalid_key_backup_field(field));
+        }
+        if inner
+            .iter()
+            .any(|(inner_key, value)| inner_key.is_empty() || value.is_empty())
+        {
+            return Err(invalid_key_backup_field(field));
+        }
+    }
+    Ok(map)
+}
+
+fn required_verification_borrowed_string<'a>(
+    value: &'a str,
+    field: &str,
+) -> Result<&'a str, ProtocolError> {
+    if value.is_empty() {
+        Err(invalid_verification_field(field))
+    } else {
+        Ok(value)
+    }
+}
+
+fn required_verification_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_verification_field(field)),
+    }
+}
+
+fn required_verification_string_array(
+    value: Option<Vec<String>>,
+    field: &str,
+) -> Result<Vec<String>, ProtocolError> {
+    let values = value.ok_or_else(|| invalid_verification_field(field))?;
+    if values.is_empty() || values.iter().any(String::is_empty) {
+        Err(invalid_verification_field(field))
+    } else {
+        Ok(values)
+    }
+}
+
+fn verification_steps(
+    value: Option<Vec<MatrixVerificationStepWire>>,
+) -> Result<Vec<MatrixVerificationStepWire>, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_verification_field("verification.steps")),
+    }
+}
+
+fn optional_cross_signing_key(
+    value: Option<MatrixCrossSigningKeyWire>,
+    field: &str,
+) -> Result<Option<MatrixCrossSigningKey>, ProtocolError> {
+    value
+        .map(|value| cross_signing_key(value, field))
+        .transpose()
+}
+
+fn cross_signing_key(
+    value: MatrixCrossSigningKeyWire,
+    field: &str,
+) -> Result<MatrixCrossSigningKey, ProtocolError> {
+    let usage = required_verification_string_array(value.usage, &format!("{field}.usage"))?;
+    let keys = verification_string_map(value.keys, &format!("{field}.keys"))?;
+    let signatures =
+        verification_nested_string_map(value.signatures, &format!("{field}.signatures"))?;
+
+    Ok(MatrixCrossSigningKey {
+        user_id: required_verification_string(value.user_id, &format!("{field}.user_id"))?,
+        usage,
+        keys,
+        signatures,
+    })
+}
+
+fn verification_string_map(
+    value: Option<BTreeMap<String, String>>,
+    field: &str,
+) -> Result<BTreeMap<String, String>, ProtocolError> {
+    let map = value.ok_or_else(|| invalid_verification_field(field))?;
+    if map.is_empty()
+        || map
+            .iter()
+            .any(|(key, value)| key.is_empty() || value.is_empty())
+    {
+        Err(invalid_verification_field(field))
+    } else {
+        Ok(map)
+    }
+}
+
+fn verification_nested_string_map(
+    value: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    field: &str,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, ProtocolError> {
+    let map = value.ok_or_else(|| invalid_verification_field(field))?;
+    if map.is_empty() {
+        return Err(invalid_verification_field(field));
+    }
+    for (outer_key, inner) in &map {
+        if outer_key.is_empty() || inner.is_empty() {
+            return Err(invalid_verification_field(field));
+        }
+        if inner
+            .iter()
+            .any(|(inner_key, value)| inner_key.is_empty() || value.is_empty())
+        {
+            return Err(invalid_verification_field(field));
+        }
+    }
+    Ok(map)
+}
+
+fn wrong_device_identity(
+    value: Option<MatrixWrongDeviceIdentityWire>,
+    field: &str,
+) -> Result<MatrixWrongDeviceIdentity, ProtocolError> {
+    let value = value.ok_or_else(|| invalid_verification_field(field))?;
+    Ok(MatrixWrongDeviceIdentity {
+        user_id: required_verification_string(value.user_id, &format!("{field}.user_id"))?,
+        device_id: required_verification_string(value.device_id, &format!("{field}.device_id"))?,
+        master_key: required_verification_string(value.master_key, &format!("{field}.master_key"))?,
+        device_key: required_verification_string(value.device_key, &format!("{field}.device_key"))?,
+    })
+}
+
+fn required_federation_borrowed_string<'a>(
+    value: &'a str,
+    field: &str,
+) -> Result<&'a str, ProtocolError> {
+    let value = value.trim();
+    if value.is_empty() {
+        Err(invalid_federation_field(field))
+    } else {
+        Ok(value)
+    }
+}
+
+fn required_federation_string(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_federation_field(field)),
+    }
+}
+
+fn optional_federation_string(
+    value: Option<String>,
+    field: &str,
+) -> Result<Option<String>, ProtocolError> {
+    match value {
+        Some(value) if !value.is_empty() => Ok(Some(value)),
+        Some(_) => Err(invalid_federation_field(field)),
+        None => Ok(None),
+    }
+}
+
+fn required_federation_timestamp(value: Option<i64>, field: &str) -> Result<u64, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(value as u64),
+        _ => Err(invalid_federation_field(field)),
+    }
+}
+
+fn optional_federation_timestamp(
+    value: Option<i64>,
+    field: &str,
+) -> Result<Option<u64>, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(Some(value as u64)),
+        Some(_) => Err(invalid_federation_field(field)),
+        None => Ok(None),
+    }
+}
+
+fn required_federation_array(
+    value: Option<Vec<Value>>,
+    field: &str,
+) -> Result<Vec<Value>, ProtocolError> {
+    match value {
+        Some(value) => Ok(value),
+        None => Err(invalid_federation_field(field)),
+    }
+}
+
+fn required_federation_object_array(
+    value: Option<Vec<Value>>,
+    field: &str,
+) -> Result<Vec<Value>, ProtocolError> {
+    federation_object_array(required_federation_array(value, field)?, field)
+}
+
+fn federation_object_array(value: Vec<Value>, field: &str) -> Result<Vec<Value>, ProtocolError> {
+    if value.iter().all(Value::is_object) {
+        Ok(value)
+    } else {
+        Err(invalid_federation_field(field))
+    }
+}
+
+fn required_federation_object(value: Option<Value>, field: &str) -> Result<Value, ProtocolError> {
+    match value {
+        Some(value) if value.is_object() => Ok(value),
+        _ => Err(invalid_federation_field(field)),
+    }
+}
+
+fn split_federation_server_name(server_name: &str) -> Result<(String, Option<u16>), ProtocolError> {
+    let (host, port) = match server_name.rsplit_once(':') {
+        Some((host, port)) if !host.contains(':') => {
+            let port = port
+                .parse::<u16>()
+                .map_err(|_| invalid_federation_field("federation.server_name.port"))?;
+            (host, Some(port))
+        }
+        _ => (server_name, None),
+    };
+    if host.is_empty() || host.starts_with('.') || host.ends_with('.') {
+        return Err(invalid_federation_field("federation.server_name.host"));
+    }
+    Ok((host.to_owned(), port))
+}
+
+fn required_federation_key_id(key_id: &str, field: &str) -> Result<(), ProtocolError> {
+    if key_id.is_empty() || !key_id.contains(':') {
+        Err(invalid_federation_field(field))
+    } else {
+        Ok(())
+    }
+}
+
+fn federation_signatures(
+    value: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    field: &str,
+) -> Result<BTreeMap<String, BTreeMap<String, String>>, ProtocolError> {
+    let signatures = value.ok_or_else(|| invalid_federation_field(field))?;
+    if signatures.is_empty() {
+        return Err(invalid_federation_field(field));
+    }
+    for (server_name, signatures) in &signatures {
+        parse_matrix_federation_server_name(server_name)?;
+        if signatures.is_empty() {
+            return Err(invalid_federation_field(field));
+        }
+        for (key_id, signature) in signatures {
+            required_federation_key_id(key_id, field)?;
+            required_federation_borrowed_string(signature, field)?;
+        }
+    }
+    Ok(signatures)
+}
+
+fn matrix_federation_signing_key_from_wire(
+    wire: MatrixFederationSigningKeyWire,
+) -> Result<MatrixFederationSigningKey, ProtocolError> {
+    let server_name =
+        required_federation_string(wire.server_name, "federation.signing_key.server_name")?;
+    parse_matrix_federation_server_name(&server_name)?;
+    let verify_keys = wire
+        .verify_keys
+        .ok_or_else(|| invalid_federation_field("federation.signing_key.verify_keys"))?
+        .into_iter()
+        .map(|(key_id, key)| {
+            required_federation_key_id(&key_id, "federation.signing_key.verify_keys")?;
+            Ok((
+                key_id,
+                MatrixFederationVerifyKey {
+                    key: required_federation_string(
+                        key.key,
+                        "federation.signing_key.verify_keys.key",
+                    )?,
+                },
+            ))
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?;
+    if verify_keys.is_empty() {
+        return Err(invalid_federation_field(
+            "federation.signing_key.verify_keys",
+        ));
+    }
+    let old_verify_keys = wire
+        .old_verify_keys
+        .into_iter()
+        .map(|(key_id, key)| {
+            required_federation_key_id(&key_id, "federation.signing_key.old_verify_keys")?;
+            Ok((
+                key_id,
+                MatrixFederationOldVerifyKey {
+                    expired_ts: required_federation_timestamp(
+                        key.expired_ts,
+                        "federation.signing_key.old_verify_keys.expired_ts",
+                    )?,
+                    key: required_federation_string(
+                        key.key,
+                        "federation.signing_key.old_verify_keys.key",
+                    )?,
+                },
+            ))
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?;
+
+    Ok(MatrixFederationSigningKey {
+        server_name,
+        verify_keys,
+        old_verify_keys,
+        valid_until_ts: required_federation_timestamp(
+            wire.valid_until_ts,
+            "federation.signing_key.valid_until_ts",
+        )?,
+        signatures: federation_signatures(wire.signatures, "federation.signing_key.signatures")?,
+    })
+}
+
 fn required_media_content_uri(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
     match value {
         Some(value) if parse_matrix_media_content_uri(&value).is_ok() => Ok(value),
@@ -1956,7 +6133,8 @@ mod tests {
             manifest.supported_specs,
             vec![
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
-                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040"
+                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-048", "SPEC-049", "SPEC-051",
+                "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-069"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -2110,6 +6288,806 @@ mod tests {
                 "duplicate_auth_state_key",
             ]
         );
+    }
+
+    #[test]
+    fn parses_spec_054_verification_cross_signing_and_wrong_device_vectors() {
+        let sas = read_spec_vector(
+            "test-vectors/messaging/matrix-verification-sas-to-device-happy-path.json",
+        );
+        let parsed_sas = parse_matrix_verification_sas_flow(sas["event"].to_string().as_bytes())
+            .expect("SPEC-054 SAS verification flow should parse");
+        assert_eq!(sas["contract"], "SPEC-054");
+        assert_eq!(parsed_sas.transaction_id, "verif-txn-1");
+        assert_eq!(
+            parsed_sas.event_types,
+            vec![
+                "m.key.verification.request",
+                "m.key.verification.ready",
+                "m.key.verification.start",
+                "m.key.verification.accept",
+                "m.key.verification.key",
+                "m.key.verification.mac"
+            ]
+        );
+        assert!(parsed_sas.verified);
+        assert!(!parsed_sas.local_sas_allowed);
+        assert!(!parsed_sas.versions_advertisement_widened);
+
+        let cancel =
+            read_spec_vector("test-vectors/messaging/matrix-verification-sas-mismatch-cancel.json");
+        let parsed_cancel =
+            parse_matrix_verification_cancel(cancel["event"].to_string().as_bytes())
+                .expect("SPEC-054 verification cancel should parse");
+        assert_eq!(parsed_cancel.transaction_id, "verif-txn-mismatch");
+        assert_eq!(parsed_cancel.code, "m.mismatched_sas");
+        assert!(!parsed_cancel.verified);
+
+        let lifecycle =
+            read_spec_vector("test-vectors/messaging/matrix-cross-signing-key-lifecycle.json");
+        let steps = lifecycle["event"]["steps"]
+            .as_array()
+            .expect("cross-signing lifecycle should contain steps");
+        let parsed_upload = parse_matrix_cross_signing_device_signing_upload(
+            steps[0]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-054 cross-signing public keys should parse");
+        assert_eq!(
+            parsed_upload
+                .master_key
+                .as_ref()
+                .expect("master key should be present")
+                .usage,
+            vec!["master"]
+        );
+        assert!(parsed_upload.self_signing_key.is_some());
+        assert!(parsed_upload.user_signing_key.is_some());
+        let parsed_signatures =
+            parse_matrix_cross_signing_signature_upload(steps[2]["body"].to_string().as_bytes())
+                .expect("SPEC-054 cross-signing signature upload should parse");
+        assert!(parsed_signatures
+            .signed_objects
+            .get("@alice:example.test")
+            .expect("signed user should be present")
+            .contains_key("ALICE2"));
+
+        let invalid_signature =
+            read_spec_vector("test-vectors/messaging/matrix-cross-signing-invalid-signature.json");
+        let parsed_invalid_signature = parse_matrix_cross_signing_invalid_signature_failure(
+            invalid_signature["expected"].to_string().as_bytes(),
+        )
+        .expect("SPEC-054 invalid signature failure should parse");
+        assert_eq!(parsed_invalid_signature.status, 400);
+        assert_eq!(parsed_invalid_signature.errcode, "M_INVALID_SIGNATURE");
+
+        let missing_token =
+            read_spec_vector("test-vectors/messaging/matrix-cross-signing-missing-token.json");
+        let parsed_missing_token = parse_matrix_cross_signing_missing_token_gate(
+            missing_token["event"].to_string().as_bytes(),
+        )
+        .expect("SPEC-054 missing token gate should parse");
+        assert!(parsed_missing_token.protected_key_operations_require_token);
+        assert!(parsed_missing_token.semantic_errors_suppressed_until_authenticated);
+        assert!(parsed_missing_token.auth_precedes_signature_validation);
+        assert_eq!(parsed_missing_token.errcode, "M_MISSING_TOKEN");
+        assert_eq!(parsed_missing_token.operations.len(), 3);
+
+        let wrong_device =
+            read_spec_vector("test-vectors/messaging/matrix-wrong-device-failure-gate.json");
+        let parsed_wrong_device =
+            parse_matrix_wrong_device_failure_gate(wrong_device["event"].to_string().as_bytes())
+                .expect("SPEC-054 wrong-device gate should parse");
+        assert_eq!(parsed_wrong_device.cancel_code, "m.key_mismatch");
+        assert!(!parsed_wrong_device.device_verified);
+        assert!(!parsed_wrong_device.outbound_session_shared);
+        assert!(parsed_wrong_device.requires_user_reverification);
+        assert!(parsed_wrong_device
+            .required_evidence
+            .contains(&"trusted_fingerprint".to_owned()));
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-054"));
+    }
+
+    #[test]
+    fn parses_spec_051_device_one_time_and_fallback_key_vectors() {
+        let upload = read_spec_vector(
+            "test-vectors/auth/matrix-keys-upload-device-one-time-fallback-basic.json",
+        );
+        assert_eq!(upload["contract"], "SPEC-051");
+        let parsed_upload_request =
+            parse_matrix_keys_upload_request(upload["request"]["body"].to_string().as_bytes())
+                .expect("SPEC-051 key upload request should parse");
+        let device_keys = parsed_upload_request
+            .device_keys
+            .as_ref()
+            .expect("device keys should be present");
+        assert_eq!(device_keys.user_id, "@alice:example.test");
+        assert_eq!(device_keys.device_id, "DEVICE1");
+        assert!(device_keys
+            .algorithms
+            .contains(&"m.olm.v1.curve25519-aes-sha2".to_owned()));
+        assert!(parsed_upload_request
+            .one_time_keys
+            .contains_key("signed_curve25519:otk1"));
+        assert!(
+            parsed_upload_request
+                .fallback_keys
+                .get("signed_curve25519:fb1")
+                .expect("fallback key should parse")
+                .fallback
+        );
+        assert!(!parsed_upload_request.private_key_material_returned);
+
+        let parsed_upload_response = parse_matrix_keys_upload_response(
+            upload["expected"]["body_contains"].to_string().as_bytes(),
+        )
+        .expect("SPEC-051 key upload response should parse");
+        assert_eq!(
+            parsed_upload_response
+                .one_time_key_counts
+                .get("signed_curve25519"),
+            Some(&1)
+        );
+        assert!(!parsed_upload_response.private_key_material_returned);
+
+        let claim =
+            read_spec_vector("test-vectors/auth/matrix-keys-claim-one-time-fallback-basic.json");
+        assert_eq!(claim["contract"], "SPEC-051");
+        let steps = claim["event"]["steps"]
+            .as_array()
+            .expect("claim vector should contain steps");
+        let parsed_claim_request =
+            parse_matrix_keys_claim_request(steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-051 one-time key claim request should parse");
+        assert_eq!(
+            parsed_claim_request
+                .one_time_keys
+                .get("@alice:example.test")
+                .and_then(|devices| devices.get("DEVICE1"))
+                .map(String::as_str),
+            Some("signed_curve25519")
+        );
+        let parsed_one_time_response = parse_matrix_keys_claim_response(
+            steps[0]["expected_body_contains"].to_string().as_bytes(),
+        )
+        .expect("SPEC-051 one-time key claim response should parse");
+        assert!(!parsed_one_time_response.fallback_key_returned);
+        assert_eq!(
+            parsed_one_time_response.one_time_keys["@alice:example.test"]["DEVICE1"]
+                ["signed_curve25519:otk1"]
+                .key,
+            "one-time-public-key-1"
+        );
+        let parsed_fallback_response = parse_matrix_keys_claim_response(
+            steps[1]["expected_body_contains"].to_string().as_bytes(),
+        )
+        .expect("SPEC-051 fallback key claim response should parse");
+        assert!(parsed_fallback_response.fallback_key_returned);
+        assert!(
+            parsed_fallback_response.one_time_keys["@alice:example.test"]["DEVICE1"]
+                ["signed_curve25519:fb1"]
+                .fallback
+        );
+
+        let invalid_algorithm =
+            read_spec_vector("test-vectors/auth/matrix-keys-claim-invalid-algorithm.json");
+        assert!(parse_matrix_keys_claim_request(
+            invalid_algorithm["request"]["body"].to_string().as_bytes()
+        )
+        .is_err());
+        let parsed_invalid_algorithm =
+            parse_matrix_device_key_error(invalid_algorithm["expected"].to_string().as_bytes())
+                .expect("SPEC-051 invalid algorithm error should parse");
+        assert_eq!(parsed_invalid_algorithm.status, 400);
+        assert_eq!(parsed_invalid_algorithm.errcode, "M_INVALID_PARAM");
+
+        let malformed_upload =
+            read_spec_vector("test-vectors/auth/matrix-keys-upload-malformed-device-keys.json");
+        let parsed_malformed_upload =
+            parse_matrix_device_key_error(malformed_upload["expected"].to_string().as_bytes())
+                .expect("SPEC-051 malformed upload error should parse");
+        assert_eq!(parsed_malformed_upload.status, 400);
+        assert_eq!(parsed_malformed_upload.errcode, "M_INVALID_PARAM");
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-051"));
+    }
+
+    #[test]
+    fn parses_spec_069_device_key_query_vectors() {
+        let basic = read_spec_vector("test-vectors/auth/matrix-keys-query-basic.json");
+        assert_eq!(basic["contract"], "SPEC-069");
+        let parsed_request =
+            parse_matrix_device_key_query_request(basic["request"]["body"].to_string().as_bytes())
+                .expect("SPEC-069 keys/query request should parse");
+        assert_eq!(
+            parsed_request
+                .device_keys
+                .get("@alice:example.test")
+                .expect("Alice selection should be present"),
+            &vec!["DEVICE1".to_owned()]
+        );
+        assert_eq!(parsed_request.timeout, Some(10000));
+        let parsed_response = parse_matrix_device_key_query_response(
+            basic["expected"]["body_contains"].to_string().as_bytes(),
+        )
+        .expect("SPEC-069 keys/query response should parse");
+        assert_eq!(
+            parsed_response.device_keys["@alice:example.test"]["DEVICE1"].keys["ed25519:DEVICE1"],
+            "ed25519-public-device1"
+        );
+        assert!(!parsed_response.private_key_material_returned);
+        assert!(!parsed_response.trust_decision_made);
+
+        let all_devices = read_spec_vector("test-vectors/auth/matrix-keys-query-all-devices.json");
+        let parsed_all_devices = parse_matrix_device_key_query_request(
+            all_devices["request"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-069 empty device selection should parse as all devices");
+        assert_eq!(
+            parsed_all_devices
+                .device_keys
+                .get("@alice:example.test")
+                .map(Vec::is_empty),
+            Some(true)
+        );
+
+        let unknown_device =
+            read_spec_vector("test-vectors/auth/matrix-keys-query-unknown-device-omitted.json");
+        let parsed_unknown_device = parse_matrix_device_key_query_response(
+            unknown_device["expected"]["body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-069 unknown device omission response should parse");
+        assert!(
+            !parsed_unknown_device.device_keys["@alice:example.test"].contains_key("UNKNOWNDEVICE")
+        );
+
+        let missing_token =
+            read_spec_vector("test-vectors/auth/matrix-keys-query-missing-token.json");
+        let parsed_missing_token =
+            parse_matrix_device_key_error(missing_token["expected"].to_string().as_bytes())
+                .expect("SPEC-069 missing token error should parse");
+        assert_eq!(parsed_missing_token.status, 401);
+        assert_eq!(parsed_missing_token.errcode, "M_MISSING_TOKEN");
+
+        let timeout_not_integer =
+            read_spec_vector("test-vectors/auth/matrix-keys-query-timeout-not-integer.json");
+        assert!(parse_matrix_device_key_query_request(
+            timeout_not_integer["request"]["body"]
+                .to_string()
+                .as_bytes()
+        )
+        .is_err());
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-069"));
+    }
+
+    #[test]
+    fn parses_spec_049_moderation_reporting_and_admin_vectors() {
+        let moderation =
+            read_spec_vector("test-vectors/rooms/matrix-room-moderation-kick-ban-unban.json");
+        assert_eq!(moderation["contract"], "SPEC-049");
+        let moderation_steps = moderation["event"]["steps"]
+            .as_array()
+            .expect("moderation vector should list steps");
+        let parsed_kick =
+            parse_matrix_moderation_request(moderation_steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-049 kick request should parse");
+        assert_eq!(parsed_kick.user_id, "@bob:example.test");
+        assert_eq!(parsed_kick.reason.as_deref(), Some("Off topic"));
+        let parsed_ban =
+            parse_matrix_moderation_request(moderation_steps[1]["body"].to_string().as_bytes())
+                .expect("SPEC-049 ban request should parse");
+        assert_eq!(parsed_ban.user_id, "@carol:example.test");
+        let parsed_unban =
+            parse_matrix_moderation_request(moderation_steps[2]["body"].to_string().as_bytes())
+                .expect("SPEC-049 unban request should parse");
+        assert_eq!(parsed_unban.reason.as_deref(), Some("Appeal accepted"));
+
+        let redaction = read_spec_vector("test-vectors/rooms/matrix-room-redaction-basic.json");
+        assert_eq!(redaction["contract"], "SPEC-049");
+        let parsed_redaction_request =
+            parse_matrix_redaction_request(redaction["request"]["body"].to_string().as_bytes())
+                .expect("SPEC-049 redaction request should parse");
+        assert_eq!(
+            parsed_redaction_request.reason.as_deref(),
+            Some("Remove spam")
+        );
+        let parsed_redaction_response = parse_matrix_redaction_response(
+            redaction["expected"]["body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-049 redaction response should parse");
+        assert_eq!(
+            parsed_redaction_response.event_id,
+            "$redaction1:example.test"
+        );
+
+        let reporting = read_spec_vector("test-vectors/rooms/matrix-room-reporting-basic.json");
+        assert_eq!(reporting["contract"], "SPEC-049");
+        for step in reporting["event"]["steps"]
+            .as_array()
+            .expect("reporting vector should list steps")
+        {
+            let parsed_report = parse_matrix_report_request(step["body"].to_string().as_bytes())
+                .expect("SPEC-049 report request should parse");
+            assert!(parsed_report.reason.is_some());
+        }
+
+        let admin =
+            read_spec_vector("test-vectors/rooms/matrix-admin-account-moderation-basic.json");
+        assert_eq!(admin["contract"], "SPEC-049");
+        let admin_steps = admin["event"]["steps"]
+            .as_array()
+            .expect("admin vector should list steps");
+        let parsed_capability = parse_matrix_account_moderation_capability(
+            admin_steps[0]["expected_body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-049 account moderation capability should parse");
+        assert!(parsed_capability.lock);
+        assert!(parsed_capability.suspend);
+        let parsed_lock_put = parse_matrix_admin_account_moderation_status(
+            admin_steps[1]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-049 admin lock request should parse");
+        assert_eq!(parsed_lock_put.locked, Some(true));
+        let parsed_suspend_get = parse_matrix_admin_account_moderation_status(
+            admin_steps[4]["expected_body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-049 admin suspend status should parse");
+        assert_eq!(parsed_suspend_get.suspended, Some(true));
+
+        let permission_denied =
+            read_spec_vector("test-vectors/rooms/matrix-room-moderation-permission-denied.json");
+        let parsed_permission_error =
+            parse_matrix_moderation_error(permission_denied["expected"].to_string().as_bytes())
+                .expect("SPEC-049 moderation permission error should parse");
+        assert_eq!(parsed_permission_error.status, 403);
+        assert_eq!(parsed_permission_error.errcode, "M_FORBIDDEN");
+        let redaction_forbidden =
+            read_spec_vector("test-vectors/rooms/matrix-room-redaction-forbidden.json");
+        let parsed_redaction_error =
+            parse_matrix_moderation_error(redaction_forbidden["expected"].to_string().as_bytes())
+                .expect("SPEC-049 redaction forbidden error should parse");
+        assert_eq!(parsed_redaction_error.status, 403);
+        assert_eq!(parsed_redaction_error.errcode, "M_FORBIDDEN");
+        let admin_forbidden =
+            read_spec_vector("test-vectors/rooms/matrix-admin-account-moderation-forbidden.json");
+        let parsed_admin_error =
+            parse_matrix_moderation_error(admin_forbidden["expected"].to_string().as_bytes())
+                .expect("SPEC-049 admin forbidden error should parse");
+        assert_eq!(parsed_admin_error.status, 403);
+        assert_eq!(parsed_admin_error.errcode, "M_FORBIDDEN");
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-049"));
+    }
+
+    #[test]
+    fn parses_spec_048_room_directory_alias_and_invite_vectors() {
+        let public_rooms = read_spec_vector("test-vectors/rooms/matrix-public-rooms-basic.json");
+        assert_eq!(public_rooms["contract"], "SPEC-048");
+        let parsed_public_rooms = parse_matrix_public_rooms_response(
+            public_rooms["expected"]["body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-048 public room response should parse");
+        assert_eq!(parsed_public_rooms.chunk[0].room_id, "!room:example.test");
+        assert_eq!(
+            parsed_public_rooms.chunk[0].canonical_alias.as_deref(),
+            Some("#project:example.test")
+        );
+        assert_eq!(parsed_public_rooms.total_room_count_estimate, Some(1));
+
+        let filtered = read_spec_vector("test-vectors/rooms/matrix-public-rooms-filter-basic.json");
+        let parsed_filter =
+            parse_matrix_public_rooms_request(filtered["request"]["body"].to_string().as_bytes())
+                .expect("SPEC-048 public room filter should parse");
+        assert_eq!(parsed_filter.limit, Some(10));
+        assert_eq!(
+            parsed_filter.generic_search_term.as_deref(),
+            Some("project")
+        );
+        assert_eq!(parsed_filter.include_all_networks, Some(false));
+
+        let visibility =
+            read_spec_vector("test-vectors/rooms/matrix-room-directory-visibility-basic.json");
+        let visibility_steps = visibility["event"]["steps"]
+            .as_array()
+            .expect("visibility vector should list steps");
+        let parsed_visibility =
+            parse_matrix_directory_visibility(visibility_steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-048 visibility request should parse");
+        assert_eq!(parsed_visibility.visibility, "public");
+        let parsed_visibility_response = parse_matrix_directory_visibility(
+            visibility_steps[1]["expected_body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-048 visibility response should parse");
+        assert_eq!(parsed_visibility_response.visibility, "public");
+
+        let aliases = read_spec_vector("test-vectors/rooms/matrix-room-aliases-basic.json");
+        let parsed_aliases =
+            parse_matrix_room_aliases(aliases["expected"]["body_contains"].to_string().as_bytes())
+                .expect("SPEC-048 alias list should parse");
+        assert_eq!(parsed_aliases.aliases.len(), 2);
+        assert!(parsed_aliases
+            .aliases
+            .contains(&"#project-alt:example.test".to_owned()));
+
+        let invite = read_spec_vector("test-vectors/rooms/matrix-room-invite-basic.json");
+        let invite_steps = invite["event"]["steps"]
+            .as_array()
+            .expect("invite vector should list steps");
+        let parsed_invite =
+            parse_matrix_invite_request(invite_steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-048 invite request should parse");
+        assert_eq!(parsed_invite.user_id, "@bob:example.test");
+        assert_eq!(
+            parsed_invite.reason.as_deref(),
+            Some("Join the project room")
+        );
+        let parsed_invite_room = parse_matrix_invite_room(
+            invite_steps[1]["expected_invite_room"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-048 stripped invite state should parse");
+        assert_eq!(parsed_invite_room.room_id, "!room:example.test");
+        assert_eq!(parsed_invite_room.events[0].event_type, "m.room.member");
+        assert_eq!(
+            parsed_invite_room.events[0].content["membership"],
+            serde_json::json!("invite")
+        );
+
+        let alias_forbidden =
+            read_spec_vector("test-vectors/rooms/matrix-room-alias-update-forbidden.json");
+        let parsed_alias_error =
+            parse_matrix_room_directory_error(alias_forbidden["expected"].to_string().as_bytes())
+                .expect("SPEC-048 alias forbidden error should parse");
+        assert_eq!(parsed_alias_error.status, 403);
+        assert_eq!(parsed_alias_error.errcode, "M_FORBIDDEN");
+        let invite_forbidden =
+            read_spec_vector("test-vectors/rooms/matrix-room-invite-forbidden.json");
+        let parsed_invite_error =
+            parse_matrix_room_directory_error(invite_forbidden["expected"].to_string().as_bytes())
+                .expect("SPEC-048 invite forbidden error should parse");
+        assert_eq!(parsed_invite_error.status, 403);
+        assert_eq!(parsed_invite_error.errcode, "M_FORBIDDEN");
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-048"));
+    }
+
+    #[test]
+    fn parses_spec_053_key_backup_metadata_vectors() {
+        let lifecycle =
+            read_spec_vector("test-vectors/messaging/matrix-key-backup-version-lifecycle.json");
+        assert_eq!(lifecycle["contract"], "SPEC-053");
+        let steps = lifecycle["event"]["steps"]
+            .as_array()
+            .expect("key backup lifecycle should contain steps");
+        let parsed_create_response = parse_matrix_key_backup_version_create_response(
+            steps[0]["expected_body_contains"].to_string().as_bytes(),
+        )
+        .expect("SPEC-053 key backup create response should parse");
+        assert_eq!(parsed_create_response.version, "1");
+        let parsed_create_body =
+            parse_matrix_key_backup_version(steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-053 key backup create body should parse");
+        assert_eq!(
+            parsed_create_body.algorithm,
+            "m.megolm_backup.v1.curve25519-aes-sha2"
+        );
+        assert_eq!(
+            parsed_create_body.auth_data.public_key,
+            "backup-public-key-1"
+        );
+        let parsed_current = parse_matrix_key_backup_version(
+            steps[1]["expected_body_contains"].to_string().as_bytes(),
+        )
+        .expect("SPEC-053 key backup current version should parse");
+        assert_eq!(parsed_current.version.as_deref(), Some("1"));
+        let parsed_update =
+            parse_matrix_key_backup_version(steps[2]["body"].to_string().as_bytes())
+                .expect("SPEC-053 key backup update body should parse");
+        assert_eq!(
+            parsed_update
+                .auth_data
+                .signatures
+                .get("@alice:example.test")
+                .and_then(|signatures| signatures.get("ed25519:DEVICE2"))
+                .map(String::as_str),
+            Some("signature-backup-2")
+        );
+
+        let restore = read_spec_vector(
+            "test-vectors/messaging/matrix-key-backup-session-upload-restore-basic.json",
+        );
+        assert_eq!(restore["contract"], "SPEC-053");
+        let restore_steps = restore["event"]["steps"]
+            .as_array()
+            .expect("key backup restore vector should contain steps");
+        let parsed_session =
+            parse_matrix_key_backup_session(restore_steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-053 key backup upload session should parse");
+        assert_eq!(parsed_session.first_message_index, 1);
+        assert_eq!(parsed_session.forwarded_count, 0);
+        assert!(parsed_session.is_verified);
+        assert_eq!(
+            parsed_session.session_data["ciphertext"],
+            "backup-ciphertext"
+        );
+        let parsed_upload_response = parse_matrix_key_backup_session_upload_response(
+            restore_steps[0]["expected_body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-053 key backup upload response should parse");
+        assert_eq!(parsed_upload_response.etag, "etag-1");
+        assert_eq!(parsed_upload_response.count, 1);
+        let parsed_restore = parse_matrix_key_backup_session(
+            restore_steps[1]["expected_body_contains"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-053 key backup restore body should parse");
+        assert_eq!(parsed_restore.session_data["mac"], "backup-mac");
+
+        let wrong_version =
+            read_spec_vector("test-vectors/messaging/matrix-key-backup-wrong-version.json");
+        let parsed_wrong_version =
+            parse_matrix_key_backup_error(wrong_version["expected"].to_string().as_bytes())
+                .expect("SPEC-053 wrong version error should parse");
+        assert_eq!(parsed_wrong_version.status, 403);
+        assert_eq!(parsed_wrong_version.errcode, "M_WRONG_ROOM_KEYS_VERSION");
+        assert_eq!(parsed_wrong_version.current_version.as_deref(), Some("1"));
+
+        let missing_session = read_spec_vector(
+            "test-vectors/messaging/matrix-key-backup-restore-missing-session.json",
+        );
+        let parsed_missing_session =
+            parse_matrix_key_backup_error(missing_session["expected"].to_string().as_bytes())
+                .expect("SPEC-053 missing session error should parse");
+        assert_eq!(parsed_missing_session.status, 404);
+        assert_eq!(parsed_missing_session.errcode, "M_NOT_FOUND");
+
+        let owner_scope =
+            read_spec_vector("test-vectors/messaging/matrix-key-backup-owner-scope.json");
+        let parsed_owner_scope =
+            parse_matrix_key_backup_owner_scope_gate(owner_scope["event"].to_string().as_bytes())
+                .expect("SPEC-053 owner scope gate should parse");
+        assert!(parsed_owner_scope.owner_scope_enforced);
+        assert!(parsed_owner_scope.protected_backup_unchanged);
+        assert_eq!(parsed_owner_scope.checked_steps.len(), 4);
+        assert!(!parsed_owner_scope.versions_advertisement_widened);
+
+        let recovery_gate = read_spec_vector(
+            "test-vectors/messaging/matrix-key-backup-logout-relogin-recovery-gate.json",
+        );
+        let parsed_recovery_gate =
+            parse_matrix_key_backup_recovery_gate(recovery_gate["event"].to_string().as_bytes())
+                .expect("SPEC-053 logout/relogin recovery gate should parse");
+        assert!(parsed_recovery_gate.logout_relogin_restore);
+        assert!(parsed_recovery_gate.crypto_stack_required);
+        assert!(!parsed_recovery_gate.local_olm_megolm_allowed);
+        assert_eq!(
+            parsed_recovery_gate.required_contracts,
+            vec!["SPEC-050", "SPEC-052", "SPEC-053"]
+        );
+        assert!(parsed_recovery_gate
+            .required_evidence
+            .contains(&"per_step_pass_fail".to_owned()));
+        assert!(!parsed_recovery_gate.versions_advertisement_widened);
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-053"));
+    }
+
+    #[test]
+    fn parses_spec_056_federation_transaction_join_and_invite_vectors() {
+        let transaction =
+            read_spec_vector("test-vectors/events/matrix-federation-send-transaction-basic.json");
+        let parsed_transaction = parse_matrix_federation_transaction(
+            transaction["request"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-056 transaction body should parse");
+        assert_eq!(parsed_transaction.origin, "remote.example.test");
+        assert_eq!(parsed_transaction.pdus.len(), 1);
+        assert_eq!(parsed_transaction.edus.len(), 1);
+        assert!(parse_matrix_federation_transaction(
+            "{\"origin\":\"remote.example.test\",\"origin_server_ts\":1778408851000,\"pdus\":[\"bad\"],\"edus\":[]}"
+                .as_bytes()
+        )
+        .is_err());
+        assert!(parse_matrix_federation_transaction(
+            "{\"origin\":\"remote.example.test\",\"origin_server_ts\":1778408851000,\"pdus\":[],\"edus\":[\"bad\"]}"
+                .as_bytes()
+        )
+        .is_err());
+        let parsed_transaction_response = parse_matrix_federation_transaction_response(
+            transaction["response"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-056 transaction response should parse");
+        assert!(parsed_transaction_response
+            .pdus
+            .get("$event1:remote.example.test")
+            .expect("accepted event should be present")
+            .error
+            .is_none());
+
+        let failed_transaction = read_spec_vector(
+            "test-vectors/events/matrix-federation-send-transaction-pdu-failure.json",
+        );
+        let parsed_failure = parse_matrix_federation_transaction_response(
+            failed_transaction["response"]["body"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-056 failed PDU response should parse");
+        assert_eq!(
+            parsed_failure
+                .pdus
+                .get("$bad:remote.example.test")
+                .and_then(|result| result.error.as_deref()),
+            Some("Event failed authorization")
+        );
+
+        let join =
+            read_spec_vector("test-vectors/events/matrix-federation-make-send-join-basic.json");
+        let steps = join["event"]["steps"]
+            .as_array()
+            .expect("join vector should contain steps");
+        let make_join_response =
+            parse_matrix_federation_make_join_response(steps[1]["body"].to_string().as_bytes())
+                .expect("SPEC-056 make_join response should parse");
+        assert_eq!(make_join_response.room_version, "12");
+        assert_eq!(make_join_response.event["content"]["membership"], "join");
+
+        let send_join_response =
+            parse_matrix_federation_send_join_response(steps[4]["body"].to_string().as_bytes())
+                .expect("SPEC-056 send_join response should parse");
+        assert_eq!(send_join_response.origin, "example.test");
+        assert_eq!(send_join_response.state.len(), 1);
+        assert_eq!(send_join_response.auth_chain.len(), 1);
+        assert_eq!(send_join_response.event["content"]["membership"], "join");
+
+        let invite = read_spec_vector("test-vectors/events/matrix-federation-invite-v2-basic.json");
+        let parsed_invite_request = parse_matrix_federation_invite_request(
+            invite["request"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-056 invite request should parse");
+        assert_eq!(parsed_invite_request.room_version, "12");
+        assert_eq!(
+            parsed_invite_request.event["content"]["membership"],
+            "invite"
+        );
+        let parsed_invite_response = parse_matrix_federation_invite_response(
+            invite["response"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-056 invite response should parse");
+        assert_eq!(
+            parsed_invite_response.event["signatures"]["remote.example.test"]["ed25519:auto1"],
+            "base64-remote-signature"
+        );
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-056"));
+    }
+
+    #[test]
+    fn parses_spec_055_federation_discovery_and_signing_key_vectors() {
+        let well_known =
+            read_spec_vector("test-vectors/core/matrix-federation-well-known-server-basic.json");
+        let parsed_well_known = parse_matrix_federation_well_known_server(
+            well_known["response"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-055 well-known response should parse");
+        assert_eq!(
+            parsed_well_known.delegated_server_name,
+            "delegated.example.test:8448"
+        );
+        assert_eq!(parsed_well_known.host, "delegated.example.test");
+        assert_eq!(parsed_well_known.port, Some(8448));
+        assert!(parse_matrix_federation_well_known_server(
+            "{\"m.server\":\"https://bad.example.test\"}".as_bytes()
+        )
+        .is_err());
+
+        let signing_key =
+            read_spec_vector("test-vectors/core/matrix-federation-signing-key-basic.json");
+        let parsed_signing_key = parse_matrix_federation_signing_key(
+            signing_key["response"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-055 signing key response should parse");
+        assert_eq!(parsed_signing_key.server_name, "example.test");
+        assert_eq!(
+            parsed_signing_key
+                .verify_keys
+                .get("ed25519:auto1")
+                .expect("current key should be present")
+                .key,
+            "VGhpcyBpcyBhIHRlc3QgcHVibGljIHZlcmlmeSBrZXk"
+        );
+        assert!(parsed_signing_key
+            .old_verify_keys
+            .contains_key("ed25519:old1"));
+        assert_eq!(parsed_signing_key.valid_until_ts, 1779011408000);
+
+        let key_query =
+            read_spec_vector("test-vectors/core/matrix-federation-key-query-basic.json");
+        let parsed_key_query_request = parse_matrix_federation_key_query_request(
+            key_query["request"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-055 key query request should parse");
+        assert_eq!(
+            parsed_key_query_request.server_keys["example.test"]["ed25519:auto1"]
+                .minimum_valid_until_ts,
+            Some(1779011408000)
+        );
+        let parsed_key_query_response = parse_matrix_federation_key_query_response(
+            key_query["response"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-055 key query response should parse");
+        assert_eq!(parsed_key_query_response.server_keys.len(), 1);
+        assert!(parsed_key_query_response.server_keys[0]
+            .signatures
+            .contains_key("notary.example.test"));
+
+        let failure = read_spec_vector(
+            "test-vectors/core/matrix-federation-destination-resolution-failure.json",
+        );
+        let parsed_failure =
+            parse_matrix_federation_destination_resolution_failure(failure.to_string().as_bytes())
+                .expect("SPEC-055 destination failure evidence should parse");
+        assert_eq!(parsed_failure.server_name, "broken.example.test");
+        assert_eq!(
+            parsed_failure.stages,
+            vec![
+                "well_known",
+                "srv_matrix_fed",
+                "srv_matrix_deprecated",
+                "address_records",
+                "failure_cache"
+            ]
+        );
+        assert!(!parsed_failure.destination_resolved);
+        assert!(!parsed_failure.federation_request_sent);
+        assert!(parsed_failure.backoff_recorded);
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-055"));
     }
 
     #[test]

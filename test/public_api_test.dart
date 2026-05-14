@@ -5,6 +5,7 @@ void main() {
   test('public entrypoint exports the initial SDK surface', () {
     expect(houra.HouraClient, isA<Type>());
     expect(houra.HouraAuthClient, isA<Type>());
+    expect(houra.HouraDeviceKeysClient, isA<Type>());
     expect(houra.HouraDiscoveryClient, isA<Type>());
     expect(houra.HouraRoomsClient, isA<Type>());
     expect(houra.HouraMessagingClient, isA<Type>());
@@ -26,10 +27,19 @@ void main() {
     expect(houra.HouraSyncBatch, isA<Type>());
     expect(houra.HouraSyncRoom, isA<Type>());
     expect(houra.HouraSyncTimeline, isA<Type>());
+    expect(houra.HouraMatrixSyncBatch, isA<Type>());
+    expect(houra.HouraMatrixToDeviceEvent, isA<Type>());
+    expect(houra.HouraEncryptedPayload, isA<Type>());
+    expect(houra.HouraOlmCiphertext, isA<Type>());
     expect(houra.HouraSyncTokenStore, isA<Type>());
     expect(houra.HouraMemorySyncTokenStore, isA<Type>());
     expect(houra.HouraMediaUpload, isA<Type>());
     expect(houra.HouraMediaMetadata, isA<Type>());
+    expect(houra.HouraDeviceKeyQueryResponse, isA<Type>());
+    expect(houra.HouraMatrixDeviceKey, isA<Type>());
+    expect(houra.HouraKeyUploadResponse, isA<Type>());
+    expect(houra.HouraKeyClaimResponse, isA<Type>());
+    expect(houra.HouraMatrixSignedKey, isA<Type>());
     expect(houra.HouraException, isA<Type>());
     expect(houra.HouraHttpException, isA<Type>());
     expect(houra.HouraTransportException, isA<Type>());

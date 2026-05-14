@@ -7,7 +7,10 @@ The name comes from horagai, a conch shell used to signal over distance.
 
 Draft. The current implementation covers the MVP client profiles from
 SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
-SPEC-010, SPEC-011, and SPEC-020.
+SPEC-010, SPEC-011, and SPEC-020. It also includes parser-only Dart SDK
+coverage for SPEC-051 Matrix key upload / claim, SPEC-052 Matrix to-device /
+encrypted-room envelopes, and SPEC-069 Matrix device key query request
+descriptors and public response parsing without claiming Matrix E2EE support.
 
 ## Repository Role
 
@@ -135,6 +138,55 @@ package tarball, 5 ms p95 parse/validation overhead, and CI runtime targets of
 10 minutes for Flutter, 10 minutes for Rust/WASM, 5 minutes for TypeScript, and
 2 minutes for the release evidence job.
 
+Dart FFI / Dart web binding candidate gate for issue #77: Dart native and Dart
+web remain candidate adapter paths, not implemented package surfaces. Dart
+native FFI is only a candidate for host apps that need a local Rust artifact on
+iOS, Android, macOS, Windows, or Linux and can absorb native packaging,
+signing, crash reporting, and binary-size review. Dart web JS interop / WASM is
+only a candidate for browser-hosted Flutter or Dart web experiments that can
+provide the generated WASM module and keep bundler, fetch, retry, cancellation,
+and browser lifecycle ownership in the host. The Flutter SDK prototype must not
+become the canonical behavior source, and token storage, sync-token persistence,
+Flutter UI lifecycle, route policy, and secure storage stay host-owned.
+Release evidence records this as `candidate-only-implementation-deferred` with
+package publication blocked until platform matrix, artifact size, p95 overhead,
+fallback behavior, and registry metadata are confirmed in a focused follow-up.
+
+N-API / Node binding candidate gate for issue #76: a native Node binding remains
+a candidate for server-side hosts that need lower overhead, synchronous local
+artifact calls, or an operational reason that browser-style WASM cannot cover.
+The existing TypeScript / WASM facade remains the fallback path for Next server
+experiments, package validation, and hosts where a generated WASM module is
+acceptable. N-API adoption is blocked until the platform matrix, prebuild
+policy, rebuild trigger, binary-size threshold, p95 overhead threshold, CI
+runtime impact, and fallback behavior are confirmed. Node server transport,
+request lifecycle, retry policy, cancellation, tenant context, and storage
+policy stay host-owned and outside the binding package.
+
+Ecosystem service parser candidate gate for issue #73: SPEC-058, SPEC-059, and
+SPEC-060 are service-boundary contracts, not production service implementations.
+Labs may adopt parser-only helpers for Application Service registration,
+namespace matching, transactions, and query request shapes; Identity Service
+hash-details, lookup, validation, bind/unbind, and signed association shapes;
+and Push Gateway notify, rejected pushkey, event-id-only, pusher data, and push
+rule payload shapes. Service deployment, service tokens, network policy,
+privacy enforcement, provider delivery, vendor credentials, and user-facing
+consent or notification UI stay outside this repository. Implementation work
+must be split into SPEC-sized follow-up issues and tied to the corresponding
+`houra-spec/test-vectors/core/matrix-appservice-*`,
+`matrix-identity-*`, and `matrix-push-*` vectors.
+
+Federation state interop helper candidate gate for issue #72: SPEC-057 remains
+a federation interop gate, not a production federation implementation. Labs may
+adopt parser-only helpers for backfill request/response bodies, event auth
+responses, state ID responses, and state-resolution interop evidence records.
+Room-version/state algorithm helpers are a separate candidate path and require
+parity vectors, p95 runtime thresholds, payload size/depth limits, artifact
+boundary review, and CI runtime impact review before implementation. Server
+persistence, missing-event recovery policy, request authentication, federation
+retry/backoff, remote trust policy, and full state-resolution correctness stay
+server-owned and outside this repository.
+
 SPEC-031 adoption record for issue #31: the Rust prototype now consumes the
 `houra-spec` `v0.2.0-pre.23` Matrix foundation vectors for Matrix error
 envelope parsing and identifier validation only. The WASM wrapper and
@@ -193,12 +245,12 @@ behavior.
 SPEC-039 adoption record: the Rust prototype now consumes the
 `houra-spec` snapshot `b174d1f4efff37902996d95122f1115e72284d75`
 (`v0.2.0-pre.58-13-gb174d1f`) `SPEC-039` Matrix Client-Server MVP live e2e gate
-vector as a repo-local integration gate over the existing `SPEC-030` through
-`SPEC-038` parser and binding surfaces. CI pins the Flutter, Rust, and
-TypeScript jobs to that same snapshot. The WASM wrapper and TypeScript facade
-expose this as manifest coverage only; live server/client execution, host-owned
-token and sync-token persistence, media transport, retries, storage, UI
-behavior, and Matrix full compliance stay outside this repository.
+vector as a repo-local integration gate over the parser and binding surfaces
+that existed at that point. CI pins the Flutter, Rust, and TypeScript jobs to
+that same snapshot. The WASM wrapper and TypeScript facade expose SPEC-039
+itself as manifest coverage only; live server/client execution, host-owned token
+and sync-token persistence, media transport, retries, storage, UI behavior, and
+Matrix full compliance stay outside this repository.
 
 SPEC-040 adoption record: the Rust prototype now consumes the
 `houra-spec` snapshot `4b80ab451e43299ff075e352eaa3a512ef2ccee0`
@@ -209,6 +261,123 @@ authorization decisions, state resolution, federation, event signing/hash
 verification, host persistence, and Matrix full compliance stay outside this
 repository.
 
+SPEC-048 shared-core adoption record for issue #63: the Rust prototype now
+consumes the `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
+(`v0.2.0-pre.58-43-g395c400`) SPEC-048 public room directory, filtered public
+room search, directory visibility, alias list, invite, stripped invite state,
+and representative forbidden-error vectors for parser-only room
+directory/alias/invite surface adoption. The WASM wrapper and TypeScript facade
+expose request descriptors, public response envelopes, stripped invite state,
+and Matrix error JSON envelopes without taking ownership of directory storage,
+visibility policy, federation invite signing, remote public room federation,
+third-party invite behavior, spaces hierarchy traversal, token persistence, or
+Matrix room directory support advertisement.
+
+SPEC-049 shared-core adoption record for issue #64: the Rust prototype now
+consumes the `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
+(`v0.2.0-pre.58-43-g395c400`) SPEC-049 kick, ban, unban, redaction,
+reporting, account moderation capability, admin lock/suspend, and representative
+forbidden-error vectors for parser-only moderation/reporting/admin surface
+adoption. The WASM wrapper and TypeScript facade expose request descriptors,
+redaction response, capability/status envelopes, and Matrix error JSON
+envelopes without taking ownership of authorization decisions, policy
+enforcement, appeal processes, moderation queue UI, audit logging, federation
+enforcement, token persistence, or Matrix moderation support advertisement.
+
+SPEC-051 shared-core adoption record for issue #66: the Rust prototype now
+consumes the `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
+(`v0.2.0-pre.58-43-g395c400`) SPEC-051 device key upload, one-time key upload,
+fallback key upload, one-time/fallback claim, malformed upload, and invalid
+algorithm vectors for parser-only device key surface adoption. The WASM wrapper
+and TypeScript facade expose key upload request/response, key claim
+request/response, and Matrix error JSON envelopes without taking ownership of
+Olm/Megolm key generation, private key storage, signature verification, trust
+policy decisions, claim lifecycle enforcement, token persistence, or Matrix
+E2EE support advertisement.
+
+SPEC-069 shared-core adoption record for issue #65: the Rust prototype now
+consumes the `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
+(`v0.2.0-pre.58-43-g395c400`) SPEC-069 device key query, all-devices query,
+unknown-device omission, missing-token, and malformed timeout vectors for
+parser-only device key query adoption. The WASM wrapper and TypeScript facade
+expose keys/query request descriptor, public response, and Matrix error JSON
+envelopes without taking ownership of signature verification, device trust
+decisions, secure storage, crypto verification, device list lifecycle, token
+persistence, or Matrix E2EE support advertisement.
+
+SPEC-054 adoption record for issue #69: the Rust prototype now consumes the
+`houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
+(`v0.2.0-pre.58-43-g395c400`) SPEC-054 SAS verification, cross-signing key
+lifecycle, invalid-signature, missing-token, and wrong-device failure vectors
+for parser-only verification envelope adoption. The WASM wrapper and TypeScript
+facade expose SAS to-device flow, cancel, public cross-signing key upload,
+signature upload, invalid-signature failure, missing-token gate, and
+wrong-device failure JSON envelopes without taking ownership of local SAS
+calculation, Ed25519 verification, Olm/Megolm sessions, cross-signing private
+keys, trust decisions, QR verification, account recovery UI, token persistence,
+or Matrix E2EE support advertisement.
+
+SPEC-053 adoption record for issue #68: the Rust prototype now consumes the
+`houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
+(`v0.2.0-pre.58-43-g395c400`) SPEC-053 key backup version lifecycle, session
+upload/restore, wrong-version, missing-session, owner-scope, and logout/relogin
+recovery vectors for parser-only key backup metadata adoption. The WASM wrapper
+and TypeScript facade expose version metadata, room key backup session metadata,
+upload response, error, owner-scope gate, and recovery evidence JSON envelopes
+without taking ownership of Megolm backup encryption/decryption, room key
+storage, recovery secret storage, backup ownership authorization policy,
+logout/relogin UX, token persistence, or Matrix E2EE support advertisement.
+
+SPEC-055 adoption record for issue #70: the Rust prototype now consumes the
+`houra-spec` SPEC-055 Matrix federation discovery and signing-key vectors for
+parser-only federation bootstrap adoption. The WASM wrapper and TypeScript
+facade expose server-name, well-known server, signing-key, key-query request,
+key-query response, and destination-resolution failure evidence JSON envelopes
+without taking ownership of outbound network policy, DNS/SRV/CNAME resolution,
+SSRF controls, redirect following, key cache lifecycle, notary trust policy,
+request signing, private signing keys, or production federation behavior.
+
+SPEC-056 adoption record for issue #71: the Rust prototype now consumes the
+`houra-spec` SPEC-056 Matrix federation transaction, make/send join, and invite
+vectors for parser-only federation envelope adoption. The WASM wrapper and
+TypeScript facade expose transaction body, transaction response, make_join
+response, send_join response, invite request, and invite response JSON
+envelopes without taking ownership of request authentication, network send,
+retry, storage, event acceptance policy, signing keys, room persistence, or
+full federation behavior.
+
+SPEC-069 Dart SDK adoption record for issue #99: the Flutter SDK prototype now
+consumes the sibling `houra-spec` `SPEC-069` device key query vectors for
+`POST /_matrix/client/v3/keys/query` request descriptor construction, public
+device-key response parsing, remote-failure field preservation, unknown
+user/device omission behavior, and Matrix `M_*` error-envelope mapping. This is
+query-only parser coverage; access-token persistence, transport retry policy,
+signature verification, trust UI, secure storage, Olm/Megolm sessions,
+encrypted-room behavior, key backup, verification UX, and Matrix E2EE support
+advertisement stay outside this repository.
+
+SPEC-051 Dart SDK adoption record for issue #102: the Flutter SDK prototype now
+consumes the sibling `houra-spec` `SPEC-051` key upload and claim vectors for
+`POST /_matrix/client/v3/keys/upload` and
+`POST /_matrix/client/v3/keys/claim` request descriptor construction, public
+`one_time_key_counts` parsing, public one-time/fallback key response parsing,
+remote-failure field preservation, and Matrix `M_*` error-envelope mapping.
+This is parser-only coverage; key generation, key storage, claim lifecycle,
+signature verification, trust UI, secure storage, Olm/Megolm sessions,
+encrypted-room behavior, key backup, verification UX, and Matrix E2EE support
+advertisement stay outside this repository.
+
+SPEC-052 Dart SDK adoption record for issue #67: the Flutter SDK prototype now
+consumes the sibling `houra-spec` `SPEC-052` to-device and encrypted-room
+vectors for `PUT /_matrix/client/v3/sendToDevice/m.room.encrypted/{txnId}`,
+`PUT /_matrix/client/v3/rooms/{roomId}/state/m.room.encryption/`,
+`PUT /_matrix/client/v3/rooms/{roomId}/send/m.room.encrypted/{txnId}`, and
+`GET /_matrix/client/v3/sync` request descriptor / public envelope parsing.
+This is envelope-only coverage; Olm/Megolm encryption or decryption, device
+trust, key backup, verification UX, secret storage, room-session lifecycle,
+federation to-device delivery, and Matrix E2EE support advertisement stay
+outside this repository.
+
 Shared-core artifact gate adoption record for issue #74: the TypeScript facade
 now fails closed when the Rust artifact manifest has an unexpected manifest
 schema version, crate name, crate version, ABI version, protocol boundary,
@@ -216,6 +385,18 @@ ordered covered SPEC list, or missing WASM binding kind. The facade exposes
 metadata-only release evidence from the validated manifest so release notes can
 record artifact compatibility without storing raw query, prompt, request,
 token, or secret values.
+
+Rust protocol-core crate publish readiness for issue #79: the
+`rust-protocol-core/` crate now has crates.io-facing package metadata,
+docs.rs metadata, and a crate-local README while keeping `publish = false`.
+The crate README is the docs.rs / package landing surface for its lab boundary:
+the Rust core is a parser / validation helper checked against `houra-spec`, not
+canonical behavior and not a Matrix, server, client, storage, crypto, or
+federation support claim. Release evidence records this as
+`checklist-only-publish-deferred` and keeps package publication blocked until a
+focused release PR confirms ownership, removes `publish = false`, reviews the
+docs.rs API surface, and passes `cargo package --list` plus
+`cargo publish --dry-run` on the release head.
 
 Out of scope for this package version:
 
@@ -527,7 +708,33 @@ External registration order:
 
 Current package-specific follow-ups:
 
-- #79: Rust protocol-core crate publication readiness.
+- #63: SPEC-048 room directory / aliases / invites parser adoption. Completed
+  as parser-only shared-core adoption.
+- #64: SPEC-049 moderation / reporting / admin controls parser adoption.
+  Completed as parser-only shared-core adoption.
+- #65: SPEC-069 device key query parser/request descriptor adoption. Completed
+  as parser-only shared-core adoption.
+- #66: SPEC-051 device / one-time / fallback keys parser adoption. Completed as
+  parser-only shared-core adoption.
+- #68: SPEC-053 key backup metadata parser adoption. Completed as parser-only
+  shared-core adoption.
+- #69: SPEC-054 verification / cross-signing / wrong-device parser adoption.
+  Completed as parser-only shared-core adoption.
+- #70: SPEC-055 federation discovery / signing key parser adoption. Completed
+  as parser-only shared-core adoption.
+- #71: SPEC-056 federation transaction / join / invite parser adoption.
+  Completed as parser-only shared-core adoption.
+- #72: SPEC-057 backfill / event_auth / state interop candidates. Completed as
+  candidate criteria only; parser and algorithm helper implementation remain
+  split into follow-up issues.
+- #73: SPEC-058〜060 ecosystem service parser candidates. Completed as
+  candidate criteria only; parser implementation remains split by SPEC.
+- #76: N-API / Node binding candidate gate. Completed as candidate criteria
+  only; native binding implementation and publication remain deferred.
+- #77: Dart FFI / Dart web binding candidate gate. Completed as candidate
+  criteria only; implementation and publication remain deferred.
+- #79: Rust protocol-core crate publication readiness. Completed as a
+  metadata / checklist gate; actual crates.io publication remains deferred.
 - #80: TypeScript / WASM facade npm publish gate. Completed.
 - #81: shared-core parity / performance evidence gate. Completed.
 - Future package publication issues must remove `publish_to: none`,
