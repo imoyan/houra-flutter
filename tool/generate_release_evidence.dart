@@ -13,6 +13,7 @@ const expectedSpecIds = [
   'SPEC-038',
   'SPEC-039',
   'SPEC-040',
+  'SPEC-045',
   'SPEC-048',
   'SPEC-049',
   'SPEC-051',
@@ -164,6 +165,33 @@ void main(List<String> args) {
       'primary_runtime_target': 'browser-esm',
       'secondary_facade_targets': ['next', 'vue'],
       'node_runtime_status': 'package-validation-and-tests-only',
+    },
+    'profile_account_data_parser_adoption': {
+      'issue': 60,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-045'],
+      'parity_vectors': [
+        'test-vectors/sync/matrix-profile-get-basic.json',
+        'test-vectors/sync/matrix-profile-displayname-basic.json',
+        'test-vectors/sync/matrix-account-data-global-basic.json',
+        'test-vectors/sync/matrix-account-data-room-basic.json',
+        'test-vectors/sync/matrix-room-tags-basic.json',
+      ],
+      'parser_only_surfaces': [
+        'profile response envelope',
+        'profile field update request descriptor',
+        'global and room account-data content envelope',
+        'room tag request descriptor',
+        'room tags response envelope',
+      ],
+      'out_of_scope': [
+        'profile storage',
+        'account-data storage',
+        'sync persistence',
+        'authorization decisions',
+        'room tag UI policy',
+        'Matrix profile/account-data/tag support advertisement',
+      ],
     },
     'room_directory_parser_adoption': {
       'issue': 63,
@@ -534,7 +562,7 @@ void main(List<String> args) {
         'command': 'cargo test --locked',
         'guards': [
           'artifact manifest serializes stably',
-          'covered SPEC ids include SPEC-030 through SPEC-040, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, and SPEC-069',
+          'covered SPEC ids include SPEC-030 through SPEC-040, SPEC-045, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, and SPEC-069',
         ],
       },
       {

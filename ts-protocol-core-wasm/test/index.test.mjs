@@ -969,6 +969,73 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixProfileResponseJson() {
+      return JSON.stringify(
+        overrides.profileResponseEnvelope ?? {
+          ok: true,
+          value: {
+            fields: {
+              displayname: "Alice",
+              avatar_url: "mxc://example.test/avatar-alice",
+              "m.tz": "Asia/Tokyo",
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixProfileFieldUpdateRequestJson() {
+      return JSON.stringify(
+        overrides.profileFieldUpdateRequestEnvelope ?? {
+          ok: true,
+          value: {
+            key_name: "displayname",
+            value: "Alice Example",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixAccountDataContentJson() {
+      return JSON.stringify(
+        overrides.accountDataContentEnvelope ?? {
+          ok: true,
+          value: {
+            content: {
+              theme: "dark",
+              density: "compact",
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRoomTagJson() {
+      return JSON.stringify(
+        overrides.roomTagEnvelope ?? {
+          ok: true,
+          value: {
+            order: 0.25,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRoomTagsJson() {
+      return JSON.stringify(
+        overrides.roomTagsEnvelope ?? {
+          ok: true,
+          value: {
+            tags: {
+              "m.favourite": {
+                order: 0.25,
+              },
+            },
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixSyncResponseJson() {
       return JSON.stringify(
         overrides.syncResponseEnvelope ?? {
@@ -1741,6 +1808,64 @@ test("maps SPEC-069 device key query envelopes", () => {
     ).parseMatrixDeviceKeyError("{}").value.errcode,
     "M_MISSING_TOKEN",
   );
+});
+
+test("maps SPEC-045 profile, account data, and room tag envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const profile = readSpecVector("test-vectors/sync/matrix-profile-get-basic.json");
+  const profileUpdate = readSpecVector(
+    "test-vectors/sync/matrix-profile-displayname-basic.json",
+  );
+  const globalAccountData = readSpecVector(
+    "test-vectors/sync/matrix-account-data-global-basic.json",
+  );
+  const roomAccountData = readSpecVector(
+    "test-vectors/sync/matrix-account-data-room-basic.json",
+  );
+  const roomTags = readSpecVector("test-vectors/sync/matrix-room-tags-basic.json");
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-045"));
+  for (const vector of [
+    profile,
+    profileUpdate,
+    globalAccountData,
+    roomAccountData,
+    roomTags,
+  ]) {
+    assert.equal(vector.contract, "SPEC-045");
+  }
+
+  assert.equal(core.parseMatrixProfileResponse("{}").value.fields.displayname, "Alice");
+  assert.deepEqual(core.parseMatrixProfileFieldUpdateRequest("{}"), {
+    ok: true,
+    value: {
+      key_name: "displayname",
+      value: "Alice Example",
+    },
+    error: null,
+  });
+  assert.equal(
+    core.parseMatrixAccountDataContent("{}").value.content.density,
+    "compact",
+  );
+  assert.equal(core.parseMatrixRoomTag("{}").value.order, 0.25);
+  assert.equal(
+    core.parseMatrixRoomTags("{}").value.tags["m.favourite"].order,
+    0.25,
+  );
+
+  const deletedTagsCore = createHouraProtocolCore(
+    binding({
+      roomTagsEnvelope: {
+        ok: true,
+        value: {
+          tags: {},
+        },
+        error: null,
+      },
+    }),
+  );
+  assert.deepEqual(deletedTagsCore.parseMatrixRoomTags("{}").value.tags, {});
 });
 
 test("maps SPEC-049 moderation, reporting, and admin envelopes", () => {

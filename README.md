@@ -51,8 +51,9 @@ device/session vectors, `SPEC-035` Matrix room membership/state MVP vectors,
 `SPEC-036` Matrix event/messages vectors, `SPEC-037` Matrix sync response
 vectors, `SPEC-038` Matrix media parser vectors, the `SPEC-039` integration
 gate vector that ties those parser surfaces together, and the `SPEC-040` Matrix
-event DAG/auth-event vectors. It is not published, canonical, or required by
-the Flutter SDK.
+event DAG/auth-event vectors. It also parses the `SPEC-045` Matrix profile,
+account-data, and room tag parser-only vectors. It is not published, canonical,
+or required by the Flutter SDK.
 
 The Rust prototype exposes `abi_version()` and `artifact_manifest()` as
 implementation metadata for future TS / Dart bindings. Bindings can use that
@@ -65,8 +66,9 @@ a focused follow-up.
 
 The prototype also exposes binding-safe JSON envelopes for `SPEC-030`,
 `SPEC-031`, `SPEC-032`, `SPEC-033`, `SPEC-034`, `SPEC-035`, `SPEC-036`, and
-`SPEC-037` / `SPEC-038`; `SPEC-039` and `SPEC-040` are exposed only as manifest
-coverage and repo-local vector gates over those existing surfaces.
+`SPEC-037` / `SPEC-038` / `SPEC-045`; `SPEC-039` and `SPEC-040` are exposed
+only as manifest coverage and repo-local vector gates over those existing
+surfaces.
 Those APIs return a single `ok` / `value` / `error` object so WASM, N-API, FFI,
 and JS interop adapters can cross the language boundary once per parse or
 validation call instead of bouncing through many small calls. The envelope
@@ -77,9 +79,9 @@ contracts and test vectors.
 `rust-protocol-core-wasm/` is the first thin binding prototype for browser,
 Vue, and Next client experiments. It uses `wasm-bindgen` to export the manifest
 and `SPEC-030` / `SPEC-031` / `SPEC-032` / `SPEC-033` / `SPEC-034` /
-`SPEC-035` / `SPEC-036` / `SPEC-037` / `SPEC-038` JSON envelopes plus
-`SPEC-039` / `SPEC-040` manifest coverage, but it does not own HTTP, retries,
-cancellation, token storage, UI state, or framework lifecycle.
+`SPEC-035` / `SPEC-036` / `SPEC-037` / `SPEC-038` / `SPEC-045` JSON envelopes
+plus `SPEC-039` / `SPEC-040` manifest coverage, but it does not own HTTP,
+retries, cancellation, token storage, UI state, or framework lifecycle.
 Generated JS, `.wasm` files, generated-artifact packaging, and Next server /
 Node bindings are intentionally left out until a focused package artifact issue
 exists. The TypeScript facade metadata below only packages the compiled facade
@@ -260,6 +262,18 @@ TypeScript facade expose this as metadata coverage; room storage, full
 authorization decisions, state resolution, federation, event signing/hash
 verification, host persistence, and Matrix full compliance stay outside this
 repository.
+
+SPEC-045 shared-core adoption record for issue #60: the Rust prototype now
+consumes the `houra-spec` snapshot `397ef7f09154cba053ef87981031ad18b3950dfc`
+(`v0.2.0-pre.58-54-g397ef7f`) SPEC-045 profile get/update,
+global account-data, room account-data, and room tags vectors for parser-only
+profile/account-data/tag surface adoption. The WASM wrapper and TypeScript
+facade expose profile response envelopes, profile field update request
+descriptors, account-data content envelopes, room tag request descriptors, and
+room tags response envelopes without taking ownership of profile storage,
+account-data storage, sync-token persistence, authorization decisions, room tag
+UI policy, token persistence, or Matrix profile/account-data/tag support
+advertisement.
 
 SPEC-048 shared-core adoption record for issue #63: the Rust prototype now
 consumes the `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
@@ -708,6 +722,8 @@ External registration order:
 
 Current package-specific follow-ups:
 
+- #60: SPEC-045 profile / account data / tags parser adoption. Completed as
+  parser-only shared-core adoption.
 - #63: SPEC-048 room directory / aliases / invites parser adoption. Completed
   as parser-only shared-core adoption.
 - #64: SPEC-049 moderation / reporting / admin controls parser adoption.
