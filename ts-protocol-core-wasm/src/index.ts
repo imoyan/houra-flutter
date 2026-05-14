@@ -16,6 +16,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-038",
   "SPEC-039",
   "SPEC-040",
+  "SPEC-045",
   "SPEC-048",
   "SPEC-049",
   "SPEC-051",
@@ -86,6 +87,11 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixMediaContentUriJson(contentUri: string): string;
   parseMatrixMediaUploadResponseJson(responseBody: string): string;
   parseMatrixMessagesResponseJson(responseBody: string): string;
+  parseMatrixProfileResponseJson(responseBody: string): string;
+  parseMatrixProfileFieldUpdateRequestJson(responseBody: string): string;
+  parseMatrixAccountDataContentJson(responseBody: string): string;
+  parseMatrixRoomTagJson(responseBody: string): string;
+  parseMatrixRoomTagsJson(responseBody: string): string;
   parseMatrixSyncResponseJson(responseBody: string): string;
   parseMatrixRegistrationAvailabilityJson(responseBody: string): string;
   parseMatrixRegistrationSessionJson(responseBody: string): string;
@@ -273,6 +279,27 @@ export interface MatrixSyncResponse {
     invite: Record<string, unknown>;
     leave: Record<string, unknown>;
   };
+}
+
+export interface MatrixProfileResponse {
+  fields: Record<string, unknown>;
+}
+
+export interface MatrixProfileFieldUpdateRequest {
+  key_name: string;
+  value: unknown;
+}
+
+export interface MatrixAccountDataContent {
+  content: Record<string, unknown>;
+}
+
+export interface MatrixRoomTag {
+  order?: number;
+}
+
+export interface MatrixRoomTags {
+  tags: Record<string, MatrixRoomTag>;
 }
 
 export interface MatrixMediaContentUri {
@@ -810,6 +837,17 @@ export interface HouraProtocolCoreFacade {
   parseMatrixMessagesResponse(
     responseBody: string,
   ): ProtocolResult<MatrixMessagesResponse>;
+  parseMatrixProfileResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixProfileResponse>;
+  parseMatrixProfileFieldUpdateRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixProfileFieldUpdateRequest>;
+  parseMatrixAccountDataContent(
+    responseBody: string,
+  ): ProtocolResult<MatrixAccountDataContent>;
+  parseMatrixRoomTag(responseBody: string): ProtocolResult<MatrixRoomTag>;
+  parseMatrixRoomTags(responseBody: string): ProtocolResult<MatrixRoomTags>;
   parseMatrixSyncResponse(
     responseBody: string,
   ): ProtocolResult<MatrixSyncResponse>;
@@ -1266,6 +1304,41 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixMessagesResponseEnvelope(envelope);
+    },
+    parseMatrixProfileResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixProfileResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixProfileResponseEnvelope(envelope);
+    },
+    parseMatrixProfileFieldUpdateRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixProfileFieldUpdateRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixProfileFieldUpdateRequestEnvelope(envelope);
+    },
+    parseMatrixAccountDataContent(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixAccountDataContentJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixAccountDataContentEnvelope(envelope);
+    },
+    parseMatrixRoomTag(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRoomTagJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRoomTagEnvelope(envelope);
+    },
+    parseMatrixRoomTags(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRoomTagsJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRoomTagsEnvelope(envelope);
     },
     parseMatrixSyncResponse(responseBody: string) {
       const envelope = parseJsonObject(
@@ -2520,6 +2593,59 @@ function readMatrixMessagesResponseEnvelope(
   });
 }
 
+function readMatrixProfileResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixProfileResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    fields: readRecord(value, "fields", "profile response"),
+  }));
+}
+
+function readMatrixProfileFieldUpdateRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixProfileFieldUpdateRequest> {
+  return readProtocolResult(envelope, (value) => ({
+    key_name: readString(value, "key_name", "invalid_envelope"),
+    value: value.value,
+  }));
+}
+
+function readMatrixAccountDataContentEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixAccountDataContent> {
+  return readProtocolResult(envelope, (value) => ({
+    content: readRecord(value, "content", "account data content"),
+  }));
+}
+
+function readMatrixRoomTagEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRoomTag> {
+  return readProtocolResult(envelope, readMatrixRoomTag);
+}
+
+function readMatrixRoomTagsEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRoomTags> {
+  return readProtocolResult(envelope, (value) => {
+    const tags: Record<string, MatrixRoomTag> = {};
+    for (const [tag, entry] of Object.entries(
+      readRecord(value, "tags", "room tags"),
+    )) {
+      tags[tag] = readMatrixRoomTag(assertRecord(entry, `tags.${tag}`));
+    }
+    return { tags };
+  });
+}
+
+function readMatrixRoomTag(value: Record<string, unknown>): MatrixRoomTag {
+  const tag: MatrixRoomTag = {};
+  readOptionalFiniteNumber(value, "order", (order) => {
+    tag.order = order;
+  });
+  return tag;
+}
+
 function readMatrixMediaContentUriEnvelope(
   envelope: Record<string, unknown>,
 ): ProtocolResult<MatrixMediaContentUri> {
@@ -2926,6 +3052,24 @@ function readOptionalNumber(
     throw new HouraProtocolCoreFacadeError(
       "invalid_envelope",
       `${field} must be an integer`,
+    );
+  }
+  apply(value);
+}
+
+function readOptionalFiniteNumber(
+  source: Record<string, unknown>,
+  field: string,
+  apply: (value: number) => void,
+): void {
+  const value = source[field];
+  if (value === null || value === undefined) {
+    return;
+  }
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new HouraProtocolCoreFacadeError(
+      "invalid_envelope",
+      `${field} must be a finite number`,
     );
   }
   apply(value);

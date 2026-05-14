@@ -24,8 +24,8 @@ pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
-    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-048", "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054",
-    "SPEC-055", "SPEC-056", "SPEC-069",
+    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-048", "SPEC-049", "SPEC-051", "SPEC-053",
+    "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-069",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -249,6 +249,33 @@ pub struct MatrixSyncResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub presence: Option<MatrixSyncBasicEventList>,
     pub rooms: MatrixSyncRooms,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixProfileResponse {
+    pub fields: BTreeMap<String, Value>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixProfileFieldUpdateRequest {
+    pub key_name: String,
+    pub value: Value,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixAccountDataContent {
+    pub content: BTreeMap<String, Value>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixRoomTag {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub order: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixRoomTags {
+    pub tags: BTreeMap<String, MatrixRoomTag>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -837,6 +864,41 @@ pub struct MatrixSyncResponseParseEnvelope {
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixProfileResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixProfileResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixProfileFieldUpdateRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixProfileFieldUpdateRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixAccountDataContentParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixAccountDataContent>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixRoomTagParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRoomTag>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixRoomTagsParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRoomTags>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixMediaContentUriParseEnvelope {
     pub ok: bool,
@@ -1198,6 +1260,7 @@ pub enum ProtocolError {
     InvalidFederationField { field: String },
     InvalidVerificationField { field: String },
     InvalidDeviceKeyField { field: String },
+    InvalidProfileAccountDataField { field: String },
     InvalidRoomDirectoryField { field: String },
     InvalidModerationField { field: String },
     InvalidKeyBackupField { field: String },
@@ -1224,6 +1287,9 @@ impl ProtocolError {
             ProtocolError::InvalidFederationField { .. } => "invalid_federation_field",
             ProtocolError::InvalidVerificationField { .. } => "invalid_verification_field",
             ProtocolError::InvalidDeviceKeyField { .. } => "invalid_device_key_field",
+            ProtocolError::InvalidProfileAccountDataField { .. } => {
+                "invalid_profile_account_data_field"
+            }
             ProtocolError::InvalidRoomDirectoryField { .. } => "invalid_room_directory_field",
             ProtocolError::InvalidModerationField { .. } => "invalid_moderation_field",
             ProtocolError::InvalidKeyBackupField { .. } => "invalid_key_backup_field",
@@ -1267,6 +1333,9 @@ impl ProtocolError {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidDeviceKeyField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidProfileAccountDataField { field } => {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidRoomDirectoryField { field } => {
@@ -1345,6 +1414,12 @@ impl std::fmt::Display for ProtocolError {
             }
             ProtocolError::InvalidDeviceKeyField { field } => {
                 write!(formatter, "{field} is not a valid Matrix device key value")
+            }
+            ProtocolError::InvalidProfileAccountDataField { field } => {
+                write!(
+                    formatter,
+                    "{field} is not a valid Matrix profile/account-data value"
+                )
             }
             ProtocolError::InvalidRoomDirectoryField { field } => {
                 write!(
@@ -1763,6 +1838,16 @@ struct MatrixDeviceKeyQueryRequestWire {
 struct MatrixDeviceKeyQueryResponseWire {
     failures: Option<BTreeMap<String, BTreeMap<String, String>>>,
     device_keys: Option<BTreeMap<String, BTreeMap<String, MatrixDeviceKeysUploadDeviceWire>>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRoomTagWire {
+    order: Option<f64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRoomTagsWire {
+    tags: Option<BTreeMap<String, MatrixRoomTagWire>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -2654,6 +2739,165 @@ pub fn parse_matrix_sync_response_envelope(bytes: &[u8]) -> MatrixSyncResponsePa
 
 pub fn parse_matrix_sync_response_json(bytes: &[u8]) -> String {
     serde_json::to_string(&parse_matrix_sync_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_profile_response(bytes: &[u8]) -> Result<MatrixProfileResponse, ProtocolError> {
+    let fields = parse_profile_account_data_object(bytes, "profile_response")?;
+    for (key, value) in &fields {
+        validate_profile_field(key, value)?;
+    }
+    Ok(MatrixProfileResponse { fields })
+}
+
+pub fn parse_matrix_profile_response_envelope(bytes: &[u8]) -> MatrixProfileResponseParseEnvelope {
+    match parse_matrix_profile_response(bytes) {
+        Ok(value) => MatrixProfileResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixProfileResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_profile_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_profile_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_profile_field_update_request(
+    bytes: &[u8],
+) -> Result<MatrixProfileFieldUpdateRequest, ProtocolError> {
+    let mut fields = parse_profile_account_data_object(bytes, "profile_field_update_request")?;
+    if fields.len() != 1 {
+        return Err(invalid_profile_account_data_field(
+            "profile_field_update_request",
+        ));
+    }
+    let (key_name, value) = fields
+        .pop_first()
+        .expect("single-entry profile request should have a field");
+    validate_profile_field(&key_name, &value)?;
+    Ok(MatrixProfileFieldUpdateRequest { key_name, value })
+}
+
+pub fn parse_matrix_profile_field_update_request_envelope(
+    bytes: &[u8],
+) -> MatrixProfileFieldUpdateRequestParseEnvelope {
+    match parse_matrix_profile_field_update_request(bytes) {
+        Ok(value) => MatrixProfileFieldUpdateRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixProfileFieldUpdateRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_profile_field_update_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_profile_field_update_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_account_data_content(
+    bytes: &[u8],
+) -> Result<MatrixAccountDataContent, ProtocolError> {
+    Ok(MatrixAccountDataContent {
+        content: parse_profile_account_data_object(bytes, "account_data_content")?,
+    })
+}
+
+pub fn parse_matrix_account_data_content_envelope(
+    bytes: &[u8],
+) -> MatrixAccountDataContentParseEnvelope {
+    match parse_matrix_account_data_content(bytes) {
+        Ok(value) => MatrixAccountDataContentParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixAccountDataContentParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_account_data_content_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_account_data_content_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_room_tag(bytes: &[u8]) -> Result<MatrixRoomTag, ProtocolError> {
+    let wire: MatrixRoomTagWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    room_tag_from_wire(wire, "room_tag")
+}
+
+pub fn parse_matrix_room_tag_envelope(bytes: &[u8]) -> MatrixRoomTagParseEnvelope {
+    match parse_matrix_room_tag(bytes) {
+        Ok(value) => MatrixRoomTagParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRoomTagParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_room_tag_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_room_tag_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_room_tags(bytes: &[u8]) -> Result<MatrixRoomTags, ProtocolError> {
+    let wire: MatrixRoomTagsWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let tags = wire
+        .tags
+        .ok_or_else(|| invalid_profile_account_data_field("room_tags.tags"))?
+        .into_iter()
+        .map(|(tag, wire)| {
+            if tag.is_empty() {
+                return Err(invalid_profile_account_data_field("room_tags.tag"));
+            }
+            Ok((tag, room_tag_from_wire(wire, "room_tags.tag")?))
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?;
+    Ok(MatrixRoomTags { tags })
+}
+
+pub fn parse_matrix_room_tags_envelope(bytes: &[u8]) -> MatrixRoomTagsParseEnvelope {
+    match parse_matrix_room_tags(bytes) {
+        Ok(value) => MatrixRoomTagsParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRoomTagsParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_room_tags_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_room_tags_envelope(bytes))
         .expect("parse envelope serialization should be infallible")
 }
 
@@ -5204,6 +5448,12 @@ fn invalid_device_key_field(field: &str) -> ProtocolError {
     }
 }
 
+fn invalid_profile_account_data_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidProfileAccountDataField {
+        field: field.to_owned(),
+    }
+}
+
 fn invalid_room_directory_field(field: &str) -> ProtocolError {
     ProtocolError::InvalidRoomDirectoryField {
         field: field.to_owned(),
@@ -5334,6 +5584,58 @@ fn room_directory_string_array(
     } else {
         Ok(values)
     }
+}
+
+fn parse_profile_account_data_object(
+    bytes: &[u8],
+    field: &str,
+) -> Result<BTreeMap<String, Value>, ProtocolError> {
+    let value: Value =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let object = value
+        .as_object()
+        .ok_or_else(|| invalid_profile_account_data_field(field))?;
+    Ok(object
+        .iter()
+        .map(|(key, value)| (key.clone(), value.clone()))
+        .collect())
+}
+
+fn validate_profile_field(key: &str, value: &Value) -> Result<(), ProtocolError> {
+    if key.is_empty() {
+        return Err(invalid_profile_account_data_field("profile.key"));
+    }
+    match key {
+        "displayname" => {
+            if !value.is_string() {
+                return Err(invalid_profile_account_data_field("profile.displayname"));
+            }
+        }
+        "avatar_url" => match value.as_str() {
+            Some(value) if value.starts_with("mxc://") && value.len() > "mxc://".len() => {}
+            _ => return Err(invalid_profile_account_data_field("profile.avatar_url")),
+        },
+        "m.tz" => match value.as_str() {
+            Some(value) if !value.is_empty() => {}
+            _ => return Err(invalid_profile_account_data_field("profile.m.tz")),
+        },
+        _ => {}
+    }
+    Ok(())
+}
+
+fn room_tag_from_wire(
+    wire: MatrixRoomTagWire,
+    field: &str,
+) -> Result<MatrixRoomTag, ProtocolError> {
+    if let Some(order) = wire.order {
+        if !(0.0..=1.0).contains(&order) {
+            return Err(invalid_profile_account_data_field(&format!(
+                "{field}.order"
+            )));
+        }
+    }
+    Ok(MatrixRoomTag { order: wire.order })
 }
 
 fn public_room_from_wire(
@@ -6133,8 +6435,8 @@ mod tests {
             manifest.supported_specs,
             vec![
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
-                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-048", "SPEC-049", "SPEC-051",
-                "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-069"
+                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-048", "SPEC-049",
+                "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-069"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -6680,6 +6982,115 @@ mod tests {
             .supported_specs
             .iter()
             .any(|spec| spec == "SPEC-049"));
+    }
+
+    #[test]
+    fn parses_spec_045_profile_account_data_and_tags_vectors() {
+        let profile = read_spec_vector("test-vectors/sync/matrix-profile-get-basic.json");
+        assert_eq!(profile["contract"], "SPEC-045");
+        let parsed_profile = parse_matrix_profile_response(
+            profile["expected"]["body_contains"].to_string().as_bytes(),
+        )
+        .expect("SPEC-045 profile response should parse");
+        assert_eq!(
+            parsed_profile
+                .fields
+                .get("displayname")
+                .and_then(Value::as_str),
+            Some("Alice")
+        );
+        assert_eq!(
+            parsed_profile.fields.get("m.tz").and_then(Value::as_str),
+            Some("Asia/Tokyo")
+        );
+
+        let profile_update =
+            read_spec_vector("test-vectors/sync/matrix-profile-displayname-basic.json");
+        let parsed_profile_update = parse_matrix_profile_field_update_request(
+            profile_update["request"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-045 profile update should parse");
+        assert_eq!(parsed_profile_update.key_name, "displayname");
+        assert_eq!(parsed_profile_update.value.as_str(), Some("Alice Example"));
+
+        let global_account_data =
+            read_spec_vector("test-vectors/sync/matrix-account-data-global-basic.json");
+        let global_steps = global_account_data["event"]["steps"]
+            .as_array()
+            .expect("global account data vector should contain steps");
+        let parsed_global_body =
+            parse_matrix_account_data_content(global_steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-045 global account data body should parse");
+        assert_eq!(
+            parsed_global_body
+                .content
+                .get("theme")
+                .and_then(Value::as_str),
+            Some("dark")
+        );
+        let parsed_global_sync = parse_matrix_account_data_content(
+            global_steps[2]["expected_account_data_event"]["content"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-045 global sync account data event content should parse");
+        assert_eq!(
+            parsed_global_sync
+                .content
+                .get("density")
+                .and_then(Value::as_str),
+            Some("compact")
+        );
+
+        let room_account_data =
+            read_spec_vector("test-vectors/sync/matrix-account-data-room-basic.json");
+        let room_steps = room_account_data["event"]["steps"]
+            .as_array()
+            .expect("room account data vector should contain steps");
+        let parsed_room_body =
+            parse_matrix_account_data_content(room_steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-045 room account data body should parse");
+        assert_eq!(
+            parsed_room_body
+                .content
+                .get("muted")
+                .and_then(Value::as_bool),
+            Some(true)
+        );
+
+        let room_tags = read_spec_vector("test-vectors/sync/matrix-room-tags-basic.json");
+        let tag_steps = room_tags["event"]["steps"]
+            .as_array()
+            .expect("room tags vector should contain steps");
+        let parsed_tag = parse_matrix_room_tag(tag_steps[0]["body"].to_string().as_bytes())
+            .expect("SPEC-045 room tag body should parse");
+        assert_eq!(parsed_tag.order, Some(0.25));
+        let parsed_tags =
+            parse_matrix_room_tags(tag_steps[1]["expected_body"].to_string().as_bytes())
+                .expect("SPEC-045 room tags response should parse");
+        assert_eq!(
+            parsed_tags
+                .tags
+                .get("m.favourite")
+                .and_then(|tag| tag.order),
+            Some(0.25)
+        );
+        let parsed_deleted_tags =
+            parse_matrix_room_tags(tag_steps[3]["expected_body"].to_string().as_bytes())
+                .expect("SPEC-045 empty room tags response should parse");
+        assert!(parsed_deleted_tags.tags.is_empty());
+
+        assert!(parse_matrix_room_tag(br#"{"order":1.5}"#).is_err());
+        assert!(parse_matrix_profile_field_update_request(
+            br#"{"displayname":"Alice","m.tz":"Asia/Tokyo"}"#
+        )
+        .is_err());
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-045"));
     }
 
     #[test]

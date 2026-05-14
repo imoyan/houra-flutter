@@ -132,6 +132,31 @@ pub fn parse_matrix_sync_response_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_sync_response_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixProfileResponseJson)]
+pub fn parse_matrix_profile_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_profile_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixProfileFieldUpdateRequestJson)]
+pub fn parse_matrix_profile_field_update_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_profile_field_update_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixAccountDataContentJson)]
+pub fn parse_matrix_account_data_content_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_account_data_content_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixRoomTagJson)]
+pub fn parse_matrix_room_tag_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_room_tag_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixRoomTagsJson)]
+pub fn parse_matrix_room_tags_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_room_tags_json(response_body.as_bytes())
+}
+
 #[wasm_bindgen(js_name = parseMatrixMediaContentUriJson)]
 pub fn parse_matrix_media_content_uri_json(content_uri: &str) -> String {
     houra_protocol_core::parse_matrix_media_content_uri_json(content_uri)
@@ -377,6 +402,11 @@ mod tests {
             .as_array()
             .expect("supported_specs should be an array")
             .iter()
+            .any(|spec| spec == "SPEC-045"));
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
             .any(|spec| spec == "SPEC-051"));
         assert!(manifest["supported_specs"]
             .as_array()
@@ -467,6 +497,36 @@ mod tests {
                 "{\"content_uri\":\"mxc://example.test/media1\"}",
             ),
             "{\"ok\":true,\"value\":{\"content_uri\":\"mxc://example.test/media1\"},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_profile_account_data_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_profile_response_json(
+                "{\"displayname\":\"Alice\",\"avatar_url\":\"mxc://example.test/avatar-alice\",\"m.tz\":\"Asia/Tokyo\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"fields\":{\"avatar_url\":\"mxc://example.test/avatar-alice\",\"displayname\":\"Alice\",\"m.tz\":\"Asia/Tokyo\"}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_profile_field_update_request_json(
+                "{\"displayname\":\"Alice Example\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"key_name\":\"displayname\",\"value\":\"Alice Example\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_account_data_content_json(
+                "{\"theme\":\"dark\",\"density\":\"compact\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"content\":{\"density\":\"compact\",\"theme\":\"dark\"}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_room_tag_json("{\"order\":0.25}"),
+            "{\"ok\":true,\"value\":{\"order\":0.25},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_room_tags_json("{\"tags\":{\"m.favourite\":{\"order\":0.25}}}"),
+            "{\"ok\":true,\"value\":{\"tags\":{\"m.favourite\":{\"order\":0.25}}},\"error\":null}"
         );
     }
 

@@ -83,6 +83,8 @@ The current package implements:
 - SPEC-010 Timeline
 - SPEC-011 Basic Sync
 - SPEC-020 Media
+- SPEC-045 Matrix Profile / Account Data / Tags parser-only request
+  descriptors, content envelopes, and room tag envelopes only
 - SPEC-048 Matrix Room Directory / Aliases / Invites request descriptors,
   public response envelopes, stripped invite state envelopes, and Matrix error
   envelopes only
