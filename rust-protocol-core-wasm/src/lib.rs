@@ -235,6 +235,16 @@ pub fn parse_matrix_device_key_error_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_device_key_error_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixDeviceKeyQueryRequestJson)]
+pub fn parse_matrix_device_key_query_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_device_key_query_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixDeviceKeyQueryResponseJson)]
+pub fn parse_matrix_device_key_query_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_device_key_query_response_json(response_body.as_bytes())
+}
+
 #[wasm_bindgen(js_name = parseMatrixKeyBackupVersionCreateResponseJson)]
 pub fn parse_matrix_key_backup_version_create_response_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_key_backup_version_create_response_json(
@@ -523,6 +533,18 @@ mod tests {
                 "{\"status\":400,\"error\":{\"errcode\":\"M_INVALID_PARAM\",\"error\":\"Unsupported one-time key algorithm.\"}}",
             ),
             "{\"ok\":true,\"value\":{\"status\":400,\"errcode\":\"M_INVALID_PARAM\",\"error\":\"Unsupported one-time key algorithm.\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_device_key_query_request_json(
+                "{\"device_keys\":{\"@alice:example.test\":[\"DEVICE1\"]},\"timeout\":10000}",
+            ),
+            "{\"ok\":true,\"value\":{\"device_keys\":{\"@alice:example.test\":[\"DEVICE1\"]},\"timeout\":10000},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_device_key_query_response_json(
+                "{\"failures\":{},\"device_keys\":{\"@alice:example.test\":{\"DEVICE1\":{\"user_id\":\"@alice:example.test\",\"device_id\":\"DEVICE1\",\"algorithms\":[\"m.olm.v1.curve25519-aes-sha2\",\"m.megolm.v1.aes-sha2\"],\"keys\":{\"curve25519:DEVICE1\":\"curve25519-public-device1\",\"ed25519:DEVICE1\":\"ed25519-public-device1\"},\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-device1\"}}}}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"failures\":{},\"device_keys\":{\"@alice:example.test\":{\"DEVICE1\":{\"user_id\":\"@alice:example.test\",\"device_id\":\"DEVICE1\",\"algorithms\":[\"m.olm.v1.curve25519-aes-sha2\",\"m.megolm.v1.aes-sha2\"],\"keys\":{\"curve25519:DEVICE1\":\"curve25519-public-device1\",\"ed25519:DEVICE1\":\"ed25519-public-device1\"},\"signatures\":{\"@alice:example.test\":{\"ed25519:DEVICE1\":\"signature-device1\"}}}}},\"private_key_material_returned\":false,\"trust_decision_made\":false},\"error\":null}"
         );
     }
 

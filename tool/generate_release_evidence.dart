@@ -18,6 +18,7 @@ const expectedSpecIds = [
   'SPEC-054',
   'SPEC-055',
   'SPEC-056',
+  'SPEC-069',
 ];
 
 void main(List<String> args) {
@@ -187,6 +188,33 @@ void main(List<String> args) {
         'signature verification',
         'trust policy decisions',
         'claim lifecycle enforcement',
+        'Matrix E2EE support advertisement',
+      ],
+    },
+    'device_key_query_parser_adoption': {
+      'issue': 65,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-069'],
+      'parity_vectors': [
+        'test-vectors/auth/matrix-keys-query-basic.json',
+        'test-vectors/auth/matrix-keys-query-all-devices.json',
+        'test-vectors/auth/matrix-keys-query-unknown-device-omitted.json',
+        'test-vectors/auth/matrix-keys-query-missing-token.json',
+        'test-vectors/auth/matrix-keys-query-timeout-not-integer.json',
+      ],
+      'parser_only_surfaces': [
+        'device key query request descriptor',
+        'all-devices query selector',
+        'public device-key query response',
+        'unknown-device omission response',
+        'device-key query Matrix error envelope',
+      ],
+      'out_of_scope': [
+        'signature verification',
+        'device trust decisions',
+        'secure storage',
+        'crypto verification',
+        'device list lifecycle',
         'Matrix E2EE support advertisement',
       ],
     },
@@ -440,7 +468,7 @@ void main(List<String> args) {
         'command': 'cargo test --locked',
         'guards': [
           'artifact manifest serializes stably',
-          'covered SPEC ids include SPEC-030 through SPEC-040, SPEC-051, and SPEC-053 through SPEC-056',
+          'covered SPEC ids include SPEC-030 through SPEC-040, SPEC-051, SPEC-053 through SPEC-056, and SPEC-069',
         ],
       },
       {

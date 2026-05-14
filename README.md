@@ -272,6 +272,16 @@ Olm/Megolm key generation, private key storage, signature verification, trust
 policy decisions, claim lifecycle enforcement, token persistence, or Matrix
 E2EE support advertisement.
 
+SPEC-069 shared-core adoption record for issue #65: the Rust prototype now
+consumes the `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
+(`v0.2.0-pre.58-43-g395c400`) SPEC-069 device key query, all-devices query,
+unknown-device omission, missing-token, and malformed timeout vectors for
+parser-only device key query adoption. The WASM wrapper and TypeScript facade
+expose keys/query request descriptor, public response, and Matrix error JSON
+envelopes without taking ownership of signature verification, device trust
+decisions, secure storage, crypto verification, device list lifecycle, token
+persistence, or Matrix E2EE support advertisement.
+
 SPEC-054 adoption record for issue #69: the Rust prototype now consumes the
 `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
 (`v0.2.0-pre.58-43-g395c400`) SPEC-054 SAS verification, cross-signing key
@@ -675,6 +685,8 @@ External registration order:
 
 Current package-specific follow-ups:
 
+- #65: SPEC-069 device key query parser/request descriptor adoption. Completed
+  as parser-only shared-core adoption.
 - #66: SPEC-051 device / one-time / fallback keys parser adoption. Completed as
   parser-only shared-core adoption.
 - #68: SPEC-053 key backup metadata parser adoption. Completed as parser-only

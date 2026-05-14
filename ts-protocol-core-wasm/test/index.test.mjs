@@ -593,6 +593,54 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixDeviceKeyQueryRequestJson() {
+      return JSON.stringify(
+        overrides.deviceKeyQueryRequestEnvelope ?? {
+          ok: true,
+          value: {
+            device_keys: {
+              "@alice:example.test": ["DEVICE1"],
+            },
+            timeout: 10000,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixDeviceKeyQueryResponseJson() {
+      return JSON.stringify(
+        overrides.deviceKeyQueryResponseEnvelope ?? {
+          ok: true,
+          value: {
+            failures: {},
+            device_keys: {
+              "@alice:example.test": {
+                DEVICE1: {
+                  user_id: "@alice:example.test",
+                  device_id: "DEVICE1",
+                  algorithms: [
+                    "m.olm.v1.curve25519-aes-sha2",
+                    "m.megolm.v1.aes-sha2",
+                  ],
+                  keys: {
+                    "curve25519:DEVICE1": "curve25519-public-device1",
+                    "ed25519:DEVICE1": "ed25519-public-device1",
+                  },
+                  signatures: {
+                    "@alice:example.test": {
+                      "ed25519:DEVICE1": "signature-device1",
+                    },
+                  },
+                },
+              },
+            },
+            private_key_material_returned: false,
+            trust_decision_made: false,
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixKeyBackupVersionCreateResponseJson() {
       return JSON.stringify(
         overrides.keyBackupVersionCreateResponseEnvelope ?? {
@@ -1455,6 +1503,60 @@ test("maps SPEC-051 device, one-time, and fallback key envelopes", () => {
     protoKeyCore.parseMatrixKeysUploadRequest("{}").value.one_time_keys.__proto__
       .signatures.__proto__.__proto__,
     "signature",
+  );
+});
+
+test("maps SPEC-069 device key query envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const basic = readSpecVector("test-vectors/auth/matrix-keys-query-basic.json");
+  const allDevices = readSpecVector(
+    "test-vectors/auth/matrix-keys-query-all-devices.json",
+  );
+  const unknownDevice = readSpecVector(
+    "test-vectors/auth/matrix-keys-query-unknown-device-omitted.json",
+  );
+  const missingToken = readSpecVector(
+    "test-vectors/auth/matrix-keys-query-missing-token.json",
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-069"));
+  for (const vector of [basic, allDevices, unknownDevice, missingToken]) {
+    assert.equal(vector.contract, "SPEC-069");
+  }
+  assert.deepEqual(core.parseMatrixDeviceKeyQueryRequest("{}"), {
+    ok: true,
+    value: {
+      device_keys: {
+        "@alice:example.test": ["DEVICE1"],
+      },
+      timeout: 10000,
+    },
+    error: null,
+  });
+  const response = core.parseMatrixDeviceKeyQueryResponse("{}");
+  assert.equal(
+    response.value.device_keys["@alice:example.test"].DEVICE1.keys[
+      "ed25519:DEVICE1"
+    ],
+    "ed25519-public-device1",
+  );
+  assert.equal(response.value.private_key_material_returned, false);
+  assert.equal(response.value.trust_decision_made, false);
+  assert.equal(
+    createHouraProtocolCore(
+      binding({
+        deviceKeyErrorEnvelope: {
+          ok: true,
+          value: {
+            status: 401,
+            errcode: "M_MISSING_TOKEN",
+            error: "Missing access token.",
+          },
+          error: null,
+        },
+      }),
+    ).parseMatrixDeviceKeyError("{}").value.errcode,
+    "M_MISSING_TOKEN",
   );
 });
 
