@@ -16,6 +16,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-038",
   "SPEC-039",
   "SPEC-040",
+  "SPEC-049",
   "SPEC-051",
   "SPEC-053",
   "SPEC-054",
@@ -58,6 +59,13 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixDeviceKeyErrorJson(responseBody: string): string;
   parseMatrixDeviceKeyQueryRequestJson(responseBody: string): string;
   parseMatrixDeviceKeyQueryResponseJson(responseBody: string): string;
+  parseMatrixModerationRequestJson(responseBody: string): string;
+  parseMatrixRedactionRequestJson(responseBody: string): string;
+  parseMatrixRedactionResponseJson(responseBody: string): string;
+  parseMatrixReportRequestJson(responseBody: string): string;
+  parseMatrixAccountModerationCapabilityJson(responseBody: string): string;
+  parseMatrixAdminAccountModerationStatusJson(responseBody: string): string;
+  parseMatrixModerationErrorJson(responseBody: string): string;
   parseMatrixKeyBackupVersionCreateResponseJson(responseBody: string): string;
   parseMatrixKeyBackupVersionJson(responseBody: string): string;
   parseMatrixKeyBackupSessionJson(responseBody: string): string;
@@ -480,6 +488,39 @@ export interface MatrixDeviceKeyQueryResponse {
   trust_decision_made: boolean;
 }
 
+export interface MatrixModerationRequest {
+  user_id: string;
+  reason?: string;
+}
+
+export interface MatrixRedactionRequest {
+  reason?: string;
+}
+
+export interface MatrixRedactionResponse {
+  event_id: string;
+}
+
+export interface MatrixReportRequest {
+  reason?: string;
+}
+
+export interface MatrixAccountModerationCapability {
+  lock: boolean;
+  suspend: boolean;
+}
+
+export interface MatrixAdminAccountModerationStatus {
+  locked?: boolean;
+  suspended?: boolean;
+}
+
+export interface MatrixModerationError {
+  status: number;
+  errcode: string;
+  error: string;
+}
+
 export interface MatrixKeyBackupAuthData {
   public_key: string;
   signatures: Record<string, Record<string, string>>;
@@ -631,6 +672,27 @@ export interface HouraProtocolCoreFacade {
   parseMatrixDeviceKeyQueryResponse(
     responseBody: string,
   ): ProtocolResult<MatrixDeviceKeyQueryResponse>;
+  parseMatrixModerationRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixModerationRequest>;
+  parseMatrixRedactionRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixRedactionRequest>;
+  parseMatrixRedactionResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixRedactionResponse>;
+  parseMatrixReportRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixReportRequest>;
+  parseMatrixAccountModerationCapability(
+    responseBody: string,
+  ): ProtocolResult<MatrixAccountModerationCapability>;
+  parseMatrixAdminAccountModerationStatus(
+    responseBody: string,
+  ): ProtocolResult<MatrixAdminAccountModerationStatus>;
+  parseMatrixModerationError(
+    responseBody: string,
+  ): ProtocolResult<MatrixModerationError>;
   parseMatrixKeyBackupVersionCreateResponse(
     responseBody: string,
   ): ProtocolResult<MatrixKeyBackupVersionCreateResponse>;
@@ -937,6 +999,55 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixDeviceKeyQueryResponseEnvelope(envelope);
+    },
+    parseMatrixModerationRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixModerationRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixModerationRequestEnvelope(envelope);
+    },
+    parseMatrixRedactionRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRedactionRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRedactionRequestEnvelope(envelope);
+    },
+    parseMatrixRedactionResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRedactionResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRedactionResponseEnvelope(envelope);
+    },
+    parseMatrixReportRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixReportRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixReportRequestEnvelope(envelope);
+    },
+    parseMatrixAccountModerationCapability(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixAccountModerationCapabilityJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixAccountModerationCapabilityEnvelope(envelope);
+    },
+    parseMatrixAdminAccountModerationStatus(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixAdminAccountModerationStatusJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixAdminAccountModerationStatusEnvelope(envelope);
+    },
+    parseMatrixModerationError(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixModerationErrorJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixModerationErrorEnvelope(envelope);
     },
     parseMatrixKeyBackupVersionCreateResponse(responseBody: string) {
       const envelope = parseJsonObject(
@@ -1613,6 +1724,86 @@ function readMatrixDeviceKeyQueryResponseEnvelope(
       "private_key_material_returned",
     ),
     trust_decision_made: readBoolean(value, "trust_decision_made"),
+  }));
+}
+
+function readMatrixModerationRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixModerationRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixModerationRequest = {
+      user_id: readString(value, "user_id", "invalid_envelope"),
+    };
+    readOptionalString(value, "reason", (reason) => {
+      result.reason = reason;
+    });
+    return result;
+  });
+}
+
+function readMatrixRedactionRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRedactionRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixRedactionRequest = {};
+    readOptionalString(value, "reason", (reason) => {
+      result.reason = reason;
+    });
+    return result;
+  });
+}
+
+function readMatrixRedactionResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRedactionResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    event_id: readString(value, "event_id", "invalid_envelope"),
+  }));
+}
+
+function readMatrixReportRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixReportRequest> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixReportRequest = {};
+    readOptionalString(value, "reason", (reason) => {
+      result.reason = reason;
+    });
+    return result;
+  });
+}
+
+function readMatrixAccountModerationCapabilityEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixAccountModerationCapability> {
+  return readProtocolResult(envelope, (value) => ({
+    lock: readBoolean(value, "lock"),
+    suspend: readBoolean(value, "suspend"),
+  }));
+}
+
+function readMatrixAdminAccountModerationStatusEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixAdminAccountModerationStatus> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixAdminAccountModerationStatus = {};
+    readOptionalBoolean(value, "locked", (locked) => {
+      result.locked = locked;
+    });
+    readOptionalBoolean(value, "suspended", (suspended) => {
+      result.suspended = suspended;
+    });
+    return result;
+  });
+}
+
+function readMatrixModerationErrorEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixModerationError> {
+  return readProtocolResult(envelope, (value) => ({
+    status: readNumber(value, "status", "invalid_envelope"),
+    errcode: readString(value, "errcode", "invalid_envelope"),
+    error: readString(value, "error", "invalid_envelope"),
   }));
 }
 
