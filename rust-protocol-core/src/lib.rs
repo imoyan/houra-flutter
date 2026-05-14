@@ -24,8 +24,8 @@ pub const MATRIX_CLIENT_VERSIONS_METHOD: &str = "GET";
 pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
-    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-048", "SPEC-049", "SPEC-051", "SPEC-053",
-    "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-069",
+    "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-048", "SPEC-049", "SPEC-051",
+    "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-069",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -276,6 +276,52 @@ pub struct MatrixRoomTag {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MatrixRoomTags {
     pub tags: BTreeMap<String, MatrixRoomTag>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixTypingRequest {
+    pub typing: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixTypingContent {
+    pub user_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixReceiptRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thread_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixReceiptMetadata {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ts: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thread_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixReceiptContent {
+    pub receipts: BTreeMap<String, BTreeMap<String, BTreeMap<String, MatrixReceiptMetadata>>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixReadMarkersRequest {
+    #[serde(rename = "m.fully_read", skip_serializing_if = "Option::is_none")]
+    pub fully_read: Option<String>,
+    #[serde(rename = "m.read", skip_serializing_if = "Option::is_none")]
+    pub read: Option<String>,
+    #[serde(rename = "m.read.private", skip_serializing_if = "Option::is_none")]
+    pub read_private: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFullyReadContent {
+    pub event_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -900,6 +946,48 @@ pub struct MatrixRoomTagsParseEnvelope {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixTypingRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixTypingRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixTypingContentParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixTypingContent>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixReceiptRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixReceiptRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixReceiptContentParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixReceiptContent>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixReadMarkersRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixReadMarkersRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFullyReadContentParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFullyReadContent>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixMediaContentUriParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixMediaContentUri>,
@@ -1261,6 +1349,7 @@ pub enum ProtocolError {
     InvalidVerificationField { field: String },
     InvalidDeviceKeyField { field: String },
     InvalidProfileAccountDataField { field: String },
+    InvalidReceiptsTypingField { field: String },
     InvalidRoomDirectoryField { field: String },
     InvalidModerationField { field: String },
     InvalidKeyBackupField { field: String },
@@ -1290,6 +1379,7 @@ impl ProtocolError {
             ProtocolError::InvalidProfileAccountDataField { .. } => {
                 "invalid_profile_account_data_field"
             }
+            ProtocolError::InvalidReceiptsTypingField { .. } => "invalid_receipts_typing_field",
             ProtocolError::InvalidRoomDirectoryField { .. } => "invalid_room_directory_field",
             ProtocolError::InvalidModerationField { .. } => "invalid_moderation_field",
             ProtocolError::InvalidKeyBackupField { .. } => "invalid_key_backup_field",
@@ -1336,6 +1426,9 @@ impl ProtocolError {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidProfileAccountDataField { field } => {
+                details.insert("field".to_owned(), field.clone());
+            }
+            ProtocolError::InvalidReceiptsTypingField { field } => {
                 details.insert("field".to_owned(), field.clone());
             }
             ProtocolError::InvalidRoomDirectoryField { field } => {
@@ -1419,6 +1512,12 @@ impl std::fmt::Display for ProtocolError {
                 write!(
                     formatter,
                     "{field} is not a valid Matrix profile/account-data value"
+                )
+            }
+            ProtocolError::InvalidReceiptsTypingField { field } => {
+                write!(
+                    formatter,
+                    "{field} is not a valid Matrix receipts/typing value"
                 )
             }
             ProtocolError::InvalidRoomDirectoryField { field } => {
@@ -1848,6 +1947,43 @@ struct MatrixRoomTagWire {
 #[derive(Debug, Deserialize)]
 struct MatrixRoomTagsWire {
     tags: Option<BTreeMap<String, MatrixRoomTagWire>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixTypingRequestWire {
+    typing: Option<bool>,
+    timeout: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixTypingContentWire {
+    user_ids: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixReceiptRequestWire {
+    thread_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixReceiptMetadataWire {
+    ts: Option<i64>,
+    thread_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixReadMarkersRequestWire {
+    #[serde(rename = "m.fully_read")]
+    fully_read: Option<String>,
+    #[serde(rename = "m.read")]
+    read: Option<String>,
+    #[serde(rename = "m.read.private")]
+    read_private: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFullyReadContentWire {
+    event_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -2898,6 +3034,227 @@ pub fn parse_matrix_room_tags_envelope(bytes: &[u8]) -> MatrixRoomTagsParseEnvel
 
 pub fn parse_matrix_room_tags_json(bytes: &[u8]) -> String {
     serde_json::to_string(&parse_matrix_room_tags_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_typing_request(bytes: &[u8]) -> Result<MatrixTypingRequest, ProtocolError> {
+    let wire: MatrixTypingRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let typing = wire
+        .typing
+        .ok_or_else(|| invalid_receipts_typing_field("typing_request.typing"))?;
+    let timeout = optional_receipts_typing_positive_i64(wire.timeout, "typing_request.timeout")?;
+    if typing && timeout.is_none() {
+        return Err(invalid_receipts_typing_field("typing_request.timeout"));
+    }
+    Ok(MatrixTypingRequest { typing, timeout })
+}
+
+pub fn parse_matrix_typing_request_envelope(bytes: &[u8]) -> MatrixTypingRequestParseEnvelope {
+    match parse_matrix_typing_request(bytes) {
+        Ok(value) => MatrixTypingRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixTypingRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_typing_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_typing_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_typing_content(bytes: &[u8]) -> Result<MatrixTypingContent, ProtocolError> {
+    let wire: MatrixTypingContentWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let user_ids = wire
+        .user_ids
+        .ok_or_else(|| invalid_receipts_typing_field("typing_content.user_ids"))?;
+    if user_ids.iter().any(String::is_empty) {
+        return Err(invalid_receipts_typing_field("typing_content.user_ids"));
+    }
+    Ok(MatrixTypingContent { user_ids })
+}
+
+pub fn parse_matrix_typing_content_envelope(bytes: &[u8]) -> MatrixTypingContentParseEnvelope {
+    match parse_matrix_typing_content(bytes) {
+        Ok(value) => MatrixTypingContentParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixTypingContentParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_typing_content_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_typing_content_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_receipt_request(bytes: &[u8]) -> Result<MatrixReceiptRequest, ProtocolError> {
+    let wire: MatrixReceiptRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let thread_id = optional_receipt_thread_id(wire.thread_id, "receipt_request.thread_id")?;
+    Ok(MatrixReceiptRequest { thread_id })
+}
+
+pub fn parse_matrix_receipt_request_envelope(bytes: &[u8]) -> MatrixReceiptRequestParseEnvelope {
+    match parse_matrix_receipt_request(bytes) {
+        Ok(value) => MatrixReceiptRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixReceiptRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_receipt_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_receipt_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_receipt_content(bytes: &[u8]) -> Result<MatrixReceiptContent, ProtocolError> {
+    let wire: BTreeMap<String, BTreeMap<String, BTreeMap<String, MatrixReceiptMetadataWire>>> =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let receipts = wire
+        .into_iter()
+        .map(|(event_id, receipt_types)| {
+            validate_event_id(&event_id, "receipt_content.event_id")?;
+            let receipt_types = receipt_types
+                .into_iter()
+                .map(|(receipt_type, users)| {
+                    validate_receipt_type(&receipt_type)?;
+                    let users = users
+                        .into_iter()
+                        .map(|(user_id, metadata)| {
+                            if user_id.is_empty() {
+                                return Err(invalid_receipts_typing_field(
+                                    "receipt_content.user_id",
+                                ));
+                            }
+                            Ok((
+                                user_id,
+                                MatrixReceiptMetadata {
+                                    ts: optional_receipts_typing_non_negative_i64(
+                                        metadata.ts,
+                                        "receipt_content.ts",
+                                    )?,
+                                    thread_id: optional_receipt_thread_id(
+                                        metadata.thread_id,
+                                        "receipt_content.thread_id",
+                                    )?,
+                                },
+                            ))
+                        })
+                        .collect::<Result<BTreeMap<_, _>, _>>()?;
+                    Ok((receipt_type, users))
+                })
+                .collect::<Result<BTreeMap<_, _>, _>>()?;
+            Ok((event_id, receipt_types))
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?;
+    Ok(MatrixReceiptContent { receipts })
+}
+
+pub fn parse_matrix_receipt_content_envelope(bytes: &[u8]) -> MatrixReceiptContentParseEnvelope {
+    match parse_matrix_receipt_content(bytes) {
+        Ok(value) => MatrixReceiptContentParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixReceiptContentParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_receipt_content_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_receipt_content_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_read_markers_request(
+    bytes: &[u8],
+) -> Result<MatrixReadMarkersRequest, ProtocolError> {
+    let wire: MatrixReadMarkersRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixReadMarkersRequest {
+        fully_read: optional_event_id(wire.fully_read, "read_markers.m.fully_read")?,
+        read: optional_event_id(wire.read, "read_markers.m.read")?,
+        read_private: optional_event_id(wire.read_private, "read_markers.m.read.private")?,
+    })
+}
+
+pub fn parse_matrix_read_markers_request_envelope(
+    bytes: &[u8],
+) -> MatrixReadMarkersRequestParseEnvelope {
+    match parse_matrix_read_markers_request(bytes) {
+        Ok(value) => MatrixReadMarkersRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixReadMarkersRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_read_markers_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_read_markers_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_fully_read_content(
+    bytes: &[u8],
+) -> Result<MatrixFullyReadContent, ProtocolError> {
+    let wire: MatrixFullyReadContentWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixFullyReadContent {
+        event_id: required_event_id(wire.event_id, "fully_read.event_id")?,
+    })
+}
+
+pub fn parse_matrix_fully_read_content_envelope(
+    bytes: &[u8],
+) -> MatrixFullyReadContentParseEnvelope {
+    match parse_matrix_fully_read_content(bytes) {
+        Ok(value) => MatrixFullyReadContentParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFullyReadContentParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_fully_read_content_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_fully_read_content_envelope(bytes))
         .expect("parse envelope serialization should be infallible")
 }
 
@@ -5454,6 +5811,12 @@ fn invalid_profile_account_data_field(field: &str) -> ProtocolError {
     }
 }
 
+fn invalid_receipts_typing_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidReceiptsTypingField {
+        field: field.to_owned(),
+    }
+}
+
 fn invalid_room_directory_field(field: &str) -> ProtocolError {
     ProtocolError::InvalidRoomDirectoryField {
         field: field.to_owned(),
@@ -5636,6 +5999,73 @@ fn room_tag_from_wire(
         }
     }
     Ok(MatrixRoomTag { order: wire.order })
+}
+
+fn optional_receipts_typing_positive_i64(
+    value: Option<i64>,
+    field: &str,
+) -> Result<Option<u64>, ProtocolError> {
+    match value {
+        Some(value) if value > 0 => Ok(Some(value as u64)),
+        Some(_) => Err(invalid_receipts_typing_field(field)),
+        None => Ok(None),
+    }
+}
+
+fn optional_receipts_typing_non_negative_i64(
+    value: Option<i64>,
+    field: &str,
+) -> Result<Option<u64>, ProtocolError> {
+    match value {
+        Some(value) if value >= 0 => Ok(Some(value as u64)),
+        Some(_) => Err(invalid_receipts_typing_field(field)),
+        None => Ok(None),
+    }
+}
+
+fn validate_receipt_type(receipt_type: &str) -> Result<(), ProtocolError> {
+    match receipt_type {
+        "m.read" | "m.read.private" => Ok(()),
+        _ => Err(invalid_receipts_typing_field("receipt_type")),
+    }
+}
+
+fn validate_event_id(event_id: &str, field: &str) -> Result<(), ProtocolError> {
+    if event_id.starts_with('$') && event_id.len() > 1 {
+        Ok(())
+    } else {
+        Err(invalid_receipts_typing_field(field))
+    }
+}
+
+fn required_event_id(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
+    let value = value.ok_or_else(|| invalid_receipts_typing_field(field))?;
+    validate_event_id(&value, field)?;
+    Ok(value)
+}
+
+fn optional_event_id(value: Option<String>, field: &str) -> Result<Option<String>, ProtocolError> {
+    match value {
+        Some(value) => {
+            validate_event_id(&value, field)?;
+            Ok(Some(value))
+        }
+        None => Ok(None),
+    }
+}
+
+fn optional_receipt_thread_id(
+    value: Option<String>,
+    field: &str,
+) -> Result<Option<String>, ProtocolError> {
+    match value {
+        Some(value) if value == "main" => Ok(Some(value)),
+        Some(value) => {
+            validate_event_id(&value, field)?;
+            Ok(Some(value))
+        }
+        None => Ok(None),
+    }
 }
 
 fn public_room_from_wire(
@@ -6435,8 +6865,8 @@ mod tests {
             manifest.supported_specs,
             vec![
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
-                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-048", "SPEC-049",
-                "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-069"
+                "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-048",
+                "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-069"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -7091,6 +7521,127 @@ mod tests {
             .supported_specs
             .iter()
             .any(|spec| spec == "SPEC-045"));
+    }
+
+    #[test]
+    fn parses_spec_046_receipts_typing_and_read_marker_vectors() {
+        let typing = read_spec_vector("test-vectors/sync/matrix-typing-basic.json");
+        assert_eq!(typing["contract"], "SPEC-046");
+        let typing_steps = typing["event"]["steps"]
+            .as_array()
+            .expect("typing vector should contain steps");
+        let parsed_typing_start =
+            parse_matrix_typing_request(typing_steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-046 typing start should parse");
+        assert!(parsed_typing_start.typing);
+        assert_eq!(parsed_typing_start.timeout, Some(30000));
+        let parsed_typing_content = parse_matrix_typing_content(
+            typing_steps[1]["expected_ephemeral_event"]["content"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-046 typing content should parse");
+        assert_eq!(
+            parsed_typing_content.user_ids,
+            vec!["@alice:example.test".to_owned()]
+        );
+        let parsed_typing_stop =
+            parse_matrix_typing_request(typing_steps[2]["body"].to_string().as_bytes())
+                .expect("SPEC-046 typing stop should parse");
+        assert!(!parsed_typing_stop.typing);
+        assert_eq!(parsed_typing_stop.timeout, None);
+
+        let receipt = read_spec_vector("test-vectors/sync/matrix-receipt-basic.json");
+        assert_eq!(receipt["contract"], "SPEC-046");
+        let receipt_steps = receipt["event"]["steps"]
+            .as_array()
+            .expect("receipt vector should contain steps");
+        let parsed_receipt_request =
+            parse_matrix_receipt_request(receipt_steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-046 receipt request should parse");
+        assert_eq!(parsed_receipt_request.thread_id.as_deref(), Some("main"));
+        let parsed_receipt_content = parse_matrix_receipt_content(
+            receipt_steps[1]["expected_ephemeral_event"]["content"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-046 receipt content should parse");
+        assert_eq!(
+            parsed_receipt_content.receipts["$event1:example.test"]["m.read"]
+                ["@alice:example.test"]
+                .thread_id
+                .as_deref(),
+            Some("main")
+        );
+
+        let invalid_thread =
+            read_spec_vector("test-vectors/sync/matrix-receipt-invalid-thread.json");
+        assert!(parse_matrix_receipt_request(
+            invalid_thread["request"]["body"].to_string().as_bytes()
+        )
+        .is_err());
+        let parsed_invalid_thread_error =
+            parse_matrix_error_envelope(invalid_thread["expected"]["error"].to_string().as_bytes())
+                .expect("SPEC-046 invalid thread error should parse");
+        assert_eq!(parsed_invalid_thread_error.errcode, "M_INVALID_PARAM");
+
+        let read_markers = read_spec_vector("test-vectors/sync/matrix-read-markers-basic.json");
+        assert_eq!(read_markers["contract"], "SPEC-046");
+        let read_marker_steps = read_markers["event"]["steps"]
+            .as_array()
+            .expect("read marker vector should contain steps");
+        let parsed_read_markers =
+            parse_matrix_read_markers_request(read_marker_steps[0]["body"].to_string().as_bytes())
+                .expect("SPEC-046 read marker request should parse");
+        assert_eq!(
+            parsed_read_markers.fully_read.as_deref(),
+            Some("$event1:example.test")
+        );
+        assert_eq!(
+            parsed_read_markers.read_private.as_deref(),
+            Some("$event2:example.test")
+        );
+        let parsed_fully_read = parse_matrix_fully_read_content(
+            read_marker_steps[1]["expected_room_account_data_event"]["content"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-046 fully read content should parse");
+        assert_eq!(parsed_fully_read.event_id, "$event1:example.test");
+        let parsed_read_marker_receipt = parse_matrix_receipt_content(
+            read_marker_steps[2]["expected_ephemeral_event"]["content"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-046 read marker receipt content should parse");
+        assert!(parsed_read_marker_receipt.receipts["$event2:example.test"]
+            .contains_key("m.read.private"));
+
+        let missing_token = read_spec_vector("test-vectors/sync/matrix-typing-missing-token.json");
+        let parsed_missing_token =
+            parse_matrix_error_envelope(missing_token["expected"]["error"].to_string().as_bytes())
+                .expect("SPEC-046 missing token error should parse");
+        assert_eq!(parsed_missing_token.errcode, "M_MISSING_TOKEN");
+
+        let direct_forbidden = read_spec_vector(
+            "test-vectors/sync/matrix-read-marker-direct-account-data-forbidden.json",
+        );
+        let parsed_forbidden = parse_matrix_error_envelope(
+            direct_forbidden["expected"]["error"].to_string().as_bytes(),
+        )
+        .expect("SPEC-046 direct account data forbidden error should parse");
+        assert_eq!(parsed_forbidden.errcode, "M_FORBIDDEN");
+
+        assert!(parse_matrix_typing_request(br#"{"typing":true}"#).is_err());
+        assert!(
+            parse_matrix_receipt_content(br#"{"$event":{"m.read":{"@u":{"ts":-1}}}}"#).is_err()
+        );
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-046"));
     }
 
     #[test]

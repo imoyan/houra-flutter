@@ -157,6 +157,36 @@ pub fn parse_matrix_room_tags_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_room_tags_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixTypingRequestJson)]
+pub fn parse_matrix_typing_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_typing_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixTypingContentJson)]
+pub fn parse_matrix_typing_content_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_typing_content_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixReceiptRequestJson)]
+pub fn parse_matrix_receipt_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_receipt_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixReceiptContentJson)]
+pub fn parse_matrix_receipt_content_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_receipt_content_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixReadMarkersRequestJson)]
+pub fn parse_matrix_read_markers_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_read_markers_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFullyReadContentJson)]
+pub fn parse_matrix_fully_read_content_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_fully_read_content_json(response_body.as_bytes())
+}
+
 #[wasm_bindgen(js_name = parseMatrixMediaContentUriJson)]
 pub fn parse_matrix_media_content_uri_json(content_uri: &str) -> String {
     houra_protocol_core::parse_matrix_media_content_uri_json(content_uri)
@@ -407,6 +437,11 @@ mod tests {
             .as_array()
             .expect("supported_specs should be an array")
             .iter()
+            .any(|spec| spec == "SPEC-046"));
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
             .any(|spec| spec == "SPEC-051"));
         assert!(manifest["supported_specs"]
             .as_array()
@@ -527,6 +562,38 @@ mod tests {
         assert_eq!(
             parse_matrix_room_tags_json("{\"tags\":{\"m.favourite\":{\"order\":0.25}}}"),
             "{\"ok\":true,\"value\":{\"tags\":{\"m.favourite\":{\"order\":0.25}}},\"error\":null}"
+        );
+    }
+
+    #[test]
+    fn matrix_receipts_typing_parsers_delegate_to_core_json_envelopes() {
+        assert_eq!(
+            parse_matrix_typing_request_json("{\"typing\":true,\"timeout\":30000}"),
+            "{\"ok\":true,\"value\":{\"typing\":true,\"timeout\":30000},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_typing_content_json("{\"user_ids\":[\"@alice:example.test\"]}"),
+            "{\"ok\":true,\"value\":{\"user_ids\":[\"@alice:example.test\"]},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_receipt_request_json("{\"thread_id\":\"main\"}"),
+            "{\"ok\":true,\"value\":{\"thread_id\":\"main\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_receipt_content_json(
+                "{\"$event1:example.test\":{\"m.read\":{\"@alice:example.test\":{\"ts\":1710000001000,\"thread_id\":\"main\"}}}}",
+            ),
+            "{\"ok\":true,\"value\":{\"receipts\":{\"$event1:example.test\":{\"m.read\":{\"@alice:example.test\":{\"ts\":1710000001000,\"thread_id\":\"main\"}}}}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_read_markers_request_json(
+                "{\"m.fully_read\":\"$event1:example.test\",\"m.read\":\"$event2:example.test\",\"m.read.private\":\"$event2:example.test\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"m.fully_read\":\"$event1:example.test\",\"m.read\":\"$event2:example.test\",\"m.read.private\":\"$event2:example.test\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_fully_read_content_json("{\"event_id\":\"$event1:example.test\"}"),
+            "{\"ok\":true,\"value\":{\"event_id\":\"$event1:example.test\"},\"error\":null}"
         );
     }
 
