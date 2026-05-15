@@ -7,7 +7,7 @@ license = "Apache-2.0"
 repository = "https://github.com/imoyan/houra-labs"
 documentation = "https://docs.rs/houra-protocol-core"
 readme = "README.md"
-keywords = ["houra", "protocol", "parser", "matrix"]
+keywords = ["houra", "protocol", "parser"]
 categories = ["parser-implementations", "wasm"]
 publish = false
 

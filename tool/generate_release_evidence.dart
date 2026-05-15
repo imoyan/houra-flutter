@@ -504,7 +504,7 @@ void main(List<String> args) {
       ],
       'host_owned_boundaries': [
         'token storage',
-        'sync token persistence',
+        'sync-token persistence',
         'Flutter UI lifecycle',
         'route policy',
         'secure storage',
@@ -521,7 +521,7 @@ void main(List<String> args) {
       'out_of_scope': [
         'making the Flutter SDK prototype the canonical behavior source',
         'publishing a Dart FFI or Dart web package from this issue',
-        'moving token or sync token persistence into the SDK core',
+        'moving token or sync-token persistence into the SDK core',
         'owning production client UI lifecycle or secure storage policy',
       ],
     },
@@ -864,7 +864,8 @@ bool? _readTomlBoolOrNull(String source, String key) {
 }
 
 int _readTsNumber(String source, String name) {
-  final match = RegExp('const $name = ([0-9]+);').firstMatch(source);
+  final match =
+      RegExp('(?:export\\s+)?const $name = ([0-9]+);').firstMatch(source);
   if (match == null) {
     throw FormatException('Missing TypeScript numeric constant: $name');
   }
@@ -872,7 +873,8 @@ int _readTsNumber(String source, String name) {
 }
 
 String _readTsString(String source, String name) {
-  final match = RegExp('const $name = "([^"]+)";').firstMatch(source);
+  final match =
+      RegExp('(?:export\\s+)?const $name = "([^"]+)";').firstMatch(source);
   if (match == null) {
     throw FormatException('Missing TypeScript string constant: $name');
   }
@@ -881,7 +883,7 @@ String _readTsString(String source, String name) {
 
 List<String> _readTsStringArray(String source, String name) {
   final match = RegExp(
-    'const $name = \\[(.*?)\\] as const;',
+    '(?:export\\s+)?const $name = \\[(.*?)\\] as const;',
     dotAll: true,
   ).firstMatch(source);
   if (match == null) {
