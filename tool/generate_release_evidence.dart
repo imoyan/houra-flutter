@@ -109,6 +109,21 @@ void main(List<String> args) {
     'redaction': 'metadata-only-no-raw-requests-or-secrets',
     'head_sha': headSha,
     'spec_snapshot_ref': specRef,
+    'spec_snapshot_policy': {
+      'issue': 136,
+      'status': 'current-generation-single-snapshot',
+      'generated_snapshot_ref': specRef,
+      'semantics': [
+        'spec_snapshot_ref records the sibling houra-spec checkout used when this evidence was generated',
+        'README adoption records may include historical spec refs from the adoption PR that introduced the surface',
+        'release notes must explain any intentional historical/current snapshot mix before using this artifact as a release anchor',
+      ],
+      'release_anchor_checks': [
+        'rerun this generator from the release head with the intended HOURA_SPEC_ROOT',
+        'confirm covered_spec_ids and adoption blocks still match the intended spec snapshot',
+        'split any snapshot drift into a dedicated revalidation issue before publication',
+      ],
+    },
     'covered_spec_ids': expectedSpecIds,
     'protocol_core': {
       'crate_name': rustCore['name'],

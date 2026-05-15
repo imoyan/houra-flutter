@@ -749,46 +749,46 @@ External registration order:
 6. Handle pub.dev, npm, crates.io, docs.rs, and container registry publication
    through focused package-specific issues.
 
-Current package-specific follow-ups:
+Completed shared-core history:
 
-- #60: SPEC-045 profile / account data / tags parser adoption. Completed as
-  parser-only shared-core adoption.
-- #61: SPEC-046 receipts / typing / read markers parser adoption. Completed as
-  parser-only shared-core adoption.
-- #62: SPEC-047 filters / presence / capabilities parser adoption. Completed as
-  parser-only shared-core adoption.
-- #63: SPEC-048 room directory / aliases / invites parser adoption. Completed
-  as parser-only shared-core adoption.
-- #64: SPEC-049 moderation / reporting / admin controls parser adoption.
-  Completed as parser-only shared-core adoption.
-- #65: SPEC-069 device key query parser/request descriptor adoption. Completed
-  as parser-only shared-core adoption.
-- #66: SPEC-051 device / one-time / fallback keys parser adoption. Completed as
-  parser-only shared-core adoption.
-- #68: SPEC-053 key backup metadata parser adoption. Completed as parser-only
-  shared-core adoption.
-- #69: SPEC-054 verification / cross-signing / wrong-device parser adoption.
-  Completed as parser-only shared-core adoption.
-- #70: SPEC-055 federation discovery / signing key parser adoption. Completed
-  as parser-only shared-core adoption.
-- #71: SPEC-056 federation transaction / join / invite parser adoption.
-  Completed as parser-only shared-core adoption.
-- #72: SPEC-057 backfill / event_auth / state interop candidates. Completed as
-  candidate criteria only; parser and algorithm helper implementation remain
-  split into follow-up issues.
-- #73: SPEC-058〜060 ecosystem service parser candidates. Completed as
-  candidate criteria only; parser implementation remains split by SPEC.
-- #76: N-API / Node binding candidate gate. Completed as candidate criteria
-  only; native binding implementation and publication remain deferred.
-- #77: Dart FFI / Dart web binding candidate gate. Completed as candidate
-  criteria only; implementation and publication remain deferred.
-- #79: Rust protocol-core crate publication readiness. Completed as a
-  metadata / checklist gate; actual crates.io publication remains deferred.
-- #80: TypeScript / WASM facade npm publish gate. Completed.
-- #81: shared-core parity / performance evidence gate. Completed.
-- Future package publication issues must remove `publish_to: none`,
-  `publish = false`, or `private: true` only after ownership, package name,
-  version, artifact evidence, and registry metadata are confirmed.
+- #60, #61, #62, #63, and #64 completed SPEC-045 through SPEC-049
+  Client-Server parser-only adoption.
+- #65, #66, #68, and #69 completed the current E2EE-adjacent parser-only
+  adoption surface for SPEC-069, SPEC-051, SPEC-053, and SPEC-054.
+- #70 and #71 completed the current federation parser-only adoption surface for
+  SPEC-055 and SPEC-056.
+- #72 and #73 completed candidate criteria for SPEC-057 and SPEC-058 through
+  SPEC-060; implementation is tracked by the deferred issues below.
+- #74, #75, #76, #77, #79, #80, #81, and #82 completed artifact manifest,
+  binding candidate, publish-readiness, parity/performance evidence, and OSS
+  readiness planning gates.
+
+Deferred implementation backlog:
+
+- #118, #119, #120, #121, and #122 track the next Client-Server parser helper
+  wave for auth fallback, event retrieval, relations, sync extensions, and
+  media repository breadth.
+- #123, #124, and #125 track the next federation parser helper wave for
+  version/key lifecycle, PDU/EDU envelopes, and directory/query/OpenID helpers.
+- #126, #127, and #128 track Application Service, Identity Service, and Push
+  Gateway full-breadth parser helper work.
+- #129, #130, and #131 track Room Version helper and fixture-runner candidates.
+- #132 and #133 track E2EE full-breadth parser artifacts and shared crypto
+  metadata / redaction / release evidence helpers.
+
+External readiness backlog:
+
+- #134 tracks the external publication checklist, repository metadata, release
+  anchor, and non-normative index order.
+- #135 tracks the post-closeout roadmap split so closed parent tracking issues
+  do not need to be reopened.
+- #136 tracks release evidence `spec_snapshot_ref` consistency before the next
+  release anchor.
+
+Future package publication issues must remove `publish_to: none`,
+`publish = false`, or `private: true` only after ownership, package name,
+version, artifact evidence, registry metadata, and release evidence are
+confirmed.
 
 ## Roadmap
 
