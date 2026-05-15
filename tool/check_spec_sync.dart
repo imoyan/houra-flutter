@@ -22,7 +22,6 @@ void main() {
   checkSpec085ProtocolCoreGate(failures);
   checkSpec090ProtocolCoreGate(failures);
   checkSpec093ProtocolCoreGate(failures);
-  checkSpec093ProtocolCoreGate(failures);
 
   if (failures.isNotEmpty) {
     stderr.writeln('Spec sync check failed:');

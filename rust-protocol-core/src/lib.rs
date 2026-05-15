@@ -276,6 +276,8 @@ pub struct MatrixSyncBasicEvent {
     pub content: BTreeMap<String, Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub sender: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state_key: Option<String>,
     #[serde(rename = "type")]
     pub event_type: String,
 }
@@ -2104,6 +2106,7 @@ struct MatrixSyncEventWire {
 struct MatrixSyncBasicEventWire {
     content: Option<BTreeMap<String, Value>>,
     sender: Option<String>,
+    state_key: Option<String>,
     #[serde(rename = "type")]
     event_type: Option<String>,
 }
@@ -7313,6 +7316,7 @@ fn matrix_sync_basic_event_from_wire(
             .content
             .ok_or_else(|| invalid_room_field(&format!("{context}.content")))?,
         sender: optional_room_string(wire.sender, &format!("{context}.sender"))?,
+        state_key: optional_room_string(wire.state_key, &format!("{context}.state_key"))?,
         event_type: required_room_string(wire.event_type, &format!("{context}.type"))?,
     })
 }
@@ -11002,6 +11006,14 @@ mod tests {
                 .sender
                 .as_deref(),
             Some("@alice:example.test")
+        );
+        let state_event_sync = parse_matrix_sync_response(
+            br#"{"next_batch":"s-state","account_data":{"events":[{"type":"m.room.member","sender":"@alice:example.test","state_key":"@bob:example.test","content":{"membership":"join"}}]},"rooms":{"join":{},"invite":{},"leave":{}}}"#,
+        )
+        .expect("sync basic event state_key should parse");
+        assert_eq!(
+            state_event_sync.account_data.events[0].state_key.as_deref(),
+            Some("@bob:example.test")
         );
         assert_eq!(
             sync.device_lists.as_ref().expect("device_lists").changed[0],
