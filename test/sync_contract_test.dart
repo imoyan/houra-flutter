@@ -47,6 +47,35 @@ void main() {
     );
   });
 
+  test('Matrix sync parsers follow SPEC-093 extension vector', () {
+    final vector = readVector(
+      'test-vectors/sync/matrix-sync-breadth-extensions.json',
+    );
+    expect(vector.raw['contract'], 'SPEC-093');
+    final event = objectFrom(vector.raw, 'event');
+    final descriptors = event['request_descriptors'] as List<Object?>;
+    final firstDescriptor = HouraMatrixSyncRequestDescriptor.fromJson(
+      (descriptors.first as Map).cast<String, Object?>(),
+    );
+    expect(firstDescriptor.responseParser, 'sync_extensions');
+    expect(firstDescriptor.adoptedRuntimeBehavior, isFalse);
+    expect(firstDescriptor.queryParams['use_state_after'], isTrue);
+
+    final responses = objectFrom(event, 'sample_responses');
+    final batch = HouraMatrixSyncBatch.fromJson(
+      objectFrom(responses, 'sync_extensions'),
+    );
+    expect(batch.nextBatch, 's2');
+    expect(batch.presenceEvents.single.sender, '@alice:example.test');
+    expect(batch.toDeviceEvents.single.type, 'm.room.encrypted');
+    expect(batch.deviceLists.changed, ['@alice:example.test']);
+    expect(batch.deviceLists.left, ['@carol:example.test']);
+    expect(batch.deviceOneTimeKeysCount['signed_curve25519'], 3);
+    expect(batch.rooms.invite, contains('!invite:example.test'));
+    expect(batch.rooms.leave, contains('!left:example.test'));
+    expect(batch.rooms.knock, contains('!knock:example.test'));
+  });
+
   test('listRooms follows SPEC-009 vector', () async {
     final vector = readVector('test-vectors/sync/room-list-basic.json');
     late http.Request observed;

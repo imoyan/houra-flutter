@@ -29,6 +29,7 @@ const expectedProtocolSpecIds = [
   'SPEC-069',
   'SPEC-085',
   'SPEC-090',
+  'SPEC-093',
 ];
 
 const expectedReleaseEvidenceSpecIds = [
@@ -458,6 +459,34 @@ void main(List<String> args) {
         'Matrix Client-Server support advertisement',
       ],
     },
+    'sync_breadth_extensions_parser_adoption': {
+      'issue': 121,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-093'],
+      'parity_vectors': [
+        'test-vectors/sync/matrix-sync-breadth-extensions.json',
+      ],
+      'parser_only_surfaces': [
+        'sync request descriptor',
+        'presence event snippets',
+        'to-device event snippets',
+        'device list changes',
+        'one-time key counts',
+        'invite room section map',
+        'leave room section map',
+        'knock room section map',
+      ],
+      'out_of_scope': [
+        'sync long-poll runtime',
+        'sync token persistence',
+        'fanout timing',
+        'authorization',
+        'filter storage',
+        'timeline ordering',
+        'device-list freshness',
+        'Matrix Client-Server support advertisement',
+      ],
+    },
     'oauth_account_management_parser_adoption': {
       'issue': 118,
       'status': 'parser-only-adopted',
@@ -738,7 +767,7 @@ void main(List<String> args) {
         'command': 'cargo test --locked',
         'guards': [
           'artifact manifest serializes stably',
-          'protocol artifact supported SPEC ids include SPEC-030 through SPEC-040, SPEC-045, SPEC-046, SPEC-047, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, SPEC-068, and SPEC-069',
+          'protocol artifact supported SPEC ids include SPEC-030 through SPEC-040, SPEC-045, SPEC-046, SPEC-047, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, SPEC-068, SPEC-069, SPEC-085, SPEC-090, and SPEC-093',
           'release evidence helper SPEC ids include SPEC-079 and SPEC-081 without widening protocol artifact support',
         ],
       },

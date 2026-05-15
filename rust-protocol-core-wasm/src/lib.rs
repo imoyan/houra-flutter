@@ -171,6 +171,11 @@ pub fn parse_matrix_relations_request_descriptor_json(response_body: &str) -> St
     houra_protocol_core::parse_matrix_relations_request_descriptor_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixSyncRequestDescriptorJson)]
+pub fn parse_matrix_sync_request_descriptor_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_sync_request_descriptor_json(response_body.as_bytes())
+}
+
 #[wasm_bindgen(js_name = parseMatrixRelationChunkResponseJson)]
 pub fn parse_matrix_relation_chunk_response_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_relation_chunk_response_json(response_body.as_bytes())
@@ -572,6 +577,11 @@ mod tests {
             .expect("supported_specs should be an array")
             .iter()
             .any(|spec| spec == "SPEC-090"));
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
+            .any(|spec| spec == "SPEC-093"));
         assert_eq!(
             json,
             houra_protocol_core::artifact_manifest_json_for_binding_kinds(&["wasm"])

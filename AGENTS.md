@@ -111,6 +111,9 @@ The current package implements:
 - SPEC-090 Matrix Client-Server Relations / Threads / Reactions parser-only
   relation chunks, reaction relation content, thread summaries, edit/reply
   relation content, and unsupported membership variant failure envelopes only
+- SPEC-093 Matrix Sync Breadth Extensions parser-only request descriptors,
+  presence/to-device snippets, device list changes, one-time key counts, and
+  invite/leave/knock room section maps only
 - SPEC-079 / SPEC-081 shared crypto metadata, redaction, and release evidence
   helper only; this is not crypto stack selection, secure storage ownership, or
   E2EE support advertisement

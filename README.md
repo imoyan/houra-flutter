@@ -13,9 +13,10 @@ encrypted-room envelopes, SPEC-068 Matrix OAuth account-management helper
 envelopes, and SPEC-069 Matrix device key query request descriptors and public
 response parsing, plus SPEC-085 Matrix event retrieval / membership history
 request descriptors and public response envelopes, and SPEC-090 Matrix
-relations / threads / reactions parser-only helpers, without claiming Matrix
-OAuth, E2EE, relation aggregation correctness, thread ordering, or
-Client-Server support.
+relations / threads / reactions parser-only helpers, and SPEC-093 Matrix sync
+breadth extension parser helpers, without claiming Matrix OAuth, E2EE, relation
+aggregation correctness, thread ordering, sync long-poll runtime, token
+persistence, fanout timing, or Client-Server support.
 
 ## Repository Role
 
@@ -89,9 +90,9 @@ contracts and test vectors.
 Vue, and Next client experiments. It uses `wasm-bindgen` to export the manifest
 and `SPEC-030` / `SPEC-031` / `SPEC-032` / `SPEC-033` / `SPEC-034` /
 `SPEC-035` / `SPEC-036` / `SPEC-037` / `SPEC-038` / `SPEC-045` / `SPEC-046` /
-`SPEC-047` / `SPEC-068` / `SPEC-085` JSON envelopes plus `SPEC-039` /
-`SPEC-040` manifest coverage, but it does not own HTTP, retries, cancellation,
-token storage, UI state, or framework lifecycle.
+`SPEC-047` / `SPEC-068` / `SPEC-085` / `SPEC-090` / `SPEC-093` JSON envelopes
+plus `SPEC-039` / `SPEC-040` manifest coverage, but it does not own HTTP,
+retries, cancellation, token storage, UI state, or framework lifecycle.
 Generated JS, `.wasm` files, generated-artifact packaging, and Next server /
 Node bindings are intentionally left out until a focused package artifact issue
 exists. The TypeScript facade metadata below only packages the compiled facade
@@ -387,6 +388,16 @@ failure envelopes without taking ownership of runtime route behavior, relation
 aggregation correctness, thread ordering, fanout, authorization, knock runtime
 behavior, restricted join runtime behavior, or Matrix Client-Server support
 advertisement.
+
+SPEC-093 shared-core adoption record for issue #121: the Rust prototype now
+consumes the `houra-spec` snapshot `b2c4d9894ff9273bdf0c80e8c884c0f1dd8ee94e`
+SPEC-093 sync breadth extension vector for parser-only Client-Server sync
+extension adoption. The Dart SDK, WASM wrapper, and TypeScript facade expose
+sync request descriptors, presence and to-device event snippets, device list
+changes, one-time key counts, and invite / leave / knock room section maps
+without taking ownership of sync long-poll runtime, sync token persistence,
+fanout timing, authorization, filter storage, timeline ordering, device-list
+freshness, or Matrix Client-Server support advertisement.
 
 SPEC-054 adoption record for issue #69: the Rust prototype now consumes the
 `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`

@@ -1051,6 +1051,29 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixSyncRequestDescriptorJson() {
+      return JSON.stringify(
+        overrides.syncDescriptorEnvelope ?? {
+          ok: true,
+          value: {
+            method: "GET",
+            path: "/_matrix/client/v3/sync",
+            requires_auth: true,
+            query_params: {
+              filter: "filter-1",
+              full_state: true,
+              set_presence: "online",
+              since: "s1",
+              timeout: 0,
+              use_state_after: true,
+            },
+            response_parser: "sync_extensions",
+            adopted_runtime_behavior: false,
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixRelationChunkResponseJson() {
       return JSON.stringify(
         overrides.relationChunkResponseEnvelope ?? {
@@ -3445,6 +3468,51 @@ test("maps optional SPEC-037 Matrix sync presence and summary envelopes", () => 
     },
     error: null,
   });
+});
+
+test("maps SPEC-093 sync breadth extension envelopes", () => {
+  const vector = readSpecVector("test-vectors/sync/matrix-sync-breadth-extensions.json");
+  assert.equal(vector.contract, "SPEC-093");
+
+  const core = createHouraProtocolCore(
+    binding({
+      syncResponseEnvelope: {
+        ok: true,
+        value: vector.event.sample_responses.sync_extensions,
+        error: null,
+      },
+    }),
+  );
+  assert.ok(core.manifest.supported_specs.includes("SPEC-093"));
+
+  assert.deepEqual(core.parseMatrixSyncRequestDescriptor("{}"), {
+    ok: true,
+    value: {
+      method: "GET",
+      path: "/_matrix/client/v3/sync",
+      requires_auth: true,
+      query_params: {
+        filter: "filter-1",
+        full_state: true,
+        set_presence: "online",
+        since: "s1",
+        timeout: 0,
+        use_state_after: true,
+      },
+      response_parser: "sync_extensions",
+      adopted_runtime_behavior: false,
+    },
+    error: null,
+  });
+
+  const sync = core.parseMatrixSyncResponse("{}");
+  assert.equal(sync.value.presence.events[0].sender, "@alice:example.test");
+  assert.equal(sync.value.to_device.events[0].type, "m.room.encrypted");
+  assert.deepEqual(sync.value.device_lists.changed, ["@alice:example.test"]);
+  assert.equal(sync.value.device_one_time_keys_count.signed_curve25519, 3);
+  assert.equal(Object.keys(sync.value.rooms.invite).length, 1);
+  assert.equal(Object.keys(sync.value.rooms.leave).length, 1);
+  assert.equal(Object.keys(sync.value.rooms.knock).length, 1);
 });
 
 test("reports joined room context for malformed SPEC-037 sync event lists", () => {
