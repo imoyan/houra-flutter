@@ -26,6 +26,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-054",
   "SPEC-055",
   "SPEC-056",
+  "SPEC-068",
   "SPEC-069",
 ] as const;
 
@@ -86,6 +87,9 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixKeyBackupRecoveryGateJson(responseBody: string): string;
   parseMatrixLoginFlowsJson(responseBody: string): string;
   parseMatrixLoginSessionJson(responseBody: string): string;
+  parseMatrixAuthMetadataJson(responseBody: string): string;
+  buildMatrixAccountManagementRedirectJson(responseBody: string): string;
+  reconcileMatrixAccountManagementDeviceDeleteJson(responseBody: string): string;
   parseMatrixMediaContentUriJson(contentUri: string): string;
   parseMatrixMediaUploadResponseJson(responseBody: string): string;
   parseMatrixMessagesResponseJson(responseBody: string): string;
@@ -169,6 +173,25 @@ export interface MatrixLoginSession {
   access_token: string;
   device_id?: string;
   home_server?: string;
+}
+
+export interface MatrixAuthMetadata {
+  issuer?: string;
+  account_management_uri?: string;
+  account_management_actions_supported: string[];
+}
+
+export interface MatrixAccountManagementRedirect {
+  uri: string;
+  action?: string;
+  device_id?: string;
+  generic_fallback: boolean;
+}
+
+export interface MatrixAccountManagementReconciliation {
+  deleted_device_id: string;
+  missing_device_id: boolean;
+  mark_delete_complete: boolean;
 }
 
 export interface MatrixRegistrationSession {
@@ -921,6 +944,15 @@ export interface HouraProtocolCoreFacade {
   parseMatrixLoginSession(
     responseBody: string,
   ): ProtocolResult<MatrixLoginSession>;
+  parseMatrixAuthMetadata(
+    responseBody: string,
+  ): ProtocolResult<MatrixAuthMetadata>;
+  buildMatrixAccountManagementRedirect(
+    responseBody: string,
+  ): ProtocolResult<MatrixAccountManagementRedirect>;
+  reconcileMatrixAccountManagementDeviceDelete(
+    responseBody: string,
+  ): ProtocolResult<MatrixAccountManagementReconciliation>;
   parseMatrixMediaContentUri(
     contentUri: string,
   ): ProtocolResult<MatrixMediaContentUri>;
@@ -1412,6 +1444,27 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixLoginSessionEnvelope(envelope);
+    },
+    parseMatrixAuthMetadata(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixAuthMetadataJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixAuthMetadataEnvelope(envelope);
+    },
+    buildMatrixAccountManagementRedirect(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.buildMatrixAccountManagementRedirectJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixAccountManagementRedirectEnvelope(envelope);
+    },
+    reconcileMatrixAccountManagementDeviceDelete(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.reconcileMatrixAccountManagementDeviceDeleteJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixAccountManagementReconciliationEnvelope(envelope);
     },
     parseMatrixMediaContentUri(contentUri: string) {
       const envelope = parseJsonObject(
@@ -2655,6 +2708,54 @@ function readMatrixLoginSession(
     result.home_server = homeServer;
   });
   return result;
+}
+
+function readMatrixAuthMetadataEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixAuthMetadata> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixAuthMetadata = {
+      account_management_actions_supported: readStringArray(
+        value,
+        "account_management_actions_supported",
+      ),
+    };
+    readOptionalString(value, "issuer", (issuer) => {
+      result.issuer = issuer;
+    });
+    readOptionalString(value, "account_management_uri", (uri) => {
+      result.account_management_uri = uri;
+    });
+    return result;
+  });
+}
+
+function readMatrixAccountManagementRedirectEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixAccountManagementRedirect> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixAccountManagementRedirect = {
+      uri: readString(value, "uri", "invalid_envelope"),
+      generic_fallback: readBoolean(value, "generic_fallback"),
+    };
+    readOptionalString(value, "action", (action) => {
+      result.action = action;
+    });
+    readOptionalString(value, "device_id", (deviceId) => {
+      result.device_id = deviceId;
+    });
+    return result;
+  });
+}
+
+function readMatrixAccountManagementReconciliationEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixAccountManagementReconciliation> {
+  return readProtocolResult(envelope, (value) => ({
+    deleted_device_id: readString(value, "deleted_device_id", "invalid_envelope"),
+    missing_device_id: readBoolean(value, "missing_device_id"),
+    mark_delete_complete: readBoolean(value, "mark_delete_complete"),
+  }));
 }
 
 function readMatrixRegistrationSessionEnvelope(
