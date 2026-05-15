@@ -110,7 +110,7 @@ WASM / TypeScript facade publish readiness for issue #75: generated
 `wasm-bindgen` JavaScript and `.wasm` files stay out of the repository until a
 focused package artifact issue decides otherwise. The TypeScript facade package
 keeps `private: true`, but defines `exports`, `types`, `files`, `sideEffects`,
-and a `prepack` build hook so `npm pack --dry-run` can validate package
+and a `prepack` build hook so `npm run pack:dry-run` can validate package
 contents before a future publish PR. The package artifact contains the compiled
 TypeScript facade only; host applications still provide the generated WASM
 module object and own bundler choice, browser / Next / Vue lifecycle, HTTP
@@ -238,7 +238,7 @@ SPEC-037 adoption record for issue #44: the Rust prototype now consumes the
 incremental, empty incremental, room state/timeline, account data, summary,
 unread notification, presence envelope, and Matrix error envelope parsing only.
 The WASM wrapper and TypeScript facade expose those envelopes without taking
-ownership of crypto, transport, storage, retries, sync token persistence, or UI
+ownership of crypto, transport, storage, retries, sync-token persistence, or UI
 behavior.
 
 SPEC-038 adoption record for issue #47: the Rust prototype now consumes the
@@ -714,12 +714,13 @@ HOURA_SPEC_ROOT=../houra-spec flutter test
 flutter pub publish --dry-run
 ```
 
-The current dry-run blocker found during issue #78 was the missing
+The previous dry-run blocker found during issue #78 was the missing
 `CHANGELOG.md`; the package now includes one. The dry run may still report
 server-side policy checks after `publish_to: none` is removed in a separate
 release PR.
 
-Do not publish from this issue. The release PR must confirm:
+Do not publish as part of issue #78 or this release-gate documentation update.
+The release PR must confirm:
 
 - pub.dev package ownership for `houra`
 - final package name and version

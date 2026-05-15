@@ -3730,9 +3730,9 @@ function readNestedStringRecord(
   field: string,
   context: string,
 ): Record<string, Record<string, string>> {
-  const outer: [string, Record<string, string>][] = [];
+  const result: Record<string, Record<string, string>> = {};
   for (const [outerKey, inner] of Object.entries(readRecord(source, field, context))) {
-    const innerValues: [string, string][] = [];
+    const innerResult: Record<string, string> = {};
     for (const [innerKey, value] of Object.entries(
       assertRecord(inner, `${context}.${outerKey}`),
     )) {
@@ -3742,11 +3742,24 @@ function readNestedStringRecord(
           `${context}.${outerKey}.${innerKey} must be a string`,
         );
       }
-      innerValues.push([innerKey, value]);
+      defineRecordValue(innerResult, innerKey, value);
     }
-    outer.push([outerKey, Object.fromEntries(innerValues)]);
+    defineRecordValue(result, outerKey, innerResult);
   }
-  return Object.fromEntries(outer);
+  return result;
+}
+
+function defineRecordValue<T>(
+  target: Record<string, T>,
+  key: string,
+  value: T,
+): void {
+  Object.defineProperty(target, key, {
+    value,
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  });
 }
 
 function readNestedFederationKeyQueryCriteria(

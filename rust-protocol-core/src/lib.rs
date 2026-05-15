@@ -5026,11 +5026,6 @@ pub fn parse_matrix_keys_upload_response(
     let counts = wire
         .one_time_key_counts
         .ok_or_else(|| invalid_device_key_field("keys_upload_response.one_time_key_counts"))?;
-    if counts.is_empty() {
-        return Err(invalid_device_key_field(
-            "keys_upload_response.one_time_key_counts",
-        ));
-    }
     let mut one_time_key_counts = BTreeMap::new();
     for (algorithm, count) in counts {
         required_device_key_borrowed_string(
@@ -5113,8 +5108,7 @@ pub fn parse_matrix_keys_claim_response(
         claimed_keys_from_wire(wire.one_time_keys, "keys_claim_response.one_time_keys")?;
     let fallback_key_returned = one_time_keys.values().any(|devices| {
         devices.values().any(|keys| {
-            keys.values()
-                .any(|key| key.fallback || key.key.contains("fallback"))
+            keys.values().any(|key| key.fallback)
         })
     });
     Ok(MatrixKeysClaimResponse {
@@ -5326,7 +5320,9 @@ pub fn parse_matrix_public_rooms_response(
         .ok_or_else(|| invalid_room_directory_field("public_rooms_response.chunk"))?
         .into_iter()
         .enumerate()
-        .map(|(index, room)| public_room_from_wire(room, &format!("public_rooms.{index}")))
+        .map(|(index, room)| {
+            public_room_from_wire(room, &format!("public_rooms_response.chunk.{index}"))
+        })
         .collect::<Result<Vec<_>, _>>()?;
     Ok(MatrixPublicRoomsResponse {
         chunk: rooms,
@@ -5473,7 +5469,7 @@ pub fn parse_matrix_invite_room(bytes: &[u8]) -> Result<MatrixInviteRoom, Protoc
         .into_iter()
         .enumerate()
         .map(|(index, event)| {
-            invite_state_event_from_wire(event, &format!("invite_room.events.{index}"))
+            invite_state_event_from_wire(event, &format!("invite_room.invite_state.events.{index}"))
         })
         .collect::<Result<Vec<_>, _>>()?;
     Ok(MatrixInviteRoom {
@@ -8111,6 +8107,15 @@ mod tests {
                 ["signed_curve25519:fb1"]
                 .fallback
         );
+        let empty_upload_response =
+            parse_matrix_keys_upload_response(br#"{"one_time_key_counts":{}}"#)
+                .expect("empty one_time_key_counts is valid when no keys remain");
+        assert!(empty_upload_response.one_time_key_counts.is_empty());
+        let key_named_fallback_response = parse_matrix_keys_claim_response(
+            br#"{"failures":{},"one_time_keys":{"@alice:example.test":{"DEVICE1":{"signed_curve25519:otk-fallback-looking":{"key":"contains-fallback-in-material","fallback":false,"signatures":{"@alice:example.test":{"ed25519:DEVICE1":"signature"}}}}}}}"#,
+        )
+        .expect("fallback-looking key material should parse");
+        assert!(!key_named_fallback_response.fallback_key_returned);
 
         let invalid_algorithm =
             read_spec_vector("test-vectors/auth/matrix-keys-claim-invalid-algorithm.json");
@@ -8761,6 +8766,19 @@ mod tests {
             Some("#project:example.test")
         );
         assert_eq!(parsed_public_rooms.total_room_count_estimate, Some(1));
+        let invalid_public_rooms = parse_matrix_public_rooms_response(
+            br#"{"chunk":[{"room_id":"","num_joined_members":1,"world_readable":false,"guest_can_join":false}]}"#,
+        )
+        .expect_err("invalid public room chunk should report chunk path");
+        assert!(
+            invalid_public_rooms
+                .to_envelope()
+                .details
+                .get("field")
+                .map(String::as_str)
+                .unwrap_or_default()
+                .contains("public_rooms_response.chunk.0")
+        );
 
         let filtered = read_spec_vector("test-vectors/rooms/matrix-public-rooms-filter-basic.json");
         let parsed_filter =
@@ -8820,6 +8838,19 @@ mod tests {
         assert_eq!(
             parsed_invite_room.events[0].content["membership"],
             serde_json::json!("invite")
+        );
+        let invalid_invite_room = parse_matrix_invite_room(
+            br#"{"room_id":"!room:example.test","invite_state":{"events":[{"type":"","sender":"@alice:example.test","state_key":"@bob:example.test","content":{"membership":"invite"}}]}}"#,
+        )
+        .expect_err("invalid invite room event should report invite_state path");
+        assert!(
+            invalid_invite_room
+                .to_envelope()
+                .details
+                .get("field")
+                .map(String::as_str)
+                .unwrap_or_default()
+                .contains("invite_room.invite_state.events.0")
         );
 
         let alias_forbidden =

@@ -1856,15 +1856,19 @@ test("maps SPEC-054 verification and cross-signing envelopes", () => {
   );
   const protoKeyUpload =
     protoKeyCore.parseMatrixCrossSigningDeviceSigningUpload("{}");
-  assert.equal(protoKeyUpload.value.master_key.keys.__proto__, "master-public");
   assert.equal(
-    protoKeyUpload.value.master_key.signatures.__proto__.__proto__,
+    Object.prototype.hasOwnProperty.call(protoKeyUpload.value.master_key.keys, "__proto__"),
+    true,
+  );
+  assert.equal(protoKeyUpload.value.master_key.keys["__proto__"], "master-public");
+  assert.equal(
+    protoKeyUpload.value.master_key.signatures["__proto__"]["__proto__"],
     "signature",
   );
   const protoSignatureUpload =
     protoKeyCore.parseMatrixCrossSigningSignatureUpload("{}");
   assert.equal(
-    protoSignatureUpload.value.signed_objects.__proto__.__proto__.user_id,
+    protoSignatureUpload.value.signed_objects["__proto__"]["__proto__"].user_id,
     "@alice:example.test",
   );
 });
@@ -1985,8 +1989,8 @@ test("maps SPEC-051 device, one-time, and fallback key envelopes", () => {
     }),
   );
   assert.equal(
-    protoKeyCore.parseMatrixKeysUploadRequest("{}").value.one_time_keys.__proto__
-      .signatures.__proto__.__proto__,
+    protoKeyCore.parseMatrixKeysUploadRequest("{}").value.one_time_keys["__proto__"]
+      .signatures["__proto__"]["__proto__"],
     "signature",
   );
 });
@@ -2000,12 +2004,15 @@ test("maps SPEC-069 device key query envelopes", () => {
   const unknownDevice = readSpecVector(
     "test-vectors/auth/matrix-keys-query-unknown-device-omitted.json",
   );
+  const timeoutNotInteger = readSpecVector(
+    "test-vectors/auth/matrix-keys-query-timeout-not-integer.json",
+  );
   const missingToken = readSpecVector(
     "test-vectors/auth/matrix-keys-query-missing-token.json",
   );
 
   assert.ok(core.manifest.supported_specs.includes("SPEC-069"));
-  for (const vector of [basic, allDevices, unknownDevice, missingToken]) {
+  for (const vector of [basic, allDevices, unknownDevice, timeoutNotInteger, missingToken]) {
     assert.equal(vector.contract, "SPEC-069");
   }
   assert.deepEqual(core.parseMatrixDeviceKeyQueryRequest("{}"), {
@@ -2458,8 +2465,9 @@ test("maps SPEC-053 key backup metadata envelopes", () => {
     }),
   );
   assert.equal(
-    protoKeyCore.parseMatrixKeyBackupVersion("{}").value.auth_data.signatures
-      .__proto__.__proto__,
+    protoKeyCore.parseMatrixKeyBackupVersion("{}").value.auth_data.signatures[
+      "__proto__"
+    ]["__proto__"],
     "signature",
   );
 });
