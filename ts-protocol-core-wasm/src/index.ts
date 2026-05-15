@@ -29,6 +29,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-068",
   "SPEC-069",
   "SPEC-085",
+  "SPEC-090",
 ] as const;
 
 export interface HouraProtocolCoreWasmBinding {
@@ -98,6 +99,12 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixJoinedMembersResponseJson(responseBody: string): string;
   parseMatrixMembersResponseJson(responseBody: string): string;
   parseMatrixTimestampToEventResponseJson(responseBody: string): string;
+  parseMatrixRelationsRequestDescriptorJson(responseBody: string): string;
+  parseMatrixRelationChunkResponseJson(responseBody: string): string;
+  parseMatrixThreadRootsResponseJson(responseBody: string): string;
+  parseMatrixReactionEventJson(responseBody: string): string;
+  parseMatrixEditEventJson(responseBody: string): string;
+  parseMatrixReplyEventJson(responseBody: string): string;
   parseMatrixProfileResponseJson(responseBody: string): string;
   parseMatrixProfileFieldUpdateRequestJson(responseBody: string): string;
   parseMatrixAccountDataContentJson(responseBody: string): string;
@@ -296,6 +303,25 @@ export interface MatrixMembersResponse {
 export interface MatrixTimestampToEventResponse {
   event_id: string;
   origin_server_ts: number;
+}
+
+export interface MatrixRelationsRequestDescriptor {
+  method: string;
+  path: string;
+  requires_auth: boolean;
+  response_parser: "relation_chunk" | "thread_roots";
+  adopted_runtime_behavior: boolean;
+}
+
+export interface MatrixRelationChunkResponse {
+  chunk: MatrixClientEvent[];
+  next_batch?: string;
+  prev_batch?: string;
+}
+
+export interface MatrixThreadRootsResponse {
+  chunk: MatrixClientEvent[];
+  next_batch?: string;
 }
 
 export interface MatrixSyncEvent {
@@ -1006,6 +1032,18 @@ export interface HouraProtocolCoreFacade {
   parseMatrixTimestampToEventResponse(
     responseBody: string,
   ): ProtocolResult<MatrixTimestampToEventResponse>;
+  parseMatrixRelationsRequestDescriptor(
+    responseBody: string,
+  ): ProtocolResult<MatrixRelationsRequestDescriptor>;
+  parseMatrixRelationChunkResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixRelationChunkResponse>;
+  parseMatrixThreadRootsResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixThreadRootsResponse>;
+  parseMatrixReactionEvent(responseBody: string): ProtocolResult<MatrixClientEvent>;
+  parseMatrixEditEvent(responseBody: string): ProtocolResult<MatrixClientEvent>;
+  parseMatrixReplyEvent(responseBody: string): ProtocolResult<MatrixClientEvent>;
   parseMatrixProfileResponse(
     responseBody: string,
   ): ProtocolResult<MatrixProfileResponse>;
@@ -1558,6 +1596,48 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixTimestampToEventResponseEnvelope(envelope);
+    },
+    parseMatrixRelationsRequestDescriptor(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRelationsRequestDescriptorJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRelationsRequestDescriptorEnvelope(envelope);
+    },
+    parseMatrixRelationChunkResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixRelationChunkResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixRelationChunkResponseEnvelope(envelope);
+    },
+    parseMatrixThreadRootsResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixThreadRootsResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixThreadRootsResponseEnvelope(envelope);
+    },
+    parseMatrixReactionEvent(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixReactionEventJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixClientEventEnvelope(envelope);
+    },
+    parseMatrixEditEvent(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixEditEventJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixClientEventEnvelope(envelope);
+    },
+    parseMatrixReplyEvent(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixReplyEventJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixClientEventEnvelope(envelope);
     },
     parseMatrixProfileResponse(responseBody: string) {
       const envelope = parseJsonObject(
@@ -3049,6 +3129,66 @@ function readMatrixTimestampToEventResponseEnvelope(
       "invalid_envelope",
     ),
   }));
+}
+
+function readMatrixRelationsRequestDescriptorEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRelationsRequestDescriptor> {
+  return readProtocolResult(envelope, (value) => {
+    const responseParser = readString(
+      value,
+      "response_parser",
+      "invalid_envelope",
+    );
+    if (responseParser !== "relation_chunk" && responseParser !== "thread_roots") {
+      throw new HouraProtocolCoreFacadeError(
+        "invalid_envelope",
+        "Expected response_parser to be relation_chunk or thread_roots.",
+      );
+    }
+    return {
+      method: readString(value, "method", "invalid_envelope"),
+      path: readString(value, "path", "invalid_envelope"),
+      requires_auth: readBoolean(value, "requires_auth"),
+      response_parser: responseParser,
+      adopted_runtime_behavior: readBoolean(value, "adopted_runtime_behavior"),
+    };
+  });
+}
+
+function readMatrixRelationChunkResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixRelationChunkResponse> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixRelationChunkResponse = {
+      chunk: readArray(value, "chunk", "invalid_envelope").map((entry, index) =>
+        readMatrixClientEvent(assertRecord(entry, `chunk.${index}`)),
+      ),
+    };
+    readOptionalString(value, "next_batch", (nextBatch) => {
+      result.next_batch = nextBatch;
+    });
+    readOptionalString(value, "prev_batch", (prevBatch) => {
+      result.prev_batch = prevBatch;
+    });
+    return result;
+  });
+}
+
+function readMatrixThreadRootsResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixThreadRootsResponse> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixThreadRootsResponse = {
+      chunk: readArray(value, "chunk", "invalid_envelope").map((entry, index) =>
+        readMatrixClientEvent(assertRecord(entry, `chunk.${index}`)),
+      ),
+    };
+    readOptionalString(value, "next_batch", (nextBatch) => {
+      result.next_batch = nextBatch;
+    });
+    return result;
+  });
 }
 
 function readMatrixProfileResponseEnvelope(

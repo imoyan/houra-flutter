@@ -28,6 +28,7 @@ const expectedProtocolSpecIds = [
   'SPEC-068',
   'SPEC-069',
   'SPEC-085',
+  'SPEC-090',
 ];
 
 const expectedReleaseEvidenceSpecIds = [
@@ -425,6 +426,35 @@ void main(List<String> args) {
         'authorization',
         'storage lookup',
         'deprecated endpoint compatibility',
+        'Matrix Client-Server support advertisement',
+      ],
+    },
+    'relations_threads_reactions_parser_adoption': {
+      'issue': 120,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-090'],
+      'parity_vectors': [
+        'test-vectors/core/'
+            'matrix-'
+            'client-server-relations-threads-reactions.json',
+      ],
+      'parser_only_surfaces': [
+        'relations request descriptor',
+        'relation chunk response envelope',
+        'thread roots response envelope',
+        'reaction event relation content',
+        'edit relation content',
+        'reply relation content',
+        'membership variant failure envelope',
+      ],
+      'out_of_scope': [
+        'runtime route behavior',
+        'relation aggregation correctness',
+        'thread ordering',
+        'fanout',
+        'authorization',
+        'knock runtime behavior',
+        'restricted join runtime behavior',
         'Matrix Client-Server support advertisement',
       ],
     },

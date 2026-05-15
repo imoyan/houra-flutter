@@ -20,6 +20,7 @@ void main() {
   checkSpec054ProtocolCoreGate(failures);
   checkSpec069ProtocolCoreGate(failures);
   checkSpec085ProtocolCoreGate(failures);
+  checkSpec090ProtocolCoreGate(failures);
 
   if (failures.isNotEmpty) {
     stderr.writeln('Spec sync check failed:');
@@ -943,6 +944,102 @@ void checkSpec085ProtocolCoreGate(List<String> failures) {
       'ts-protocol-core-wasm/test/index.test.mjs': [
         'SPEC-085',
         'event-retrieval-membership-history.json',
+      ],
+    },
+  );
+}
+
+void checkSpec090ProtocolCoreGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final contract = File(
+    '${specRoot.path}/contracts/'
+    'SPEC-090-matrix-'
+    'client-server-relations-threads-reactions.md',
+  );
+  final vectors = [
+    'test-vectors/core/'
+        'matrix-'
+        'client-server-relations-threads-reactions.json',
+  ];
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-090 contract: ${contract.path}');
+    return;
+  }
+  checkVectorsHaveContract(failures, specRoot, 'SPEC-090', vectors);
+  checkReleaseEvidenceAdoption(
+    failures,
+    blockName: 'relations_threads_reactions_parser_adoption',
+    issue: 120,
+    specId: 'SPEC-090',
+    parityVectors: vectors,
+    parserOnlySurfaces: [
+      'relations request descriptor',
+      'relation chunk response envelope',
+      'thread roots response envelope',
+      'reaction event relation content',
+      'edit relation content',
+      'reply relation content',
+      'membership variant failure envelope',
+    ],
+    outOfScope: [
+      'runtime route behavior',
+      'relation aggregation correctness',
+      'thread ordering',
+      'fanout',
+      'authorization',
+      'knock runtime behavior',
+      'restricted join runtime behavior',
+      'Matrix Client-Server support advertisement',
+    ],
+  );
+
+  checkRequiredFragments(
+    failures,
+    specId: 'SPEC-090',
+    requiredFragmentsByFile: {
+      'AGENTS.md': ['SPEC-090'],
+      'README.md': ['SPEC-090', 'relations'],
+      'lib/src/models.dart': [
+        'HouraMatrixRelationChunk',
+        'HouraMatrixThreadRoots',
+        'HouraMatrixReactionRelation',
+        'HouraMatrixThreadSummary',
+        'HouraMatrixEditRelation',
+      ],
+      'lib/src/rooms.dart': ['getMatrixRelations', 'getMatrixThreads'],
+      'test/rooms_events_contract_test.dart': [
+        'SPEC-090',
+        'relations-threads-reactions.json',
+      ],
+      'rust-protocol-core/src/lib.rs': [
+        '"SPEC-090"',
+        'parse_matrix_relations_request_descriptor',
+        'parse_matrix_relation_chunk_response',
+        'parse_matrix_thread_roots_response',
+        'parse_matrix_reaction_event',
+        'parse_matrix_edit_event',
+        'parse_matrix_reply_event',
+      ],
+      'rust-protocol-core-wasm/src/lib.rs': [
+        'parseMatrixRelationsRequestDescriptorJson',
+        'parseMatrixRelationChunkResponseJson',
+        'parseMatrixThreadRootsResponseJson',
+        'parseMatrixReactionEventJson',
+        'parseMatrixEditEventJson',
+        'parseMatrixReplyEventJson',
+      ],
+      'ts-protocol-core-wasm/src/index.ts': [
+        '"SPEC-090"',
+        'parseMatrixRelationsRequestDescriptor',
+        'parseMatrixRelationChunkResponse',
+        'parseMatrixThreadRootsResponse',
+        'parseMatrixReactionEvent',
+        'parseMatrixEditEvent',
+        'parseMatrixReplyEvent',
+      ],
+      'ts-protocol-core-wasm/test/index.test.mjs': [
+        'SPEC-090',
+        'relations-threads-reactions.json',
       ],
     },
   );
