@@ -111,6 +111,22 @@ void main() {
       throwsA(isA<HouraResponseFormatException>()),
     );
     expect(
+      () => HouraMatrixMembers.fromJson({
+        'chunk': [
+          {
+            'event_id': r'$event:example.test',
+            'room_id': '!room:example.test',
+            'sender': '@alice:example.test',
+            'origin_server_ts': 1715754600000,
+            'state_key': '@alice:example.test',
+            'type': 'm.room.member',
+            'content': {'membership': 'custom'},
+          },
+        ],
+      }),
+      throwsA(isA<HouraResponseFormatException>()),
+    );
+    expect(
       () => HouraMatrixTimestampToEvent.fromJson({
         'event_id': r'$event:example.test',
         'origin_server_ts': -1,
@@ -124,6 +140,16 @@ void main() {
                 roomId: '!room:example.test',
                 membership: 'bad',
               ),
+      throwsArgumentError,
+    );
+    expect(
+      () => _client(
+        (_) async => http.Response('{}', 200),
+      ).rooms.getMatrixRoomEvent(
+            accessToken: 'token-1',
+            roomId: '!:',
+            eventId: r'$event:example.test',
+          ),
       throwsArgumentError,
     );
   });
