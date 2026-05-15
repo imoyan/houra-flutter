@@ -25,7 +25,7 @@ pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
     "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047", "SPEC-048", "SPEC-049",
-    "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-068", "SPEC-069",
+    "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-068", "SPEC-069", "SPEC-085",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -184,6 +184,42 @@ pub struct MatrixMessagesResponse {
     pub start: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixEventRetrievalRequestDescriptor {
+    pub method: String,
+    pub path: String,
+    pub requires_auth: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub response_parser: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unsupported_reason: Option<String>,
+    pub adopted_runtime_behavior: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixJoinedMember {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar_url: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixJoinedMembersResponse {
+    pub joined: BTreeMap<String, MatrixJoinedMember>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixMembersResponse {
+    pub chunk: Vec<MatrixClientEvent>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixTimestampToEventResponse {
+    pub event_id: String,
+    pub origin_server_ts: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -1012,6 +1048,34 @@ pub struct MatrixMessagesResponseParseEnvelope {
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixEventRetrievalRequestDescriptorParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixEventRetrievalRequestDescriptor>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixJoinedMembersResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixJoinedMembersResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixMembersResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixMembersResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixTimestampToEventResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixTimestampToEventResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MatrixSyncResponseParseEnvelope {
     pub ok: bool,
@@ -1833,6 +1897,38 @@ struct MatrixMessagesResponseWire {
     chunk: Option<Vec<MatrixClientEventWire>>,
     start: Option<String>,
     end: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixEventRetrievalRequestDescriptorWire {
+    method: Option<String>,
+    path: Option<String>,
+    requires_auth: Option<bool>,
+    response_parser: Option<String>,
+    unsupported_reason: Option<String>,
+    adopted_runtime_behavior: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixJoinedMemberWire {
+    display_name: Option<String>,
+    avatar_url: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixJoinedMembersResponseWire {
+    joined: Option<BTreeMap<String, MatrixJoinedMemberWire>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixMembersResponseWire {
+    chunk: Option<Vec<MatrixClientEventWire>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixTimestampToEventResponseWire {
+    event_id: Option<String>,
+    origin_server_ts: Option<i64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -3224,6 +3320,211 @@ pub fn parse_matrix_messages_response_envelope(
 
 pub fn parse_matrix_messages_response_json(bytes: &[u8]) -> String {
     serde_json::to_string(&parse_matrix_messages_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_event_retrieval_request_descriptor(
+    bytes: &[u8],
+) -> Result<MatrixEventRetrievalRequestDescriptor, ProtocolError> {
+    let wire: MatrixEventRetrievalRequestDescriptorWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let method = required_room_string(wire.method, "event_retrieval_descriptor.method")?;
+    if method != "GET" {
+        return Err(invalid_room_field("event_retrieval_descriptor.method"));
+    }
+    let path = required_room_string(wire.path, "event_retrieval_descriptor.path")?;
+    let response_parser = optional_room_string(
+        wire.response_parser,
+        "event_retrieval_descriptor.response_parser",
+    )?;
+    let unsupported_reason = optional_room_string(
+        wire.unsupported_reason,
+        "event_retrieval_descriptor.unsupported_reason",
+    )?;
+    let adopted_runtime_behavior = wire.adopted_runtime_behavior.unwrap_or(true);
+    if adopted_runtime_behavior {
+        if response_parser.is_none() {
+            return Err(invalid_room_field(
+                "event_retrieval_descriptor.response_parser",
+            ));
+        }
+    } else if unsupported_reason.as_deref() != Some("deprecated_compatibility_endpoint") {
+        return Err(invalid_room_field(
+            "event_retrieval_descriptor.unsupported_reason",
+        ));
+    }
+
+    Ok(MatrixEventRetrievalRequestDescriptor {
+        method,
+        path,
+        requires_auth: wire
+            .requires_auth
+            .ok_or_else(|| invalid_room_field("event_retrieval_descriptor.requires_auth"))?,
+        response_parser,
+        unsupported_reason,
+        adopted_runtime_behavior,
+    })
+}
+
+pub fn parse_matrix_event_retrieval_request_descriptor_envelope(
+    bytes: &[u8],
+) -> MatrixEventRetrievalRequestDescriptorParseEnvelope {
+    match parse_matrix_event_retrieval_request_descriptor(bytes) {
+        Ok(value) => MatrixEventRetrievalRequestDescriptorParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixEventRetrievalRequestDescriptorParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_event_retrieval_request_descriptor_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_event_retrieval_request_descriptor_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_joined_members_response(
+    bytes: &[u8],
+) -> Result<MatrixJoinedMembersResponse, ProtocolError> {
+    let wire: MatrixJoinedMembersResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let joined = wire
+        .joined
+        .ok_or_else(|| invalid_room_field("joined_members.joined"))?;
+    if joined.is_empty() {
+        return Err(invalid_room_field("joined_members.joined"));
+    }
+    let joined = joined
+        .into_iter()
+        .map(|(user_id, member)| {
+            if user_id.is_empty() {
+                return Err(invalid_room_field("joined_members.user_id"));
+            }
+            Ok((
+                user_id,
+                MatrixJoinedMember {
+                    display_name: optional_room_string(
+                        member.display_name,
+                        "joined_members.display_name",
+                    )?,
+                    avatar_url: optional_room_string(
+                        member.avatar_url,
+                        "joined_members.avatar_url",
+                    )?,
+                },
+            ))
+        })
+        .collect::<Result<BTreeMap<_, _>, _>>()?;
+    Ok(MatrixJoinedMembersResponse { joined })
+}
+
+pub fn parse_matrix_joined_members_response_envelope(
+    bytes: &[u8],
+) -> MatrixJoinedMembersResponseParseEnvelope {
+    match parse_matrix_joined_members_response(bytes) {
+        Ok(value) => MatrixJoinedMembersResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixJoinedMembersResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_joined_members_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_joined_members_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_members_response(bytes: &[u8]) -> Result<MatrixMembersResponse, ProtocolError> {
+    let wire: MatrixMembersResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let chunk = wire
+        .chunk
+        .ok_or_else(|| invalid_room_field("members.chunk"))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, event)| {
+            let event = matrix_client_event_from_wire(event, &format!("members.chunk.{index}"))?;
+            if event.event_type != "m.room.member" || event.state_key.is_none() {
+                return Err(invalid_room_field(&format!("members.chunk.{index}")));
+            }
+            match event.content.get("membership") {
+                Some(Value::String(value)) if !value.is_empty() => Ok(event),
+                _ => Err(invalid_room_field(&format!(
+                    "members.chunk.{index}.content.membership"
+                ))),
+            }
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(MatrixMembersResponse { chunk })
+}
+
+pub fn parse_matrix_members_response_envelope(bytes: &[u8]) -> MatrixMembersResponseParseEnvelope {
+    match parse_matrix_members_response(bytes) {
+        Ok(value) => MatrixMembersResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixMembersResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_members_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_members_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_timestamp_to_event_response(
+    bytes: &[u8],
+) -> Result<MatrixTimestampToEventResponse, ProtocolError> {
+    let wire: MatrixTimestampToEventResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let origin_server_ts = match wire.origin_server_ts {
+        Some(timestamp) if timestamp >= 0 => timestamp as u64,
+        _ => return Err(invalid_room_field("timestamp_to_event.origin_server_ts")),
+    };
+    Ok(MatrixTimestampToEventResponse {
+        event_id: required_room_string(wire.event_id, "timestamp_to_event.event_id")?,
+        origin_server_ts,
+    })
+}
+
+pub fn parse_matrix_timestamp_to_event_response_envelope(
+    bytes: &[u8],
+) -> MatrixTimestampToEventResponseParseEnvelope {
+    match parse_matrix_timestamp_to_event_response(bytes) {
+        Ok(value) => MatrixTimestampToEventResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixTimestampToEventResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_timestamp_to_event_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_timestamp_to_event_response_envelope(bytes))
         .expect("parse envelope serialization should be infallible")
 }
 
@@ -7769,7 +8070,7 @@ mod tests {
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
                 "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047",
                 "SPEC-048", "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056",
-                "SPEC-068", "SPEC-069"
+                "SPEC-068", "SPEC-069", "SPEC-085"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -9797,6 +10098,102 @@ mod tests {
             parse_matrix_error_envelope(vector["expected"]["body_contains"].to_string().as_bytes())
                 .unwrap_or_else(|error| panic!("{path} should parse as Matrix error: {error:?}"));
         }
+    }
+
+    #[test]
+    fn parses_spec_085_event_retrieval_membership_vectors() {
+        let vector = read_spec_vector(concat!(
+            "test-vectors/core/",
+            "matrix-",
+            "client-server-event-retrieval-membership-history.json"
+        ));
+        assert_eq!(vector["contract"], "SPEC-085");
+        let event = &vector["event"];
+        let descriptors = event["request_descriptors"]
+            .as_array()
+            .expect("SPEC-085 descriptors should be present");
+        let parsed_descriptors = descriptors
+            .iter()
+            .map(|descriptor| {
+                parse_matrix_event_retrieval_request_descriptor(descriptor.to_string().as_bytes())
+                    .expect("SPEC-085 descriptor should parse")
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(parsed_descriptors.len(), 8);
+        assert_eq!(
+            parsed_descriptors
+                .iter()
+                .filter(|descriptor| !descriptor.adopted_runtime_behavior)
+                .count(),
+            4
+        );
+        assert!(parsed_descriptors
+            .iter()
+            .any(|descriptor| descriptor.response_parser.as_deref() == Some("client_event")));
+
+        let responses = &event["sample_responses"];
+        let parsed_event =
+            parse_matrix_client_event(responses["client_event"].to_string().as_bytes())
+                .expect("SPEC-085 client event should parse");
+        assert_eq!(parsed_event.event_id, "$event:example.test");
+        assert_eq!(parsed_event.content["body"], "Hello");
+
+        let joined = parse_matrix_joined_members_response(
+            responses["joined_members"].to_string().as_bytes(),
+        )
+        .expect("SPEC-085 joined_members should parse");
+        assert_eq!(
+            joined
+                .joined
+                .get("@alice:example.test")
+                .and_then(|member| member.display_name.as_deref()),
+            Some("Alice")
+        );
+
+        let members =
+            parse_matrix_members_response(responses["membership_chunk"].to_string().as_bytes())
+                .expect("SPEC-085 members should parse");
+        assert_eq!(members.chunk.len(), 2);
+        assert_eq!(members.chunk[0].event_type, "m.room.member");
+        assert_eq!(members.chunk[0].content["membership"], "join");
+
+        let timestamp = parse_matrix_timestamp_to_event_response(
+            responses["timestamp_to_event"].to_string().as_bytes(),
+        )
+        .expect("SPEC-085 timestamp_to_event should parse");
+        assert_eq!(timestamp.event_id, "$event:example.test");
+        assert_eq!(timestamp.origin_server_ts, 1715754600000);
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-085"));
+    }
+
+    #[test]
+    fn rejects_invalid_spec_085_event_retrieval_membership_values() {
+        let envelope = parse_matrix_event_retrieval_request_descriptor_envelope(
+            br#"{"method":"POST","path":"/_matrix/client/v3/events","requires_auth":true,"adopted_runtime_behavior":false,"unsupported_reason":"deprecated_compatibility_endpoint"}"#,
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
+
+        let envelope = parse_matrix_joined_members_response_envelope(br#"{"joined":[]}"#);
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_json");
+
+        let envelope = parse_matrix_members_response_envelope(
+            br#"{"chunk":[{"event_id":"$event:example.test","room_id":"!room:example.test","sender":"@alice:example.test","origin_server_ts":1715754600000,"type":"m.room.message","content":{"body":"Hello"}}]}"#,
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
+
+        let envelope = parse_matrix_timestamp_to_event_response_envelope(
+            br#"{"event_id":"$event:example.test","origin_server_ts":-1}"#,
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
     }
 
     #[test]

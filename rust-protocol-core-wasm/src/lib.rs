@@ -144,6 +144,28 @@ pub fn parse_matrix_messages_response_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_messages_response_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixEventRetrievalRequestDescriptorJson)]
+pub fn parse_matrix_event_retrieval_request_descriptor_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_event_retrieval_request_descriptor_json(
+        response_body.as_bytes(),
+    )
+}
+
+#[wasm_bindgen(js_name = parseMatrixJoinedMembersResponseJson)]
+pub fn parse_matrix_joined_members_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_joined_members_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixMembersResponseJson)]
+pub fn parse_matrix_members_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_members_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixTimestampToEventResponseJson)]
+pub fn parse_matrix_timestamp_to_event_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_timestamp_to_event_response_json(response_body.as_bytes())
+}
+
 #[wasm_bindgen(js_name = parseMatrixSyncResponseJson)]
 pub fn parse_matrix_sync_response_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_sync_response_json(response_body.as_bytes())

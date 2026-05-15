@@ -19,6 +19,7 @@ void main() {
   checkSpec053ProtocolCoreGate(failures);
   checkSpec054ProtocolCoreGate(failures);
   checkSpec069ProtocolCoreGate(failures);
+  checkSpec085ProtocolCoreGate(failures);
 
   if (failures.isNotEmpty) {
     stderr.writeln('Spec sync check failed:');
@@ -851,6 +852,97 @@ void checkSpec069ProtocolCoreGate(List<String> failures) {
         'matrix-keys-query-basic.json',
         'matrix-keys-query-all-devices.json',
         'matrix-keys-query-missing-token.json',
+      ],
+    },
+  );
+}
+
+void checkSpec085ProtocolCoreGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final contract = File(
+    '${specRoot.path}/contracts/'
+    'SPEC-085-matrix-'
+    'client-server-event-retrieval-membership-history.md',
+  );
+  final vectors = [
+    'test-vectors/core/'
+        'matrix-'
+        'client-server-event-retrieval-membership-history.json',
+  ];
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-085 contract: ${contract.path}');
+    return;
+  }
+  checkVectorsHaveContract(failures, specRoot, 'SPEC-085', vectors);
+  checkReleaseEvidenceAdoption(
+    failures,
+    blockName: 'event_retrieval_membership_parser_adoption',
+    issue: 119,
+    specId: 'SPEC-085',
+    parityVectors: vectors,
+    parserOnlySurfaces: [
+      'event retrieval request descriptor',
+      'Matrix ClientEvent response envelope',
+      'joined_members response envelope',
+      'members membership chunk envelope',
+      'timestamp_to_event response envelope',
+      'deprecated compatibility unsupported descriptor',
+    ],
+    outOfScope: [
+      'runtime route behavior',
+      'history visibility',
+      'authorization',
+      'storage lookup',
+      'deprecated endpoint compatibility',
+      'Matrix Client-Server support advertisement',
+    ],
+  );
+
+  checkRequiredFragments(
+    failures,
+    specId: 'SPEC-085',
+    requiredFragmentsByFile: {
+      'AGENTS.md': ['SPEC-085'],
+      'README.md': ['SPEC-085', 'event retrieval'],
+      'lib/src/models.dart': [
+        'HouraMatrixClientEvent',
+        'HouraMatrixJoinedMembers',
+        'HouraMatrixMembers',
+        'HouraMatrixTimestampToEvent',
+      ],
+      'lib/src/rooms.dart': [
+        'getMatrixRoomEvent',
+        'getMatrixJoinedMembers',
+        'getMatrixMembers',
+        'matrixTimestampToEvent',
+      ],
+      'test/rooms_events_contract_test.dart': [
+        'SPEC-085',
+        'event-retrieval-membership-history.json',
+      ],
+      'rust-protocol-core/src/lib.rs': [
+        '"SPEC-085"',
+        'parse_matrix_event_retrieval_request_descriptor',
+        'parse_matrix_joined_members_response',
+        'parse_matrix_members_response',
+        'parse_matrix_timestamp_to_event_response',
+      ],
+      'rust-protocol-core-wasm/src/lib.rs': [
+        'parseMatrixEventRetrievalRequestDescriptorJson',
+        'parseMatrixJoinedMembersResponseJson',
+        'parseMatrixMembersResponseJson',
+        'parseMatrixTimestampToEventResponseJson',
+      ],
+      'ts-protocol-core-wasm/src/index.ts': [
+        '"SPEC-085"',
+        'parseMatrixEventRetrievalRequestDescriptor',
+        'parseMatrixJoinedMembersResponse',
+        'parseMatrixMembersResponse',
+        'parseMatrixTimestampToEventResponse',
+      ],
+      'ts-protocol-core-wasm/test/index.test.mjs': [
+        'SPEC-085',
+        'event-retrieval-membership-history.json',
       ],
     },
   );

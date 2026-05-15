@@ -200,6 +200,148 @@ final class HouraEvent {
   }
 }
 
+/// SPEC-085 Matrix ClientEvent parser-only envelope.
+final class HouraMatrixClientEvent {
+  const HouraMatrixClientEvent({
+    required this.eventId,
+    required this.roomId,
+    required this.sender,
+    required this.originServerTs,
+    required this.type,
+    required this.content,
+    required this.raw,
+    this.stateKey,
+    this.unsigned,
+  });
+
+  final String eventId;
+  final String roomId;
+  final String sender;
+  final int originServerTs;
+  final String type;
+  final Map<String, Object?> content;
+  final String? stateKey;
+  final Map<String, Object?>? unsigned;
+
+  /// Original Matrix event object, preserved for unknown field inspection.
+  final Map<String, Object?> raw;
+
+  factory HouraMatrixClientEvent.fromJson(Map<String, Object?> json) {
+    return HouraMatrixClientEvent(
+      eventId: _requiredString(json, 'event_id'),
+      roomId: _requiredString(json, 'room_id'),
+      sender: _requiredString(json, 'sender'),
+      originServerTs: _requiredNonNegativeInt(json, 'origin_server_ts'),
+      type: _requiredString(json, 'type'),
+      stateKey: _optionalString(json, 'state_key'),
+      content: _requiredJsonObject(json, 'content'),
+      unsigned: _optionalJsonObject(json, 'unsigned'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+
+  bool get isMembershipEvent => type == 'm.room.member';
+
+  String? get membership {
+    if (!isMembershipEvent) {
+      return null;
+    }
+    final value = content['membership'];
+    if (value is String && value.isNotEmpty) {
+      return value;
+    }
+    throw HouraResponseFormatException(
+      'Expected non-empty string "content.membership".',
+    );
+  }
+}
+
+/// SPEC-085 Matrix joined_members response.
+final class HouraMatrixJoinedMembers {
+  const HouraMatrixJoinedMembers({required this.joined});
+
+  final Map<String, HouraMatrixJoinedMember> joined;
+
+  factory HouraMatrixJoinedMembers.fromJson(Map<String, Object?> json) {
+    final value = json['joined'];
+    if (value is! Map || value.isEmpty) {
+      throw HouraResponseFormatException('Expected non-empty object "joined".');
+    }
+    return HouraMatrixJoinedMembers(
+      joined: Map<String, HouraMatrixJoinedMember>.unmodifiable(
+        value.cast<String, Object?>().map((userId, memberValue) {
+          if (memberValue is! Map) {
+            throw HouraResponseFormatException(
+              'Expected joined member object.',
+            );
+          }
+          return MapEntry(
+            userId,
+            HouraMatrixJoinedMember.fromJson(
+              memberValue.cast<String, Object?>(),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+}
+
+/// SPEC-085 Matrix joined member profile fields.
+final class HouraMatrixJoinedMember {
+  const HouraMatrixJoinedMember({this.displayName, this.avatarUrl});
+
+  final String? displayName;
+  final String? avatarUrl;
+
+  factory HouraMatrixJoinedMember.fromJson(Map<String, Object?> json) {
+    return HouraMatrixJoinedMember(
+      displayName: _optionalString(json, 'display_name'),
+      avatarUrl: _optionalString(json, 'avatar_url'),
+    );
+  }
+}
+
+/// SPEC-085 Matrix members response.
+final class HouraMatrixMembers {
+  const HouraMatrixMembers({required this.chunk});
+
+  final List<HouraMatrixClientEvent> chunk;
+
+  factory HouraMatrixMembers.fromJson(Map<String, Object?> json) {
+    final events = _requiredObjectList(json, 'chunk')
+        .map((event) => HouraMatrixClientEvent.fromJson(event))
+        .toList(growable: false);
+    for (final event in events) {
+      if (!event.isMembershipEvent || event.stateKey == null) {
+        throw HouraResponseFormatException(
+          'Expected m.room.member state events in "chunk".',
+        );
+      }
+      event.membership;
+    }
+    return HouraMatrixMembers(chunk: List.unmodifiable(events));
+  }
+}
+
+/// SPEC-085 Matrix timestamp_to_event response.
+final class HouraMatrixTimestampToEvent {
+  const HouraMatrixTimestampToEvent({
+    required this.eventId,
+    required this.originServerTs,
+  });
+
+  final String eventId;
+  final int originServerTs;
+
+  factory HouraMatrixTimestampToEvent.fromJson(Map<String, Object?> json) {
+    return HouraMatrixTimestampToEvent(
+      eventId: _requiredString(json, 'event_id'),
+      originServerTs: _requiredNonNegativeInt(json, 'origin_server_ts'),
+    );
+  }
+}
+
 /// Typed view of a SPEC-007 text message event.
 final class HouraTextMessageEvent {
   const HouraTextMessageEvent({required this.event, required this.body});
@@ -649,6 +791,14 @@ int _requiredInt(Map<String, Object?> json, String key) {
     return value;
   }
   throw HouraResponseFormatException('Expected integer "$key".');
+}
+
+int _requiredNonNegativeInt(Map<String, Object?> json, String key) {
+  final value = _requiredInt(json, key);
+  if (value >= 0) {
+    return value;
+  }
+  throw HouraResponseFormatException('Expected non-negative integer "$key".');
 }
 
 Map<String, Object?> _requiredJsonObject(

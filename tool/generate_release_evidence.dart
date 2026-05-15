@@ -27,6 +27,7 @@ const expectedProtocolSpecIds = [
   'SPEC-056',
   'SPEC-068',
   'SPEC-069',
+  'SPEC-085',
 ];
 
 const expectedReleaseEvidenceSpecIds = [
@@ -399,6 +400,32 @@ void main(List<String> args) {
         'crypto verification',
         'device list lifecycle',
         'Matrix E2EE support advertisement',
+      ],
+    },
+    'event_retrieval_membership_parser_adoption': {
+      'issue': 119,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-085'],
+      'parity_vectors': [
+        'test-vectors/core/'
+            'matrix-'
+            'client-server-event-retrieval-membership-history.json',
+      ],
+      'parser_only_surfaces': [
+        'event retrieval request descriptor',
+        'Matrix ClientEvent response envelope',
+        'joined_members response envelope',
+        'members membership chunk envelope',
+        'timestamp_to_event response envelope',
+        'deprecated compatibility unsupported descriptor',
+      ],
+      'out_of_scope': [
+        'runtime route behavior',
+        'history visibility',
+        'authorization',
+        'storage lookup',
+        'deprecated endpoint compatibility',
+        'Matrix Client-Server support advertisement',
       ],
     },
     'oauth_account_management_parser_adoption': {

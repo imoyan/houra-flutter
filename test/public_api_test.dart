@@ -29,6 +29,10 @@ void main() {
     expect(houra.HouraSyncTimeline, isA<Type>());
     expect(houra.HouraMatrixSyncBatch, isA<Type>());
     expect(houra.HouraMatrixToDeviceEvent, isA<Type>());
+    expect(houra.HouraMatrixClientEvent, isA<Type>());
+    expect(houra.HouraMatrixJoinedMembers, isA<Type>());
+    expect(houra.HouraMatrixMembers, isA<Type>());
+    expect(houra.HouraMatrixTimestampToEvent, isA<Type>());
     expect(houra.HouraEncryptedPayload, isA<Type>());
     expect(houra.HouraOlmCiphertext, isA<Type>());
     expect(houra.HouraSyncTokenStore, isA<Type>());
