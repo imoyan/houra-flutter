@@ -21,6 +21,8 @@ void main() {
   checkSpec069ProtocolCoreGate(failures);
   checkSpec085ProtocolCoreGate(failures);
   checkSpec090ProtocolCoreGate(failures);
+  checkSpec093ProtocolCoreGate(failures);
+  checkSpec093ProtocolCoreGate(failures);
 
   if (failures.isNotEmpty) {
     stderr.writeln('Spec sync check failed:');
@@ -1040,6 +1042,87 @@ void checkSpec090ProtocolCoreGate(List<String> failures) {
       'ts-protocol-core-wasm/test/index.test.mjs': [
         'SPEC-090',
         'relations-threads-reactions.json',
+      ],
+    },
+  );
+}
+
+void checkSpec093ProtocolCoreGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final contract = File(
+    '${specRoot.path}/contracts/SPEC-093-matrix-sync-breadth-extensions.md',
+  );
+  final vectors = [
+    'test-vectors/sync/matrix-sync-breadth-extensions.json',
+  ];
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-093 contract: ${contract.path}');
+    return;
+  }
+  checkVectorsHaveContract(failures, specRoot, 'SPEC-093', vectors);
+  checkReleaseEvidenceAdoption(
+    failures,
+    blockName: 'sync_breadth_extensions_parser_adoption',
+    issue: 121,
+    specId: 'SPEC-093',
+    parityVectors: vectors,
+    parserOnlySurfaces: [
+      'sync request descriptor',
+      'presence event snippets',
+      'to-device event snippets',
+      'device list changes',
+      'one-time key counts',
+      'invite room section map',
+      'leave room section map',
+      'knock room section map',
+    ],
+    outOfScope: [
+      'sync long-poll runtime',
+      'sync token persistence',
+      'fanout timing',
+      'authorization',
+      'filter storage',
+      'timeline ordering',
+      'device-list freshness',
+      'Matrix Client-Server support advertisement',
+    ],
+  );
+
+  checkRequiredFragments(
+    failures,
+    specId: 'SPEC-093',
+    requiredFragmentsByFile: {
+      'AGENTS.md': ['SPEC-093'],
+      'README.md': ['SPEC-093', 'sync breadth extension'],
+      'lib/src/models.dart': [
+        'HouraMatrixSyncRequestDescriptor',
+        'HouraMatrixSyncBatch',
+        'HouraMatrixDeviceLists',
+        'HouraMatrixSyncRooms',
+      ],
+      'test/sync_contract_test.dart': [
+        'SPEC-093',
+        'matrix-sync-breadth-extensions.json',
+      ],
+      'rust-protocol-core/src/lib.rs': [
+        '"SPEC-093"',
+        'parse_matrix_sync_request_descriptor',
+        'parse_matrix_sync_response',
+        'MatrixSyncDeviceLists',
+      ],
+      'rust-protocol-core-wasm/src/lib.rs': [
+        'parseMatrixSyncRequestDescriptorJson',
+        'parseMatrixSyncResponseJson',
+      ],
+      'ts-protocol-core-wasm/src/index.ts': [
+        '"SPEC-093"',
+        'parseMatrixSyncRequestDescriptor',
+        'parseMatrixSyncResponse',
+        'MatrixSyncRequestDescriptor',
+      ],
+      'ts-protocol-core-wasm/test/index.test.mjs': [
+        'SPEC-093',
+        'matrix-sync-breadth-extensions.json',
       ],
     },
   );

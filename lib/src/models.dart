@@ -616,16 +616,143 @@ final class HouraSyncTimeline {
 final class HouraMatrixSyncBatch {
   const HouraMatrixSyncBatch({
     required this.nextBatch,
+    required this.presenceEvents,
     required this.toDeviceEvents,
+    required this.deviceLists,
+    required this.deviceOneTimeKeysCount,
+    required this.rooms,
   });
 
   final String nextBatch;
+  final List<HouraMatrixBasicEvent> presenceEvents;
   final List<HouraMatrixToDeviceEvent> toDeviceEvents;
+  final HouraMatrixDeviceLists deviceLists;
+  final Map<String, int> deviceOneTimeKeysCount;
+  final HouraMatrixSyncRooms rooms;
 
   factory HouraMatrixSyncBatch.fromJson(Map<String, Object?> json) {
     return HouraMatrixSyncBatch(
       nextBatch: _requiredString(json, 'next_batch'),
+      presenceEvents: _optionalMatrixBasicEvents(json, 'presence'),
       toDeviceEvents: _optionalToDeviceEvents(json),
+      deviceLists: HouraMatrixDeviceLists.fromJson(
+        _optionalJsonObject(json, 'device_lists') ?? const <String, Object?>{},
+      ),
+      deviceOneTimeKeysCount: _optionalNonNegativeIntMap(
+        json,
+        'device_one_time_keys_count',
+      ),
+      rooms: HouraMatrixSyncRooms.fromJson(
+        _optionalJsonObject(json, 'rooms') ?? const <String, Object?>{},
+      ),
+    );
+  }
+}
+
+/// SPEC-093 parser-only Matrix sync request descriptor.
+final class HouraMatrixSyncRequestDescriptor {
+  const HouraMatrixSyncRequestDescriptor({
+    required this.method,
+    required this.path,
+    required this.queryParams,
+    required this.requiresAuth,
+    required this.responseParser,
+    required this.adoptedRuntimeBehavior,
+  });
+
+  final String method;
+  final String path;
+  final Map<String, Object?> queryParams;
+  final bool requiresAuth;
+  final String responseParser;
+  final bool adoptedRuntimeBehavior;
+
+  factory HouraMatrixSyncRequestDescriptor.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final descriptor = HouraMatrixSyncRequestDescriptor(
+      method: _requiredString(json, 'method'),
+      path: _requiredString(json, 'path'),
+      queryParams: _requiredJsonObject(json, 'query_params'),
+      requiresAuth: _requiredBool(json, 'requires_auth'),
+      responseParser: _requiredString(json, 'response_parser'),
+      adoptedRuntimeBehavior: _requiredBool(json, 'adopted_runtime_behavior'),
+    );
+    if (descriptor.method != 'GET' ||
+        descriptor.path != '/_matrix/client/v3/sync' ||
+        descriptor.responseParser != 'sync_extensions' ||
+        descriptor.adoptedRuntimeBehavior) {
+      throw HouraResponseFormatException(
+        'Unsupported Matrix sync request descriptor.',
+      );
+    }
+    _validateMatrixSyncQueryParams(descriptor.queryParams);
+    return descriptor;
+  }
+}
+
+/// SPEC-093 Matrix sync basic event used by presence and room-state snippets.
+final class HouraMatrixBasicEvent {
+  const HouraMatrixBasicEvent({
+    required this.type,
+    required this.content,
+    required this.raw,
+    this.sender,
+    this.stateKey,
+  });
+
+  final String type;
+  final String? sender;
+  final String? stateKey;
+  final Map<String, Object?> content;
+  final Map<String, Object?> raw;
+
+  factory HouraMatrixBasicEvent.fromJson(Map<String, Object?> json) {
+    return HouraMatrixBasicEvent(
+      type: _requiredString(json, 'type'),
+      sender: _optionalString(json, 'sender'),
+      stateKey: _optionalString(json, 'state_key'),
+      content: _requiredJsonObject(json, 'content'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+}
+
+/// SPEC-093 Matrix sync device list changes.
+final class HouraMatrixDeviceLists {
+  const HouraMatrixDeviceLists({required this.changed, required this.left});
+
+  final List<String> changed;
+  final List<String> left;
+
+  factory HouraMatrixDeviceLists.fromJson(Map<String, Object?> json) {
+    return HouraMatrixDeviceLists(
+      changed: _optionalStringList(json, 'changed'),
+      left: _optionalStringList(json, 'left'),
+    );
+  }
+}
+
+/// SPEC-093 Matrix sync room section maps.
+final class HouraMatrixSyncRooms {
+  const HouraMatrixSyncRooms({
+    required this.join,
+    required this.invite,
+    required this.leave,
+    required this.knock,
+  });
+
+  final Map<String, Map<String, Object?>> join;
+  final Map<String, Map<String, Object?>> invite;
+  final Map<String, Map<String, Object?>> leave;
+  final Map<String, Map<String, Object?>> knock;
+
+  factory HouraMatrixSyncRooms.fromJson(Map<String, Object?> json) {
+    return HouraMatrixSyncRooms(
+      join: _optionalObjectMap(json, 'join'),
+      invite: _optionalObjectMap(json, 'invite'),
+      leave: _optionalObjectMap(json, 'leave'),
+      knock: _optionalObjectMap(json, 'knock'),
     );
   }
 }
@@ -1068,6 +1195,161 @@ List<String> _requiredStringList(Map<String, Object?> json, String key) {
     result.add(item);
   }
   return List.unmodifiable(result);
+}
+
+List<String> _optionalStringList(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value == null) {
+    return const [];
+  }
+  if (value is! List) {
+    throw HouraResponseFormatException('Expected string array "$key".');
+  }
+  final result = <String>[];
+  for (final item in value) {
+    if (item is! String || item.isEmpty) {
+      throw HouraResponseFormatException('Expected string array "$key".');
+    }
+    result.add(item);
+  }
+  return List.unmodifiable(result);
+}
+
+List<HouraMatrixBasicEvent> _optionalMatrixBasicEvents(
+  Map<String, Object?> json,
+  String key,
+) {
+  final section = _optionalJsonObject(json, key);
+  if (section == null) {
+    return const [];
+  }
+  final events = section['events'];
+  if (events == null) {
+    return const [];
+  }
+  if (events is! List) {
+    throw HouraResponseFormatException('Expected object array "events".');
+  }
+  return List<HouraMatrixBasicEvent>.unmodifiable(
+    events.map((event) {
+      if (event is Map) {
+        return HouraMatrixBasicEvent.fromJson(event.cast<String, Object?>());
+      }
+      throw HouraResponseFormatException('Expected object array "events".');
+    }),
+  );
+}
+
+Map<String, int> _optionalNonNegativeIntMap(
+  Map<String, Object?> json,
+  String key,
+) {
+  final value = json[key];
+  if (value == null) {
+    return const {};
+  }
+  if (value is! Map) {
+    throw HouraResponseFormatException('Expected integer map "$key".');
+  }
+  return Map<String, int>.unmodifiable(
+    value.cast<String, Object?>().map((mapKey, mapValue) {
+      if (mapKey.isEmpty || mapValue is! int || mapValue < 0) {
+        throw HouraResponseFormatException('Expected integer map "$key".');
+      }
+      return MapEntry(mapKey, mapValue);
+    }),
+  );
+}
+
+Map<String, Map<String, Object?>> _optionalObjectMap(
+  Map<String, Object?> json,
+  String key,
+) {
+  final value = json[key];
+  if (value == null) {
+    return const {};
+  }
+  if (value is! Map) {
+    throw HouraResponseFormatException('Expected object map "$key".');
+  }
+  return Map<String, Map<String, Object?>>.unmodifiable(
+    value.cast<String, Object?>().map((mapKey, mapValue) {
+      if (mapKey.isEmpty || mapValue is! Map) {
+        throw HouraResponseFormatException('Expected object map "$key".');
+      }
+      return MapEntry(
+        mapKey,
+        Map<String, Object?>.unmodifiable(mapValue.cast<String, Object?>()),
+      );
+    }),
+  );
+}
+
+void _validateMatrixSyncQueryParams(Map<String, Object?> queryParams) {
+  for (final entry in queryParams.entries) {
+    final key = entry.key;
+    final value = entry.value;
+    switch (key) {
+      case 'filter':
+        _validateMatrixSyncFilter(value);
+      case 'full_state':
+      case 'use_state_after':
+        if (value is! bool) {
+          throw HouraResponseFormatException(
+            'Expected boolean sync query parameter "$key".',
+          );
+        }
+      case 'set_presence':
+        if (value != 'online' && value != 'offline' && value != 'unavailable') {
+          throw HouraResponseFormatException(
+            'Expected supported set_presence value.',
+          );
+        }
+      case 'since':
+        if (value is! String || value.isEmpty) {
+          throw HouraResponseFormatException(
+            'Expected non-empty since sync query parameter.',
+          );
+        }
+      case 'timeout':
+        if (value is! int || value < 0) {
+          throw HouraResponseFormatException(
+            'Expected non-negative timeout sync query parameter.',
+          );
+        }
+      default:
+        throw HouraResponseFormatException(
+          'Unsupported Matrix sync query parameter "$key".',
+        );
+    }
+  }
+}
+
+void _validateMatrixSyncFilter(Object? value) {
+  if (value is String && value.isNotEmpty) {
+    return;
+  }
+  if (value is! Map) {
+    throw HouraResponseFormatException('Expected Matrix sync filter.');
+  }
+  final room = value.cast<String, Object?>()['room'];
+  if (room is! Map) {
+    return;
+  }
+  final roomMap = room.cast<String, Object?>();
+  for (final sectionName in const ['state', 'timeline']) {
+    final section = roomMap[sectionName];
+    if (section is! Map) {
+      continue;
+    }
+    final lazyLoadMembers =
+        section.cast<String, Object?>()['lazy_load_members'];
+    if (lazyLoadMembers != null && lazyLoadMembers is! bool) {
+      throw HouraResponseFormatException(
+        'Expected boolean lazy_load_members sync filter.',
+      );
+    }
+  }
 }
 
 Map<String, String> _requiredStringMap(Map<String, Object?> json, String key) {

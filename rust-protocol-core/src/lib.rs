@@ -26,7 +26,7 @@ const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
     "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047", "SPEC-048", "SPEC-049",
     "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-068", "SPEC-069", "SPEC-085",
-    "SPEC-090",
+    "SPEC-090", "SPEC-093",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -233,6 +233,16 @@ pub struct MatrixRelationsRequestDescriptor {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixSyncRequestDescriptor {
+    pub method: String,
+    pub path: String,
+    pub requires_auth: bool,
+    pub query_params: BTreeMap<String, Value>,
+    pub response_parser: String,
+    pub adopted_runtime_behavior: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MatrixRelationChunkResponse {
     pub chunk: Vec<MatrixClientEvent>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -264,6 +274,8 @@ pub struct MatrixSyncEvent {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MatrixSyncBasicEvent {
     pub content: BTreeMap<String, Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sender: Option<String>,
     #[serde(rename = "type")]
     pub event_type: String,
 }
@@ -324,6 +336,14 @@ pub struct MatrixSyncRooms {
     pub join: BTreeMap<String, MatrixSyncJoinedRoom>,
     pub invite: BTreeMap<String, Value>,
     pub leave: BTreeMap<String, Value>,
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub knock: BTreeMap<String, Value>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixSyncDeviceLists {
+    pub changed: Vec<String>,
+    pub left: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -332,6 +352,12 @@ pub struct MatrixSyncResponse {
     pub account_data: MatrixSyncBasicEventList,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub presence: Option<MatrixSyncBasicEventList>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub to_device: Option<MatrixSyncBasicEventList>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub device_lists: Option<MatrixSyncDeviceLists>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub device_one_time_keys_count: Option<BTreeMap<String, u64>>,
     pub rooms: MatrixSyncRooms,
 }
 
@@ -1106,6 +1132,13 @@ pub struct MatrixTimestampToEventResponseParseEnvelope {
 pub struct MatrixRelationsRequestDescriptorParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixRelationsRequestDescriptor>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixSyncRequestDescriptorParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixSyncRequestDescriptor>,
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
@@ -1988,6 +2021,16 @@ struct MatrixRelationsRequestDescriptorWire {
 }
 
 #[derive(Debug, Deserialize)]
+struct MatrixSyncRequestDescriptorWire {
+    method: Option<String>,
+    path: Option<String>,
+    query_params: Option<BTreeMap<String, Value>>,
+    requires_auth: Option<bool>,
+    response_parser: Option<String>,
+    adopted_runtime_behavior: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
 struct MatrixRelationChunkResponseWire {
     chunk: Option<Vec<MatrixClientEventWire>>,
     next_batch: Option<String>,
@@ -2005,6 +2048,9 @@ struct MatrixSyncResponseWire {
     next_batch: Option<String>,
     account_data: Option<MatrixSyncBasicEventListWire>,
     presence: Option<MatrixSyncBasicEventListWire>,
+    to_device: Option<MatrixSyncBasicEventListWire>,
+    device_lists: Option<MatrixSyncDeviceListsWire>,
+    device_one_time_keys_count: Option<BTreeMap<String, Value>>,
     rooms: Option<MatrixSyncRoomsWire>,
 }
 
@@ -2013,6 +2059,7 @@ struct MatrixSyncRoomsWire {
     join: Option<BTreeMap<String, MatrixSyncJoinedRoomWire>>,
     invite: Option<BTreeMap<String, Value>>,
     leave: Option<BTreeMap<String, Value>>,
+    knock: Option<BTreeMap<String, Value>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -2056,8 +2103,15 @@ struct MatrixSyncEventWire {
 #[derive(Debug, Deserialize)]
 struct MatrixSyncBasicEventWire {
     content: Option<BTreeMap<String, Value>>,
+    sender: Option<String>,
     #[serde(rename = "type")]
     event_type: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixSyncDeviceListsWire {
+    changed: Option<Vec<Value>>,
+    left: Option<Vec<Value>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -3658,6 +3712,71 @@ pub fn parse_matrix_relations_request_descriptor_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_sync_request_descriptor(
+    bytes: &[u8],
+) -> Result<MatrixSyncRequestDescriptor, ProtocolError> {
+    let wire: MatrixSyncRequestDescriptorWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let method = required_room_string(wire.method, "sync_descriptor.method")?;
+    if method != "GET" {
+        return Err(invalid_room_field("sync_descriptor.method"));
+    }
+    let path = required_room_string(wire.path, "sync_descriptor.path")?;
+    if path != "/_matrix/client/v3/sync" {
+        return Err(invalid_room_field("sync_descriptor.path"));
+    }
+    let response_parser =
+        required_room_string(wire.response_parser, "sync_descriptor.response_parser")?;
+    if response_parser != "sync_extensions" {
+        return Err(invalid_room_field("sync_descriptor.response_parser"));
+    }
+    let adopted_runtime_behavior = wire
+        .adopted_runtime_behavior
+        .ok_or_else(|| invalid_room_field("sync_descriptor.adopted_runtime_behavior"))?;
+    if adopted_runtime_behavior {
+        return Err(invalid_room_field(
+            "sync_descriptor.adopted_runtime_behavior",
+        ));
+    }
+    let query_params = wire
+        .query_params
+        .ok_or_else(|| invalid_room_field("sync_descriptor.query_params"))?;
+    validate_sync_descriptor_query_params(&query_params)?;
+
+    Ok(MatrixSyncRequestDescriptor {
+        method,
+        path,
+        requires_auth: wire
+            .requires_auth
+            .ok_or_else(|| invalid_room_field("sync_descriptor.requires_auth"))?,
+        query_params,
+        response_parser,
+        adopted_runtime_behavior,
+    })
+}
+
+pub fn parse_matrix_sync_request_descriptor_envelope(
+    bytes: &[u8],
+) -> MatrixSyncRequestDescriptorParseEnvelope {
+    match parse_matrix_sync_request_descriptor(bytes) {
+        Ok(value) => MatrixSyncRequestDescriptorParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixSyncRequestDescriptorParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_sync_request_descriptor_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_sync_request_descriptor_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 pub fn parse_matrix_relation_chunk_response(
     bytes: &[u8],
 ) -> Result<MatrixRelationChunkResponse, ProtocolError> {
@@ -3828,14 +3947,32 @@ pub fn parse_matrix_sync_response(bytes: &[u8]) -> Result<MatrixSyncResponse, Pr
 
     Ok(MatrixSyncResponse {
         next_batch: required_room_string(wire.next_batch, "sync.next_batch")?,
-        account_data: matrix_sync_basic_event_list_from_wire(
-            wire.account_data
-                .ok_or_else(|| invalid_room_field("sync.account_data"))?,
-            "sync.account_data",
-        )?,
+        account_data: wire
+            .account_data
+            .map(|account_data| {
+                matrix_sync_basic_event_list_from_wire(account_data, "sync.account_data")
+            })
+            .transpose()?
+            .unwrap_or_else(empty_matrix_sync_basic_event_list),
         presence: wire
             .presence
             .map(|presence| matrix_sync_basic_event_list_from_wire(presence, "sync.presence"))
+            .transpose()?,
+        to_device: wire
+            .to_device
+            .map(|to_device| matrix_sync_basic_event_list_from_wire(to_device, "sync.to_device"))
+            .transpose()?,
+        device_lists: wire
+            .device_lists
+            .map(|device_lists| {
+                matrix_sync_device_lists_from_wire(device_lists, "sync.device_lists")
+            })
+            .transpose()?,
+        device_one_time_keys_count: wire
+            .device_one_time_keys_count
+            .map(|counts| {
+                matrix_sync_one_time_key_counts_from_wire(counts, "sync.device_one_time_keys_count")
+            })
             .transpose()?,
         rooms,
     })
@@ -6950,6 +7087,74 @@ fn required_relation_string(value: Option<&Value>, field: &str) -> Result<String
     }
 }
 
+fn validate_sync_descriptor_query_params(
+    query_params: &BTreeMap<String, Value>,
+) -> Result<(), ProtocolError> {
+    for (key, value) in query_params {
+        match key.as_str() {
+            "filter" => validate_sync_descriptor_filter(value)?,
+            "full_state" | "use_state_after" => {
+                if !value.is_boolean() {
+                    return Err(invalid_room_field(&format!(
+                        "sync_descriptor.query_params.{key}"
+                    )));
+                }
+            }
+            "set_presence" => match value.as_str() {
+                Some("online" | "offline" | "unavailable") => {}
+                _ => {
+                    return Err(invalid_room_field(
+                        "sync_descriptor.query_params.set_presence",
+                    ));
+                }
+            },
+            "since" => {
+                required_relation_string(Some(value), "sync_descriptor.query_params.since")?;
+            }
+            "timeout" => match value.as_i64() {
+                Some(timeout) if timeout >= 0 => {}
+                _ => {
+                    return Err(invalid_room_field("sync_descriptor.query_params.timeout"));
+                }
+            },
+            _ => return Err(invalid_room_field("sync_descriptor.query_params")),
+        }
+    }
+    Ok(())
+}
+
+fn validate_sync_descriptor_filter(value: &Value) -> Result<(), ProtocolError> {
+    if value
+        .as_str()
+        .is_some_and(|filter_id| !filter_id.is_empty())
+    {
+        return Ok(());
+    }
+    let Some(filter) = value.as_object() else {
+        return Err(invalid_room_field("sync_descriptor.query_params.filter"));
+    };
+    for path in [
+        ["room", "state", "lazy_load_members"],
+        ["room", "timeline", "lazy_load_members"],
+    ] {
+        if let Some(lazy_load_members) = filter
+            .get(path[0])
+            .and_then(Value::as_object)
+            .and_then(|room| room.get(path[1]))
+            .and_then(Value::as_object)
+            .and_then(|section| section.get(path[2]))
+        {
+            if !lazy_load_members.is_boolean() {
+                return Err(invalid_room_field(&format!(
+                    "sync_descriptor.query_params.filter.{}.{}.{}",
+                    path[0], path[1], path[2]
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
 fn matrix_sync_rooms_from_wire(
     wire: MatrixSyncRoomsWire,
     context: &str,
@@ -6973,6 +7178,7 @@ fn matrix_sync_rooms_from_wire(
         leave: wire
             .leave
             .ok_or_else(|| invalid_room_field(&format!("{context}.leave")))?,
+        knock: wire.knock.unwrap_or_default(),
     })
 }
 
@@ -6991,11 +7197,16 @@ fn matrix_sync_joined_room_from_wire(
                 .ok_or_else(|| invalid_room_field(&format!("{context}.timeline")))?,
             &format!("{context}.timeline"),
         )?,
-        account_data: matrix_sync_basic_event_list_from_wire(
-            wire.account_data
-                .ok_or_else(|| invalid_room_field(&format!("{context}.account_data")))?,
-            &format!("{context}.account_data"),
-        )?,
+        account_data: wire
+            .account_data
+            .map(|account_data| {
+                matrix_sync_basic_event_list_from_wire(
+                    account_data,
+                    &format!("{context}.account_data"),
+                )
+            })
+            .transpose()?
+            .unwrap_or_else(empty_matrix_sync_basic_event_list),
         summary: wire
             .summary
             .map(|summary| matrix_sync_summary_from_wire(summary, &format!("{context}.summary")))
@@ -7042,6 +7253,10 @@ fn matrix_sync_basic_event_list_from_wire(
         })
         .collect::<Result<Vec<_>, _>>()?;
     Ok(MatrixSyncBasicEventList { events })
+}
+
+fn empty_matrix_sync_basic_event_list() -> MatrixSyncBasicEventList {
+    MatrixSyncBasicEventList { events: Vec::new() }
 }
 
 fn matrix_sync_timeline_from_wire(
@@ -7097,8 +7312,60 @@ fn matrix_sync_basic_event_from_wire(
         content: wire
             .content
             .ok_or_else(|| invalid_room_field(&format!("{context}.content")))?,
+        sender: optional_room_string(wire.sender, &format!("{context}.sender"))?,
         event_type: required_room_string(wire.event_type, &format!("{context}.type"))?,
     })
+}
+
+fn matrix_sync_device_lists_from_wire(
+    wire: MatrixSyncDeviceListsWire,
+    context: &str,
+) -> Result<MatrixSyncDeviceLists, ProtocolError> {
+    let changed = matrix_sync_user_ids_from_values(
+        wire.changed
+            .ok_or_else(|| invalid_room_field(&format!("{context}.changed")))?,
+        &format!("{context}.changed"),
+    )?;
+    let left = matrix_sync_user_ids_from_values(
+        wire.left
+            .ok_or_else(|| invalid_room_field(&format!("{context}.left")))?,
+        &format!("{context}.left"),
+    )?;
+    Ok(MatrixSyncDeviceLists { changed, left })
+}
+
+fn matrix_sync_user_ids_from_values(
+    values: Vec<Value>,
+    context: &str,
+) -> Result<Vec<String>, ProtocolError> {
+    values
+        .into_iter()
+        .enumerate()
+        .map(|(index, value)| match value.as_str() {
+            Some(user_id) if !user_id.is_empty() && user_id.starts_with('@') => {
+                Ok(user_id.to_owned())
+            }
+            _ => Err(invalid_room_field(&format!("{context}.{index}"))),
+        })
+        .collect()
+}
+
+fn matrix_sync_one_time_key_counts_from_wire(
+    counts: BTreeMap<String, Value>,
+    context: &str,
+) -> Result<BTreeMap<String, u64>, ProtocolError> {
+    counts
+        .into_iter()
+        .map(|(algorithm, value)| {
+            if algorithm.is_empty() {
+                return Err(invalid_room_field(context));
+            }
+            match value.as_i64() {
+                Some(count) if count >= 0 => Ok((algorithm, count as u64)),
+                _ => Err(invalid_room_field(&format!("{context}.{algorithm}"))),
+            }
+        })
+        .collect()
 }
 
 fn matrix_sync_summary_from_wire(
@@ -8458,7 +8725,7 @@ mod tests {
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
                 "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047",
                 "SPEC-048", "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056",
-                "SPEC-068", "SPEC-069", "SPEC-085", "SPEC-090"
+                "SPEC-068", "SPEC-069", "SPEC-085", "SPEC-090", "SPEC-093"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -10698,6 +10965,95 @@ mod tests {
 
         let envelope = parse_matrix_reply_event_envelope(
             br#"{"event_id":"$reply:example.test","room_id":"!room:example.test","sender":"@bob:example.test","origin_server_ts":1715754800000,"type":"m.room.message","content":{"m.relates_to":{"m.in_reply_to":{}}}}"#,
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
+    }
+
+    #[test]
+    fn parses_spec_093_sync_breadth_extensions_vectors() {
+        let vector = read_spec_vector("test-vectors/sync/matrix-sync-breadth-extensions.json");
+        assert_eq!(vector["contract"], "SPEC-093");
+        let event = &vector["event"];
+        let descriptors = event["request_descriptors"]
+            .as_array()
+            .expect("SPEC-093 descriptors should be present");
+        let parsed_descriptors = descriptors
+            .iter()
+            .map(|descriptor| {
+                parse_matrix_sync_request_descriptor(descriptor.to_string().as_bytes())
+                    .expect("SPEC-093 descriptor should parse")
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(parsed_descriptors.len(), 2);
+        assert!(parsed_descriptors
+            .iter()
+            .all(|descriptor| !descriptor.adopted_runtime_behavior));
+        assert!(parsed_descriptors
+            .iter()
+            .any(|descriptor| descriptor.query_params.contains_key("full_state")));
+
+        let responses = &event["sample_responses"];
+        let sync = parse_matrix_sync_response(responses["sync_extensions"].to_string().as_bytes())
+            .expect("SPEC-093 sync extensions should parse");
+        assert_eq!(sync.presence.as_ref().expect("presence").events.len(), 1);
+        assert_eq!(
+            sync.to_device.as_ref().expect("to_device").events[0]
+                .sender
+                .as_deref(),
+            Some("@alice:example.test")
+        );
+        assert_eq!(
+            sync.device_lists.as_ref().expect("device_lists").changed[0],
+            "@alice:example.test"
+        );
+        assert_eq!(
+            sync.device_one_time_keys_count
+                .as_ref()
+                .expect("one time keys")["signed_curve25519"],
+            3
+        );
+        assert_eq!(sync.rooms.invite.len(), 1);
+        assert_eq!(sync.rooms.leave.len(), 1);
+        assert_eq!(sync.rooms.knock.len(), 1);
+
+        let unsupported = parse_matrix_error_envelope(
+            responses["unsupported_parameter_error"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-093 unsupported parameter error should parse");
+        assert_eq!(unsupported.errcode, "M_INVALID_PARAM");
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-093"));
+    }
+
+    #[test]
+    fn rejects_invalid_spec_093_sync_breadth_extension_values() {
+        let envelope = parse_matrix_sync_request_descriptor_envelope(
+            br#"{"method":"GET","path":"/_matrix/client/v3/sync","query_params":{"set_presence":"busy"},"requires_auth":true,"adopted_runtime_behavior":false,"response_parser":"sync_extensions"}"#,
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
+
+        let envelope = parse_matrix_sync_request_descriptor_envelope(
+            br#"{"method":"GET","path":"/_matrix/client/v3/sync","query_params":{"timeout":-1},"requires_auth":true,"adopted_runtime_behavior":false,"response_parser":"sync_extensions"}"#,
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
+
+        let envelope = parse_matrix_sync_response_envelope(
+            br#"{"next_batch":"s2","account_data":{"events":[]},"device_lists":{"changed":[7],"left":[]},"rooms":{"join":{},"invite":{},"leave":{}}}"#,
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
+
+        let envelope = parse_matrix_sync_response_envelope(
+            br#"{"next_batch":"s2","account_data":{"events":[]},"device_one_time_keys_count":{"signed_curve25519":-1},"rooms":{"join":{},"invite":{},"leave":{}}}"#,
         );
         assert!(!envelope.ok);
         assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
