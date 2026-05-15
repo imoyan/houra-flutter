@@ -442,6 +442,13 @@ metadata-only release evidence from the validated manifest so release notes can
 record artifact compatibility without storing raw query, prompt, request,
 token, or secret values.
 
+Shared crypto evidence helper adoption record for issue #133: the release
+evidence tool now records `SPEC-079` / `SPEC-081` as evidence-helper
+coverage without adding them to the protocol artifact support list. The helper
+captures crypto stack name/version/platform metadata when a host selects a
+maintained stack, redacts secret-bearing keys and local secret paths, and keeps
+Matrix `/versions` plus E2EE support advertisement fail-closed.
+
 Rust protocol-core crate publish readiness for issue #79: the
 `rust-protocol-core/` crate now has crates.io-facing package metadata,
 docs.rs metadata, and a crate-local README while keeping `publish = false`.
@@ -788,8 +795,9 @@ Deferred implementation backlog:
 - #126, #127, and #128 track Application Service, Identity Service, and Push
   Gateway full-breadth parser helper work.
 - #129, #130, and #131 track Room Version helper and fixture-runner candidates.
-- #132 and #133 track E2EE full-breadth parser artifacts and shared crypto
-  metadata / redaction / release evidence helpers.
+- #132 tracks E2EE full-breadth parser artifacts.
+- #133 tracks the adopted shared crypto metadata / redaction / release evidence
+  helper; future work should extend it only with a focused spec/vector update.
 
 External readiness backlog:
 

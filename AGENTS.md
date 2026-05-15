@@ -105,6 +105,9 @@ The current package implements:
   post-return reconciliation signals only
 - SPEC-069 Matrix Device Key Query request descriptor and public response
   parser only
+- SPEC-079 / SPEC-081 shared crypto metadata, redaction, and release evidence
+  helper only; this is not crypto stack selection, secure storage ownership, or
+  E2EE support advertisement
 
 Do not add storage, encryption, federation, push gateway compatibility, or full
 Matrix compatibility without a matching contract and test-vector update.
