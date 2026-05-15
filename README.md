@@ -11,7 +11,9 @@ SPEC-010, SPEC-011, and SPEC-020. It also includes parser-only Dart SDK
 coverage for SPEC-051 Matrix key upload / claim, SPEC-052 Matrix to-device /
 encrypted-room envelopes, SPEC-068 Matrix OAuth account-management helper
 envelopes, and SPEC-069 Matrix device key query request descriptors and public
-response parsing without claiming Matrix OAuth or E2EE support.
+response parsing, plus SPEC-085 Matrix event retrieval / membership history
+request descriptors and public response envelopes, without claiming Matrix
+OAuth, E2EE, or Client-Server support.
 
 ## Repository Role
 
@@ -56,8 +58,9 @@ event DAG/auth-event vectors. It also parses the `SPEC-045` Matrix profile,
 account-data, and room tag parser-only vectors, the `SPEC-046` Matrix receipts,
 typing, and read marker parser-only vectors, the `SPEC-047` Matrix filters,
 presence, and capabilities parser-only vectors, and the `SPEC-068` Matrix OAuth
-account-management parser-only vectors. It is not published, canonical, or
-required by the Flutter SDK.
+account-management parser-only vectors, and the `SPEC-085` Matrix event
+retrieval / membership history parser-only vector. It is not published,
+canonical, or required by the Flutter SDK.
 
 The Rust prototype exposes `abi_version()` and `artifact_manifest()` as
 implementation metadata for future TS / Dart bindings. Bindings can use that
@@ -84,9 +87,9 @@ contracts and test vectors.
 Vue, and Next client experiments. It uses `wasm-bindgen` to export the manifest
 and `SPEC-030` / `SPEC-031` / `SPEC-032` / `SPEC-033` / `SPEC-034` /
 `SPEC-035` / `SPEC-036` / `SPEC-037` / `SPEC-038` / `SPEC-045` / `SPEC-046` /
-`SPEC-047` / `SPEC-068` JSON envelopes plus `SPEC-039` / `SPEC-040` manifest
-coverage, but it does not own HTTP, retries, cancellation, token storage, UI
-state, or framework lifecycle.
+`SPEC-047` / `SPEC-068` / `SPEC-085` JSON envelopes plus `SPEC-039` /
+`SPEC-040` manifest coverage, but it does not own HTTP, retries, cancellation,
+token storage, UI state, or framework lifecycle.
 Generated JS, `.wasm` files, generated-artifact packaging, and Next server /
 Node bindings are intentionally left out until a focused package artifact issue
 exists. The TypeScript facade metadata below only packages the compiled facade
@@ -360,6 +363,17 @@ selection, and post-return device-delete reconciliation signals without taking
 ownership of token refresh endpoint execution, browser presentation, transport
 retry policy, bearer-token storage, external account-management completion, or
 Matrix OAuth support advertisement.
+
+SPEC-085 shared-core adoption record for issue #119: the Rust prototype now
+consumes the `houra-spec` snapshot `509f88fe61420c33235dd9e98995963f6cdc918e`
+(`v0.2.0-pre.58-64-g509f88f`) SPEC-085 event retrieval / membership history
+vector for parser-only Client-Server event retrieval adoption. The Dart SDK,
+WASM wrapper, and TypeScript facade expose room event request descriptors,
+joined_members response envelopes, members membership chunks, timestamp_to_event
+responses, and explicit deprecated compatibility unsupported descriptors
+without taking ownership of runtime route behavior, history visibility,
+authorization, storage lookup, deprecated endpoint compatibility, token
+persistence, or Matrix Client-Server support advertisement.
 
 SPEC-054 adoption record for issue #69: the Rust prototype now consumes the
 `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`

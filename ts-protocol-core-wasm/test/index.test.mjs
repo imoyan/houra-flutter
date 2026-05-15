@@ -969,6 +969,73 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixEventRetrievalRequestDescriptorJson() {
+      return JSON.stringify(
+        overrides.eventRetrievalDescriptorEnvelope ?? {
+          ok: true,
+          value: {
+            method: "GET",
+            path: "/_matrix/client/v3/rooms/{roomId}/event/{eventId}",
+            requires_auth: true,
+            response_parser: "client_event",
+            adopted_runtime_behavior: true,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixJoinedMembersResponseJson() {
+      return JSON.stringify(
+        overrides.joinedMembersResponseEnvelope ?? {
+          ok: true,
+          value: {
+            joined: {
+              "@alice:example.test": {
+                display_name: "Alice",
+                avatar_url: "mxc://example.test/alice",
+              },
+              "@bob:example.test": {},
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixMembersResponseJson() {
+      return JSON.stringify(
+        overrides.membersResponseEnvelope ?? {
+          ok: true,
+          value: {
+            chunk: [
+              {
+                content: {
+                  membership: "join",
+                },
+                event_id: "$join:example.test",
+                origin_server_ts: 1715754500000,
+                room_id: "!room:example.test",
+                sender: "@alice:example.test",
+                state_key: "@alice:example.test",
+                type: "m.room.member",
+              },
+            ],
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixTimestampToEventResponseJson() {
+      return JSON.stringify(
+        overrides.timestampToEventResponseEnvelope ?? {
+          ok: true,
+          value: {
+            event_id: "$event:example.test",
+            origin_server_ts: 1715754600000,
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixProfileResponseJson() {
       return JSON.stringify(
         overrides.profileResponseEnvelope ?? {
@@ -3019,6 +3086,46 @@ test("omits absent optional SPEC-036 Matrix messages end token", () => {
     value: {
       chunk: [],
       start: "t0",
+    },
+    error: null,
+  });
+});
+
+test("maps SPEC-085 event retrieval and membership envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const vector = readSpecVector(
+    "test-vectors/core/" +
+      "matrix-" +
+      "client-server-event-retrieval-membership-history.json",
+  );
+  assert.equal(vector.contract, "SPEC-085");
+  assert.ok(core.manifest.supported_specs.includes("SPEC-085"));
+
+  assert.deepEqual(core.parseMatrixEventRetrievalRequestDescriptor("{}"), {
+    ok: true,
+    value: {
+      method: "GET",
+      path: "/_matrix/client/v3/rooms/{roomId}/event/{eventId}",
+      requires_auth: true,
+      response_parser: "client_event",
+      adopted_runtime_behavior: true,
+    },
+    error: null,
+  });
+  assert.equal(
+    core.parseMatrixJoinedMembersResponse("{}").value.joined["@alice:example.test"]
+      .display_name,
+    "Alice",
+  );
+  assert.equal(
+    core.parseMatrixMembersResponse("{}").value.chunk[0].content.membership,
+    "join",
+  );
+  assert.deepEqual(core.parseMatrixTimestampToEventResponse("{}"), {
+    ok: true,
+    value: {
+      event_id: "$event:example.test",
+      origin_server_ts: 1715754600000,
     },
     error: null,
   });

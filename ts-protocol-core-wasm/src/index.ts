@@ -28,6 +28,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-056",
   "SPEC-068",
   "SPEC-069",
+  "SPEC-085",
 ] as const;
 
 export interface HouraProtocolCoreWasmBinding {
@@ -93,6 +94,10 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixMediaContentUriJson(contentUri: string): string;
   parseMatrixMediaUploadResponseJson(responseBody: string): string;
   parseMatrixMessagesResponseJson(responseBody: string): string;
+  parseMatrixEventRetrievalRequestDescriptorJson(responseBody: string): string;
+  parseMatrixJoinedMembersResponseJson(responseBody: string): string;
+  parseMatrixMembersResponseJson(responseBody: string): string;
+  parseMatrixTimestampToEventResponseJson(responseBody: string): string;
   parseMatrixProfileResponseJson(responseBody: string): string;
   parseMatrixProfileFieldUpdateRequestJson(responseBody: string): string;
   parseMatrixAccountDataContentJson(responseBody: string): string;
@@ -264,6 +269,33 @@ export interface MatrixMessagesResponse {
   chunk: MatrixClientEvent[];
   start: string;
   end?: string;
+}
+
+export interface MatrixEventRetrievalRequestDescriptor {
+  method: string;
+  path: string;
+  requires_auth: boolean;
+  response_parser?: string;
+  unsupported_reason?: string;
+  adopted_runtime_behavior: boolean;
+}
+
+export interface MatrixJoinedMember {
+  display_name?: string;
+  avatar_url?: string;
+}
+
+export interface MatrixJoinedMembersResponse {
+  joined: Record<string, MatrixJoinedMember>;
+}
+
+export interface MatrixMembersResponse {
+  chunk: MatrixClientEvent[];
+}
+
+export interface MatrixTimestampToEventResponse {
+  event_id: string;
+  origin_server_ts: number;
 }
 
 export interface MatrixSyncEvent {
@@ -962,6 +994,18 @@ export interface HouraProtocolCoreFacade {
   parseMatrixMessagesResponse(
     responseBody: string,
   ): ProtocolResult<MatrixMessagesResponse>;
+  parseMatrixEventRetrievalRequestDescriptor(
+    responseBody: string,
+  ): ProtocolResult<MatrixEventRetrievalRequestDescriptor>;
+  parseMatrixJoinedMembersResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixJoinedMembersResponse>;
+  parseMatrixMembersResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixMembersResponse>;
+  parseMatrixTimestampToEventResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixTimestampToEventResponse>;
   parseMatrixProfileResponse(
     responseBody: string,
   ): ProtocolResult<MatrixProfileResponse>;
@@ -1486,6 +1530,34 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixMessagesResponseEnvelope(envelope);
+    },
+    parseMatrixEventRetrievalRequestDescriptor(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixEventRetrievalRequestDescriptorJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixEventRetrievalRequestDescriptorEnvelope(envelope);
+    },
+    parseMatrixJoinedMembersResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixJoinedMembersResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixJoinedMembersResponseEnvelope(envelope);
+    },
+    parseMatrixMembersResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixMembersResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixMembersResponseEnvelope(envelope);
+    },
+    parseMatrixTimestampToEventResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixTimestampToEventResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixTimestampToEventResponseEnvelope(envelope);
     },
     parseMatrixProfileResponse(responseBody: string) {
       const envelope = parseJsonObject(
@@ -2905,6 +2977,78 @@ function readMatrixMessagesResponseEnvelope(
     });
     return result;
   });
+}
+
+function readMatrixEventRetrievalRequestDescriptorEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixEventRetrievalRequestDescriptor> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixEventRetrievalRequestDescriptor = {
+      method: readString(value, "method", "invalid_envelope"),
+      path: readString(value, "path", "invalid_envelope"),
+      requires_auth: readBoolean(value, "requires_auth"),
+      adopted_runtime_behavior: readBoolean(value, "adopted_runtime_behavior"),
+    };
+    readOptionalString(value, "response_parser", (responseParser) => {
+      result.response_parser = responseParser;
+    });
+    readOptionalString(value, "unsupported_reason", (unsupportedReason) => {
+      result.unsupported_reason = unsupportedReason;
+    });
+    return result;
+  });
+}
+
+function readMatrixJoinedMembersResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixJoinedMembersResponse> {
+  return readProtocolResult(envelope, (value) => {
+    const joined = readRecord(value, "joined", "invalid_envelope");
+    return {
+      joined: Object.fromEntries(
+        Object.entries(joined).map(([userId, member]) => [
+          userId,
+          readMatrixJoinedMember(assertRecord(member, `joined.${userId}`)),
+        ]),
+      ),
+    };
+  });
+}
+
+function readMatrixJoinedMember(
+  value: Record<string, unknown>,
+): MatrixJoinedMember {
+  const result: MatrixJoinedMember = {};
+  readOptionalString(value, "display_name", (displayName) => {
+    result.display_name = displayName;
+  });
+  readOptionalString(value, "avatar_url", (avatarUrl) => {
+    result.avatar_url = avatarUrl;
+  });
+  return result;
+}
+
+function readMatrixMembersResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixMembersResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    chunk: readArray(value, "chunk", "invalid_envelope").map((entry, index) =>
+      readMatrixClientEvent(assertRecord(entry, `chunk.${index}`)),
+    ),
+  }));
+}
+
+function readMatrixTimestampToEventResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixTimestampToEventResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    event_id: readString(value, "event_id", "invalid_envelope"),
+    origin_server_ts: readNumber(
+      value,
+      "origin_server_ts",
+      "invalid_envelope",
+    ),
+  }));
 }
 
 function readMatrixProfileResponseEnvelope(
