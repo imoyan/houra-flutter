@@ -12,8 +12,10 @@ coverage for SPEC-051 Matrix key upload / claim, SPEC-052 Matrix to-device /
 encrypted-room envelopes, SPEC-068 Matrix OAuth account-management helper
 envelopes, and SPEC-069 Matrix device key query request descriptors and public
 response parsing, plus SPEC-085 Matrix event retrieval / membership history
-request descriptors and public response envelopes, without claiming Matrix
-OAuth, E2EE, or Client-Server support.
+request descriptors and public response envelopes, and SPEC-090 Matrix
+relations / threads / reactions parser-only helpers, without claiming Matrix
+OAuth, E2EE, relation aggregation correctness, thread ordering, or
+Client-Server support.
 
 ## Repository Role
 

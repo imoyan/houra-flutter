@@ -154,6 +154,124 @@ void main() {
     );
   });
 
+  test('Matrix relations helpers follow SPEC-090 vector', () async {
+    final vector = readVector(
+      'test-vectors/core/'
+      'matrix-'
+      'client-server-relations-threads-reactions.json',
+    );
+    final event = objectFrom(vector.raw, 'event');
+    final responses = objectFrom(event, 'sample_responses');
+    final observed = <http.Request>[];
+    final client = _client((request) async {
+      observed.add(request);
+      final path = request.url.path;
+      final body = switch (path) {
+        '/_matrix/client/v1/rooms/!room:example.test/relations/\$parent:example.test/m.annotation/m.reaction' =>
+          objectFrom(responses, 'relation_chunk'),
+        '/_matrix/client/v1/rooms/!room:example.test/threads' =>
+          objectFrom(responses, 'thread_roots'),
+        _ => fail('unexpected Matrix relation path: $path'),
+      };
+      return http.Response(jsonEncode(body), 200);
+    });
+
+    final relations = await client.rooms.getMatrixRelations(
+      accessToken: 'token-1',
+      roomId: '!room:example.test',
+      eventId: r'$parent:example.test',
+      relationType: 'm.annotation',
+      eventType: 'm.reaction',
+      from: 'rel_1',
+      to: 'rel_2',
+      limit: 20,
+    );
+    final threads = await client.rooms.getMatrixThreads(
+      accessToken: 'token-1',
+      roomId: '!room:example.test',
+      include: 'all',
+      limit: 20,
+    );
+    final edit = HouraMatrixClientEvent.fromJson(
+      objectFrom(responses, 'edit_event'),
+    );
+    final reply = HouraMatrixClientEvent.fromJson(
+      objectFrom(responses, 'reply_event'),
+    );
+
+    expect(relations.chunk.single.reactionRelation!.eventId,
+        r'$parent:example.test');
+    expect(relations.chunk.single.reactionRelation!.key, '+1');
+    expect(relations.nextBatch, 'rel_2');
+    expect(threads.chunk.single.threadSummary!.count, 2);
+    expect(
+      threads.chunk.single.threadSummary!.latestEvent.eventId,
+      r'$thread-reply:example.test',
+    );
+    expect(edit.editRelation!.eventId, r'$parent:example.test');
+    expect(edit.editRelation!.newContent['body'], 'Edited');
+    expect(reply.replyToEventId, r'$parent:example.test');
+    expect(observed.map((request) => request.method), everyElement('GET'));
+    expect(observed.first.url.queryParameters, {
+      'from': 'rel_1',
+      'to': 'rel_2',
+      'limit': '20',
+    });
+    expect(
+        observed.last.url.queryParameters, {'include': 'all', 'limit': '20'});
+  });
+
+  test('Matrix relation parsers reject malformed SPEC-090 payloads', () {
+    expect(
+      () => HouraMatrixRelationChunk.fromJson({
+        'chunk': [
+          {
+            'event_id': r'$reaction:example.test',
+            'room_id': '!room:example.test',
+            'sender': '@alice:example.test',
+            'origin_server_ts': 1715754650000,
+            'type': 'm.reaction',
+            'content': {
+              'm.relates_to': {'event_id': r'$parent:example.test'},
+            },
+          },
+        ],
+      }),
+      throwsA(isA<HouraResponseFormatException>()),
+    );
+    expect(
+      () => HouraMatrixThreadRoots.fromJson({
+        'chunk': [
+          {
+            'event_id': r'$thread-root:example.test',
+            'room_id': '!room:example.test',
+            'sender': '@alice:example.test',
+            'origin_server_ts': 1715754600000,
+            'type': 'm.room.message',
+            'content': {'body': 'Thread root'},
+            'unsigned': {
+              'm.relations': {
+                'm.thread': {'count': -1},
+              },
+            },
+          },
+        ],
+      }),
+      throwsA(isA<HouraResponseFormatException>()),
+    );
+    expect(
+      () => _client(
+        (_) async => http.Response('{}', 200),
+      ).rooms.getMatrixRelations(
+            accessToken: 'token-1',
+            roomId: '!room:example.test',
+            eventId: r'$parent:example.test',
+            eventType: 'm.reaction',
+          ),
+      throwsArgumentError,
+    );
+  });
+
   test('createRoom follows SPEC-006 vector', () async {
     final vector = readVector('test-vectors/rooms/create-room-basic.json');
     final requestBody = objectFrom(vector.request, 'body');
