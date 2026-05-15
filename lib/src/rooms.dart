@@ -184,6 +184,94 @@ final class HouraRoomsClient {
     );
     return HouraMatrixTimestampToEvent.fromJson(response.jsonObject);
   }
+
+  /// Fetches Matrix relation children for a room event.
+  ///
+  /// This is SPEC-090 parser/request descriptor support only. Aggregation
+  /// correctness, ordering, recursion depth, and redaction effects remain
+  /// server-owned and are not inferred by this SDK helper.
+  Future<HouraMatrixRelationChunk> getMatrixRelations({
+    required String accessToken,
+    required String roomId,
+    required String eventId,
+    String? relationType,
+    String? eventType,
+    String? from,
+    String? to,
+    int? limit,
+  }) async {
+    _validateMatrixRoomId(roomId);
+    _validateMatrixEventId(eventId);
+    if (eventType != null && relationType == null) {
+      throw ArgumentError.value(
+        eventType,
+        'eventType',
+        'requires relationType',
+      );
+    }
+    if (limit != null && limit <= 0) {
+      throw ArgumentError.value(limit, 'limit', 'must be positive');
+    }
+    final pathSegments = [
+      '_matrix',
+      'client',
+      'v1',
+      'rooms',
+      roomId,
+      'relations',
+      eventId,
+      if (relationType != null) _requireNonEmpty(relationType, 'relationType'),
+      if (eventType != null) _requireNonEmpty(eventType, 'eventType'),
+    ];
+    final response = await _transport.send(
+      HouraRequest(
+        method: 'GET',
+        pathSegments: pathSegments,
+        accessToken: accessToken,
+        queryParameters: {
+          if (from != null) 'from': _requireNonEmpty(from, 'from'),
+          if (to != null) 'to': _requireNonEmpty(to, 'to'),
+          if (limit != null) 'limit': '$limit',
+        },
+      ),
+    );
+    return HouraMatrixRelationChunk.fromJson(response.jsonObject);
+  }
+
+  /// Fetches Matrix thread root summaries for a room.
+  ///
+  /// This is SPEC-090 parser/request descriptor support only. Thread ordering
+  /// and unread-count correctness remain outside this helper.
+  Future<HouraMatrixThreadRoots> getMatrixThreads({
+    required String accessToken,
+    required String roomId,
+    String? include,
+    int? limit,
+  }) async {
+    _validateMatrixRoomId(roomId);
+    if (limit != null && limit <= 0) {
+      throw ArgumentError.value(limit, 'limit', 'must be positive');
+    }
+    final response = await _transport.send(
+      HouraRequest(
+        method: 'GET',
+        pathSegments: [
+          '_matrix',
+          'client',
+          'v1',
+          'rooms',
+          roomId,
+          'threads',
+        ],
+        accessToken: accessToken,
+        queryParameters: {
+          if (include != null) 'include': _requireNonEmpty(include, 'include'),
+          if (limit != null) 'limit': '$limit',
+        },
+      ),
+    );
+    return HouraMatrixThreadRoots.fromJson(response.jsonObject);
+  }
 }
 
 void _validateMatrixRoomId(String roomId) {

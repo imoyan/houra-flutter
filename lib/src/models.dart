@@ -254,6 +254,171 @@ final class HouraMatrixClientEvent {
       'Expected Matrix membership value "content.membership".',
     );
   }
+
+  HouraMatrixReactionRelation? get reactionRelation {
+    if (type != 'm.reaction') {
+      return null;
+    }
+    final relatesTo = _requiredJsonObject(content, 'm.relates_to');
+    final relType = _requiredString(relatesTo, 'rel_type');
+    if (relType != 'm.annotation') {
+      throw HouraResponseFormatException(
+        'Expected Matrix relation type "m.annotation".',
+      );
+    }
+    return HouraMatrixReactionRelation(
+      eventId: _requiredString(relatesTo, 'event_id'),
+      key: _requiredString(relatesTo, 'key'),
+    );
+  }
+
+  HouraMatrixThreadSummary? get threadSummary {
+    final unsigned = this.unsigned;
+    if (unsigned == null) {
+      return null;
+    }
+    final relations = unsigned['m.relations'];
+    if (relations is! Map) {
+      return null;
+    }
+    final thread = relations['m.thread'];
+    if (thread is! Map) {
+      return null;
+    }
+    return HouraMatrixThreadSummary.fromJson(thread.cast<String, Object?>());
+  }
+
+  HouraMatrixEditRelation? get editRelation {
+    final relatesTo = content['m.relates_to'];
+    if (relatesTo is! Map) {
+      return null;
+    }
+    final relation = relatesTo.cast<String, Object?>();
+    final relType = relation['rel_type'];
+    if (relType != 'm.replace') {
+      return null;
+    }
+    final newContent = content['m.new_content'];
+    if (newContent is! Map) {
+      throw HouraResponseFormatException(
+        'Expected object "content.m.new_content".',
+      );
+    }
+    return HouraMatrixEditRelation(
+      eventId: _requiredString(relation, 'event_id'),
+      newContent: Map<String, Object?>.unmodifiable(
+        newContent.cast<String, Object?>(),
+      ),
+    );
+  }
+
+  String? get replyToEventId {
+    final relatesTo = content['m.relates_to'];
+    if (relatesTo is! Map) {
+      return null;
+    }
+    final reply = relatesTo['m.in_reply_to'];
+    if (reply is! Map) {
+      return null;
+    }
+    return _requiredString(reply.cast<String, Object?>(), 'event_id');
+  }
+}
+
+/// SPEC-090 Matrix relation chunk response.
+final class HouraMatrixRelationChunk {
+  const HouraMatrixRelationChunk({
+    required this.chunk,
+    this.nextBatch,
+    this.prevBatch,
+  });
+
+  final List<HouraMatrixClientEvent> chunk;
+  final String? nextBatch;
+  final String? prevBatch;
+
+  factory HouraMatrixRelationChunk.fromJson(Map<String, Object?> json) {
+    final events = _requiredObjectList(json, 'chunk')
+        .map((event) => HouraMatrixClientEvent.fromJson(event))
+        .toList(growable: false);
+    for (final event in events) {
+      if (event.type == 'm.reaction') {
+        event.reactionRelation;
+      }
+    }
+    return HouraMatrixRelationChunk(
+      chunk: List.unmodifiable(events),
+      nextBatch: _optionalString(json, 'next_batch'),
+      prevBatch: _optionalString(json, 'prev_batch'),
+    );
+  }
+}
+
+/// SPEC-090 Matrix thread roots response.
+final class HouraMatrixThreadRoots {
+  const HouraMatrixThreadRoots({required this.chunk, this.nextBatch});
+
+  final List<HouraMatrixClientEvent> chunk;
+  final String? nextBatch;
+
+  factory HouraMatrixThreadRoots.fromJson(Map<String, Object?> json) {
+    final events = _requiredObjectList(json, 'chunk')
+        .map((event) => HouraMatrixClientEvent.fromJson(event))
+        .toList(growable: false);
+    for (final event in events) {
+      if (event.threadSummary == null) {
+        throw HouraResponseFormatException(
+          'Expected Matrix thread summary in "unsigned.m.relations.m.thread".',
+        );
+      }
+    }
+    return HouraMatrixThreadRoots(
+      chunk: List.unmodifiable(events),
+      nextBatch: _optionalString(json, 'next_batch'),
+    );
+  }
+}
+
+final class HouraMatrixReactionRelation {
+  const HouraMatrixReactionRelation({required this.eventId, required this.key});
+
+  final String eventId;
+  final String key;
+}
+
+final class HouraMatrixThreadSummary {
+  const HouraMatrixThreadSummary({
+    required this.count,
+    required this.currentUserParticipated,
+    required this.latestEvent,
+  });
+
+  final int count;
+  final bool currentUserParticipated;
+  final HouraMatrixClientEvent latestEvent;
+
+  factory HouraMatrixThreadSummary.fromJson(Map<String, Object?> json) {
+    return HouraMatrixThreadSummary(
+      count: _requiredNonNegativeInt(json, 'count'),
+      currentUserParticipated: _requiredBool(
+        json,
+        'current_user_participated',
+      ),
+      latestEvent: HouraMatrixClientEvent.fromJson(
+        _requiredJsonObject(json, 'latest_event'),
+      ),
+    );
+  }
+}
+
+final class HouraMatrixEditRelation {
+  const HouraMatrixEditRelation({
+    required this.eventId,
+    required this.newContent,
+  });
+
+  final String eventId;
+  final Map<String, Object?> newContent;
 }
 
 /// SPEC-085 Matrix joined_members response.
@@ -875,6 +1040,14 @@ bool? _optionalBool(Map<String, Object?> json, String key) {
     return value;
   }
   throw HouraResponseFormatException('Expected optional boolean "$key".');
+}
+
+bool _requiredBool(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is bool) {
+    return value;
+  }
+  throw HouraResponseFormatException('Expected boolean "$key".');
 }
 
 bool _isMatrixMembershipValue(String value) {
