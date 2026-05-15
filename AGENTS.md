@@ -101,6 +101,8 @@ The current package implements:
   parsers only
 - SPEC-052 Matrix To-Device / Encrypted Room request descriptors and public
   envelope parsers only
+- SPEC-068 Matrix OAuth Account Management metadata, redirect descriptors, and
+  post-return reconciliation signals only
 - SPEC-069 Matrix Device Key Query request descriptor and public response
   parser only
 

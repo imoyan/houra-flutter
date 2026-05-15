@@ -32,6 +32,23 @@ pub fn parse_matrix_login_session_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_login_session_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixAuthMetadataJson)]
+pub fn parse_matrix_auth_metadata_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_auth_metadata_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = buildMatrixAccountManagementRedirectJson)]
+pub fn build_matrix_account_management_redirect_json(request_body: &str) -> String {
+    houra_protocol_core::build_matrix_account_management_redirect_json(request_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = reconcileMatrixAccountManagementDeviceDeleteJson)]
+pub fn reconcile_matrix_account_management_device_delete_json(response_body: &str) -> String {
+    houra_protocol_core::reconcile_matrix_account_management_device_delete_json(
+        response_body.as_bytes(),
+    )
+}
+
 #[wasm_bindgen(js_name = parseMatrixWhoamiJson)]
 pub fn parse_matrix_whoami_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_whoami_json(response_body.as_bytes())

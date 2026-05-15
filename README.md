@@ -9,8 +9,9 @@ Draft. The current implementation covers the MVP client profiles from
 SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
 SPEC-010, SPEC-011, and SPEC-020. It also includes parser-only Dart SDK
 coverage for SPEC-051 Matrix key upload / claim, SPEC-052 Matrix to-device /
-encrypted-room envelopes, and SPEC-069 Matrix device key query request
-descriptors and public response parsing without claiming Matrix E2EE support.
+encrypted-room envelopes, SPEC-068 Matrix OAuth account-management helper
+envelopes, and SPEC-069 Matrix device key query request descriptors and public
+response parsing without claiming Matrix OAuth or E2EE support.
 
 ## Repository Role
 
@@ -53,9 +54,10 @@ vectors, `SPEC-038` Matrix media parser vectors, the `SPEC-039` integration
 gate vector that ties those parser surfaces together, and the `SPEC-040` Matrix
 event DAG/auth-event vectors. It also parses the `SPEC-045` Matrix profile,
 account-data, and room tag parser-only vectors, the `SPEC-046` Matrix receipts,
-typing, and read marker parser-only vectors, and the `SPEC-047` Matrix filters,
-presence, and capabilities parser-only vectors. It is not published, canonical,
-or required by the Flutter SDK.
+typing, and read marker parser-only vectors, the `SPEC-047` Matrix filters,
+presence, and capabilities parser-only vectors, and the `SPEC-068` Matrix OAuth
+account-management parser-only vectors. It is not published, canonical, or
+required by the Flutter SDK.
 
 The Rust prototype exposes `abi_version()` and `artifact_manifest()` as
 implementation metadata for future TS / Dart bindings. Bindings can use that
@@ -68,9 +70,9 @@ a focused follow-up.
 
 The prototype also exposes binding-safe JSON envelopes for `SPEC-030`,
 `SPEC-031`, `SPEC-032`, `SPEC-033`, `SPEC-034`, `SPEC-035`, `SPEC-036`, and
-`SPEC-037` / `SPEC-038` / `SPEC-045` / `SPEC-046` / `SPEC-047`; `SPEC-039` and
-`SPEC-040` are exposed only as manifest coverage and repo-local vector gates
-over those existing surfaces.
+`SPEC-037` / `SPEC-038` / `SPEC-045` / `SPEC-046` / `SPEC-047` / `SPEC-068`;
+`SPEC-039` and `SPEC-040` are exposed only as manifest coverage and repo-local
+vector gates over those existing surfaces.
 Those APIs return a single `ok` / `value` / `error` object so WASM, N-API, FFI,
 and JS interop adapters can cross the language boundary once per parse or
 validation call instead of bouncing through many small calls. The envelope
@@ -82,9 +84,9 @@ contracts and test vectors.
 Vue, and Next client experiments. It uses `wasm-bindgen` to export the manifest
 and `SPEC-030` / `SPEC-031` / `SPEC-032` / `SPEC-033` / `SPEC-034` /
 `SPEC-035` / `SPEC-036` / `SPEC-037` / `SPEC-038` / `SPEC-045` / `SPEC-046` /
-`SPEC-047` JSON envelopes plus `SPEC-039` / `SPEC-040` manifest coverage, but
-it does not own HTTP, retries, cancellation, token storage, UI state, or
-framework lifecycle.
+`SPEC-047` / `SPEC-068` JSON envelopes plus `SPEC-039` / `SPEC-040` manifest
+coverage, but it does not own HTTP, retries, cancellation, token storage, UI
+state, or framework lifecycle.
 Generated JS, `.wasm` files, generated-artifact packaging, and Next server /
 Node bindings are intentionally left out until a focused package artifact issue
 exists. The TypeScript facade metadata below only packages the compiled facade
@@ -347,6 +349,17 @@ expose keys/query request descriptor, public response, and Matrix error JSON
 envelopes without taking ownership of signature verification, device trust
 decisions, secure storage, crypto verification, device list lifecycle, token
 persistence, or Matrix E2EE support advertisement.
+
+SPEC-068 shared-core adoption record for issue #118: the Rust prototype now
+consumes the `houra-spec` snapshot `39a7989d32c41a6c1930fe2297ea5d22d13e4866`
+(`v0.2.0-pre.58-58-g39a7989`) SPEC-068 Matrix OAuth generic account-management
+fallback and device-delete return reconciliation vectors for parser-only account
+management helper adoption. The WASM wrapper and TypeScript facade expose auth
+metadata parsing, account-management redirect descriptors, generic fallback URL
+selection, and post-return device-delete reconciliation signals without taking
+ownership of token refresh endpoint execution, browser presentation, transport
+retry policy, bearer-token storage, external account-management completion, or
+Matrix OAuth support advertisement.
 
 SPEC-054 adoption record for issue #69: the Rust prototype now consumes the
 `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
@@ -753,8 +766,9 @@ Completed shared-core history:
 
 - #60, #61, #62, #63, and #64 completed SPEC-045 through SPEC-049
   Client-Server parser-only adoption.
-- #65, #66, #68, and #69 completed the current E2EE-adjacent parser-only
-  adoption surface for SPEC-069, SPEC-051, SPEC-053, and SPEC-054.
+- #65, #66, #68, #69, and #118 completed the current E2EE-adjacent and
+  OAuth-adjacent parser-only adoption surface for SPEC-069, SPEC-051, SPEC-053,
+  SPEC-054, and SPEC-068.
 - #70 and #71 completed the current federation parser-only adoption surface for
   SPEC-055 and SPEC-056.
 - #72 and #73 completed candidate criteria for SPEC-057 and SPEC-058 through
@@ -767,9 +781,8 @@ Completed shared-core history:
 
 Deferred implementation backlog:
 
-- #118, #119, #120, #121, and #122 track the next Client-Server parser helper
-  wave for auth fallback, event retrieval, relations, sync extensions, and
-  media repository breadth.
+- #119, #120, #121, and #122 track the next Client-Server parser helper wave
+  for event retrieval, relations, sync extensions, and media repository breadth.
 - #123, #124, and #125 track the next federation parser helper wave for
   version/key lifecycle, PDU/EDU envelopes, and directory/query/OpenID helpers.
 - #126, #127, and #128 track Application Service, Identity Service, and Push

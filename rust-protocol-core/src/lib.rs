@@ -25,7 +25,7 @@ pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
     "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047", "SPEC-048", "SPEC-049",
-    "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-069",
+    "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-068", "SPEC-069",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -74,6 +74,28 @@ pub struct MatrixLoginSession {
     pub access_token: String,
     pub device_id: Option<String>,
     pub home_server: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixAuthMetadata {
+    pub issuer: Option<String>,
+    pub account_management_uri: Option<String>,
+    pub account_management_actions_supported: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixAccountManagementRedirect {
+    pub uri: String,
+    pub action: Option<String>,
+    pub device_id: Option<String>,
+    pub generic_fallback: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixAccountManagementReconciliation {
+    pub deleted_device_id: String,
+    pub missing_device_id: bool,
+    pub mark_delete_complete: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -886,6 +908,27 @@ pub struct MatrixLoginSessionParseEnvelope {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixAuthMetadataParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixAuthMetadata>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixAccountManagementRedirectParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixAccountManagementRedirect>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixAccountManagementReconciliationParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixAccountManagementReconciliation>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixRegistrationSessionParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixRegistrationSession>,
@@ -1694,6 +1737,27 @@ struct MatrixLoginSessionWire {
     access_token: Option<String>,
     device_id: Option<String>,
     home_server: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixAuthMetadataWire {
+    issuer: Option<String>,
+    account_management_uri: Option<String>,
+    #[serde(default)]
+    account_management_actions_supported: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixAccountManagementRedirectWire {
+    auth_metadata: Option<MatrixAuthMetadataWire>,
+    requested_account_management_action: Option<String>,
+    target_device_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixAccountManagementReconciliationWire {
+    deleted_device_id: Option<String>,
+    devices: Option<Vec<MatrixDeviceWire>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -2580,6 +2644,165 @@ pub fn parse_matrix_login_session_envelope(bytes: &[u8]) -> MatrixLoginSessionPa
 pub fn parse_matrix_login_session_json(bytes: &[u8]) -> String {
     serde_json::to_string(&parse_matrix_login_session_envelope(bytes))
         .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_auth_metadata(bytes: &[u8]) -> Result<MatrixAuthMetadata, ProtocolError> {
+    let wire: MatrixAuthMetadataWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    matrix_auth_metadata_from_wire(wire)
+}
+
+pub fn parse_matrix_auth_metadata_envelope(bytes: &[u8]) -> MatrixAuthMetadataParseEnvelope {
+    match parse_matrix_auth_metadata(bytes) {
+        Ok(value) => MatrixAuthMetadataParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixAuthMetadataParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_auth_metadata_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_auth_metadata_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn build_matrix_account_management_redirect(
+    bytes: &[u8],
+) -> Result<MatrixAccountManagementRedirect, ProtocolError> {
+    let wire: MatrixAccountManagementRedirectWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let metadata = matrix_auth_metadata_from_wire(
+        wire.auth_metadata
+            .ok_or_else(|| invalid_auth_field("auth_metadata"))?,
+    )?;
+    let account_management_uri = metadata
+        .account_management_uri
+        .ok_or_else(|| invalid_auth_field("auth_metadata.account_management_uri"))?;
+    let action = optional_non_empty(
+        wire.requested_account_management_action,
+        "requested_account_management_action",
+    )?;
+    let device_id = optional_non_empty(wire.target_device_id, "target_device_id")?;
+    let action_supported = action.as_ref().is_some_and(|action| {
+        metadata
+            .account_management_actions_supported
+            .contains(action)
+    });
+
+    if let Some(action) = action {
+        if action_supported {
+            let uri = if action == "org.matrix.device_delete" {
+                let device_id = device_id
+                    .as_deref()
+                    .ok_or_else(|| invalid_auth_field("target_device_id"))?;
+                append_account_management_query(
+                    &account_management_uri,
+                    &[("action", action.as_str()), ("device_id", device_id)],
+                )
+            } else {
+                append_account_management_query(
+                    &account_management_uri,
+                    &[("action", action.as_str())],
+                )
+            };
+            return Ok(MatrixAccountManagementRedirect {
+                uri,
+                action: Some(action),
+                device_id,
+                generic_fallback: false,
+            });
+        }
+
+        return Ok(MatrixAccountManagementRedirect {
+            uri: account_management_uri,
+            action: None,
+            device_id: None,
+            generic_fallback: true,
+        });
+    }
+
+    Ok(MatrixAccountManagementRedirect {
+        uri: account_management_uri,
+        action: None,
+        device_id: None,
+        generic_fallback: true,
+    })
+}
+
+pub fn build_matrix_account_management_redirect_envelope(
+    bytes: &[u8],
+) -> MatrixAccountManagementRedirectParseEnvelope {
+    match build_matrix_account_management_redirect(bytes) {
+        Ok(value) => MatrixAccountManagementRedirectParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixAccountManagementRedirectParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn build_matrix_account_management_redirect_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&build_matrix_account_management_redirect_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn reconcile_matrix_account_management_device_delete(
+    bytes: &[u8],
+) -> Result<MatrixAccountManagementReconciliation, ProtocolError> {
+    let wire: MatrixAccountManagementReconciliationWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let deleted_device_id = required_non_empty(wire.deleted_device_id, "deleted_device_id")?;
+    let devices = wire
+        .devices
+        .ok_or_else(|| invalid_auth_field("devices"))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, device)| matrix_device_from_wire(device, &format!("devices.{index}")))
+        .collect::<Result<Vec<_>, _>>()?;
+    let missing_device_id = devices
+        .iter()
+        .all(|device| device.device_id != deleted_device_id);
+
+    Ok(MatrixAccountManagementReconciliation {
+        deleted_device_id,
+        missing_device_id,
+        mark_delete_complete: missing_device_id,
+    })
+}
+
+pub fn reconcile_matrix_account_management_device_delete_envelope(
+    bytes: &[u8],
+) -> MatrixAccountManagementReconciliationParseEnvelope {
+    match reconcile_matrix_account_management_device_delete(bytes) {
+        Ok(value) => MatrixAccountManagementReconciliationParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixAccountManagementReconciliationParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn reconcile_matrix_account_management_device_delete_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&reconcile_matrix_account_management_device_delete_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
 }
 
 pub fn parse_matrix_whoami(bytes: &[u8]) -> Result<MatrixWhoami, ProtocolError> {
@@ -5854,18 +6077,79 @@ pub fn parse_matrix_key_backup_recovery_gate_json(bytes: &[u8]) -> String {
 fn required_non_empty(value: Option<String>, field: &str) -> Result<String, ProtocolError> {
     match value {
         Some(value) if !value.is_empty() => Ok(value),
-        _ => Err(ProtocolError::InvalidAuthField {
-            field: field.to_owned(),
-        }),
+        _ => Err(invalid_auth_field(field)),
     }
 }
 
 fn optional_non_empty(value: Option<String>, field: &str) -> Result<Option<String>, ProtocolError> {
     match value {
-        Some(value) if value.is_empty() => Err(ProtocolError::InvalidAuthField {
-            field: field.to_owned(),
-        }),
+        Some(value) if value.is_empty() => Err(invalid_auth_field(field)),
         value => Ok(value),
+    }
+}
+
+fn matrix_auth_metadata_from_wire(
+    wire: MatrixAuthMetadataWire,
+) -> Result<MatrixAuthMetadata, ProtocolError> {
+    let issuer = optional_non_empty(wire.issuer, "issuer")?;
+    let account_management_uri = match wire.account_management_uri {
+        Some(value) if is_https_uri(&value) => Some(value),
+        Some(_) => return Err(invalid_auth_field("account_management_uri")),
+        None => None,
+    };
+    let mut account_management_actions_supported =
+        Vec::with_capacity(wire.account_management_actions_supported.len());
+    for (index, action) in wire
+        .account_management_actions_supported
+        .into_iter()
+        .enumerate()
+    {
+        if action.is_empty() {
+            return Err(invalid_auth_field(&format!(
+                "account_management_actions_supported.{index}"
+            )));
+        }
+        account_management_actions_supported.push(action);
+    }
+
+    Ok(MatrixAuthMetadata {
+        issuer,
+        account_management_uri,
+        account_management_actions_supported,
+    })
+}
+
+fn append_account_management_query(base_uri: &str, params: &[(&str, &str)]) -> String {
+    let joiner = if base_uri.contains('?') { '&' } else { '?' };
+    let query = params
+        .iter()
+        .map(|(key, value)| format!("{}={}", percent_encode(key), percent_encode(value)))
+        .collect::<Vec<_>>()
+        .join("&");
+    format!("{base_uri}{joiner}{query}")
+}
+
+fn percent_encode(value: &str) -> String {
+    let mut encoded = String::new();
+    for byte in value.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
+            encoded.push(byte as char);
+        } else {
+            encoded.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    encoded
+}
+
+fn is_https_uri(value: &str) -> bool {
+    value
+        .strip_prefix("https://")
+        .is_some_and(|rest| !rest.is_empty() && !rest.contains(char::is_whitespace))
+}
+
+fn invalid_auth_field(field: &str) -> ProtocolError {
+    ProtocolError::InvalidAuthField {
+        field: field.to_owned(),
     }
 }
 
@@ -7489,7 +7773,7 @@ mod tests {
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
                 "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047",
                 "SPEC-048", "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056",
-                "SPEC-069"
+                "SPEC-068", "SPEC-069"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -7928,6 +8212,75 @@ mod tests {
             .supported_specs
             .iter()
             .any(|spec| spec == "SPEC-069"));
+    }
+
+    #[test]
+    fn parses_spec_068_account_management_helpers() {
+        let fallback = read_spec_vector(
+            "test-vectors/auth/matrix-oauth-generic-account-management-fallback.json",
+        );
+        assert_eq!(fallback["contract"], "SPEC-068");
+
+        let metadata = parse_matrix_auth_metadata(
+            fallback["client_context"]["auth_metadata"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-068 auth metadata should parse");
+        assert_eq!(
+            metadata.account_management_uri.as_deref(),
+            Some("https://account.example.test/manage")
+        );
+
+        let redirect = build_matrix_account_management_redirect(
+            fallback["client_context"].to_string().as_bytes(),
+        )
+        .expect("SPEC-068 fallback redirect should build");
+        assert_eq!(redirect.uri, "https://account.example.test/manage");
+        assert!(redirect.generic_fallback);
+        assert!(redirect.action.is_none());
+        assert!(!redirect.uri.contains("token"));
+
+        let complete = read_spec_vector(
+            "test-vectors/auth/matrix-oauth-device-delete-return-refresh-complete.json",
+        );
+        assert_eq!(complete["contract"], "SPEC-068");
+        let reconciliation_input = serde_json::json!({
+            "deleted_device_id": complete["client_context"]["deleted_device_id"],
+            "devices": complete["expected"]["body_contains"]["devices"],
+        });
+        let reconciliation = reconcile_matrix_account_management_device_delete(
+            reconciliation_input.to_string().as_bytes(),
+        )
+        .expect("SPEC-068 post-return device reconciliation should parse");
+        assert_eq!(reconciliation.deleted_device_id, "DEVICE2");
+        assert!(reconciliation.missing_device_id);
+        assert!(reconciliation.mark_delete_complete);
+
+        let action_redirect = build_matrix_account_management_redirect(
+            br#"{"auth_metadata":{"account_management_uri":"https://account.example.test/manage","account_management_actions_supported":["org.matrix.device_delete"]},"requested_account_management_action":"org.matrix.device_delete","target_device_id":"DEVICE 2"}"#,
+        )
+        .expect("SPEC-068 device delete deep link should build");
+        assert_eq!(
+            action_redirect.uri,
+            "https://account.example.test/manage?action=org.matrix.device_delete&device_id=DEVICE%202"
+        );
+        assert!(!action_redirect.generic_fallback);
+        assert_eq!(
+            action_redirect.action.as_deref(),
+            Some("org.matrix.device_delete")
+        );
+
+        let insecure_metadata = parse_matrix_auth_metadata(
+            br#"{"account_management_uri":"http://example.test/manage"}"#,
+        );
+        assert!(insecure_metadata.is_err());
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-068"));
     }
 
     #[test]

@@ -1304,6 +1304,49 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixAuthMetadataJson() {
+      return JSON.stringify(
+        overrides.authMetadataEnvelope ?? {
+          ok: true,
+          value: {
+            issuer: "https://account.example.test/",
+            account_management_uri: "https://account.example.test/manage",
+            account_management_actions_supported: [
+              "org.matrix.device_delete",
+              "org.matrix.account_deactivate",
+            ],
+          },
+          error: null,
+        },
+      );
+    },
+    buildMatrixAccountManagementRedirectJson() {
+      return JSON.stringify(
+        overrides.accountManagementRedirectEnvelope ?? {
+          ok: true,
+          value: {
+            uri: "https://account.example.test/manage?action=org.matrix.device_delete&device_id=DEVICE2",
+            action: "org.matrix.device_delete",
+            device_id: "DEVICE2",
+            generic_fallback: false,
+          },
+          error: null,
+        },
+      );
+    },
+    reconcileMatrixAccountManagementDeviceDeleteJson() {
+      return JSON.stringify(
+        overrides.accountManagementReconciliationEnvelope ?? {
+          ok: true,
+          value: {
+            deleted_device_id: "DEVICE2",
+            missing_device_id: true,
+            mark_delete_complete: true,
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixMediaContentUriJson() {
       return JSON.stringify(
         overrides.mediaContentUriEnvelope ?? {
@@ -2637,6 +2680,53 @@ test("omits null optional SPEC-032 Matrix auth/session fields", () => {
     },
     error: null,
   });
+});
+
+test("maps SPEC-068 Matrix account management helper envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+
+  assert.deepEqual(
+    core.parseMatrixAuthMetadata('{"account_management_uri":"https://account.example.test/manage"}'),
+    {
+      ok: true,
+      value: {
+        issuer: "https://account.example.test/",
+        account_management_uri: "https://account.example.test/manage",
+        account_management_actions_supported: [
+          "org.matrix.device_delete",
+          "org.matrix.account_deactivate",
+        ],
+      },
+      error: null,
+    },
+  );
+  assert.deepEqual(
+    core.buildMatrixAccountManagementRedirect(
+      '{"requested_account_management_action":"org.matrix.device_delete"}',
+    ),
+    {
+      ok: true,
+      value: {
+        uri: "https://account.example.test/manage?action=org.matrix.device_delete&device_id=DEVICE2",
+        action: "org.matrix.device_delete",
+        device_id: "DEVICE2",
+        generic_fallback: false,
+      },
+      error: null,
+    },
+  );
+  assert.deepEqual(
+    core.reconcileMatrixAccountManagementDeviceDelete('{"deleted_device_id":"DEVICE2"}'),
+    {
+      ok: true,
+      value: {
+        deleted_device_id: "DEVICE2",
+        missing_device_id: true,
+        mark_delete_complete: true,
+      },
+      error: null,
+    },
+  );
 });
 
 test("maps SPEC-033 Matrix registration envelopes", () => {

@@ -23,6 +23,7 @@ const expectedSpecIds = [
   'SPEC-054',
   'SPEC-055',
   'SPEC-056',
+  'SPEC-068',
   'SPEC-069',
 ];
 
@@ -389,6 +390,29 @@ void main(List<String> args) {
         'Matrix E2EE support advertisement',
       ],
     },
+    'oauth_account_management_parser_adoption': {
+      'issue': 118,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-068'],
+      'parity_vectors': [
+        'test-vectors/auth/matrix-oauth-generic-account-management-fallback.json',
+        'test-vectors/auth/matrix-oauth-device-delete-return-refresh-complete.json',
+      ],
+      'parser_only_surfaces': [
+        'auth metadata response envelope',
+        'account-management redirect descriptor',
+        'generic account-management fallback redirect',
+        'post-return device-delete reconciliation signal',
+      ],
+      'out_of_scope': [
+        'token refresh endpoint execution',
+        'fallback HTML or browser presentation',
+        'transport retry policy',
+        'bearer-token storage',
+        'account-management completion without post-return API evidence',
+        'Matrix OAuth support advertisement',
+      ],
+    },
     'key_backup_parser_adoption': {
       'issue': 68,
       'status': 'parser-only-adopted',
@@ -639,7 +663,7 @@ void main(List<String> args) {
         'command': 'cargo test --locked',
         'guards': [
           'artifact manifest serializes stably',
-          'covered SPEC ids include SPEC-030 through SPEC-040, SPEC-045, SPEC-046, SPEC-047, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, and SPEC-069',
+          'covered SPEC ids include SPEC-030 through SPEC-040, SPEC-045, SPEC-046, SPEC-047, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, SPEC-068, and SPEC-069',
         ],
       },
       {
