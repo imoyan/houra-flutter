@@ -3341,7 +3341,9 @@ pub fn parse_matrix_event_retrieval_request_descriptor(
         wire.unsupported_reason,
         "event_retrieval_descriptor.unsupported_reason",
     )?;
-    let adopted_runtime_behavior = wire.adopted_runtime_behavior.unwrap_or(true);
+    let adopted_runtime_behavior = wire
+        .adopted_runtime_behavior
+        .ok_or_else(|| invalid_room_field("event_retrieval_descriptor.adopted_runtime_behavior"))?;
     if adopted_runtime_behavior {
         if response_parser.is_none() {
             return Err(invalid_room_field(
@@ -3461,7 +3463,7 @@ pub fn parse_matrix_members_response(bytes: &[u8]) -> Result<MatrixMembersRespon
                 return Err(invalid_room_field(&format!("members.chunk.{index}")));
             }
             match event.content.get("membership") {
-                Some(Value::String(value)) if !value.is_empty() => Ok(event),
+                Some(Value::String(value)) if is_matrix_membership_value(value) => Ok(event),
                 _ => Err(invalid_room_field(&format!(
                     "members.chunk.{index}.content.membership"
                 ))),
@@ -3469,6 +3471,10 @@ pub fn parse_matrix_members_response(bytes: &[u8]) -> Result<MatrixMembersRespon
         })
         .collect::<Result<Vec<_>, _>>()?;
     Ok(MatrixMembersResponse { chunk })
+}
+
+fn is_matrix_membership_value(value: &str) -> bool {
+    matches!(value, "invite" | "join" | "knock" | "leave" | "ban")
 }
 
 pub fn parse_matrix_members_response_envelope(bytes: &[u8]) -> MatrixMembersResponseParseEnvelope {
@@ -10179,12 +10185,24 @@ mod tests {
         assert!(!envelope.ok);
         assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
 
+        let envelope = parse_matrix_event_retrieval_request_descriptor_envelope(
+            br#"{"method":"GET","path":"/_matrix/client/v3/rooms/{roomId}/event/{eventId}","requires_auth":true,"response_parser":"client_event"}"#,
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
+
         let envelope = parse_matrix_joined_members_response_envelope(br#"{"joined":[]}"#);
         assert!(!envelope.ok);
         assert_eq!(envelope.error.unwrap().code, "invalid_json");
 
         let envelope = parse_matrix_members_response_envelope(
             br#"{"chunk":[{"event_id":"$event:example.test","room_id":"!room:example.test","sender":"@alice:example.test","origin_server_ts":1715754600000,"type":"m.room.message","content":{"body":"Hello"}}]}"#,
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
+
+        let envelope = parse_matrix_members_response_envelope(
+            br#"{"chunk":[{"event_id":"$custom:example.test","room_id":"!room:example.test","sender":"@alice:example.test","origin_server_ts":1715754600000,"state_key":"@alice:example.test","type":"m.room.member","content":{"membership":"custom"}}]}"#,
         );
         assert!(!envelope.ok);
         assert_eq!(envelope.error.unwrap().code, "invalid_room_field");

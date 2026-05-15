@@ -187,17 +187,25 @@ final class HouraRoomsClient {
 }
 
 void _validateMatrixRoomId(String roomId) {
-  if (roomId.startsWith('!') && roomId.contains(':')) {
+  if (_hasMatrixSigilAndServer(roomId, '!')) {
     return;
   }
   throw ArgumentError.value(roomId, 'roomId', 'must be a Matrix room id');
 }
 
 void _validateMatrixEventId(String eventId) {
-  if (eventId.startsWith(r'$') && eventId.contains(':')) {
+  if (_hasMatrixSigilAndServer(eventId, r'$')) {
     return;
   }
   throw ArgumentError.value(eventId, 'eventId', 'must be a Matrix event id');
+}
+
+bool _hasMatrixSigilAndServer(String value, String sigil) {
+  if (!value.startsWith(sigil)) {
+    return false;
+  }
+  final colonIndex = value.lastIndexOf(':');
+  return colonIndex > sigil.length && colonIndex < value.length - 1;
 }
 
 String _requireNonEmpty(String value, String name) {

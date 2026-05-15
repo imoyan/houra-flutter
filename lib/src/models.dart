@@ -247,11 +247,11 @@ final class HouraMatrixClientEvent {
       return null;
     }
     final value = content['membership'];
-    if (value is String && value.isNotEmpty) {
+    if (value is String && _isMatrixMembershipValue(value)) {
       return value;
     }
     throw HouraResponseFormatException(
-      'Expected non-empty string "content.membership".',
+      'Expected Matrix membership value "content.membership".',
     );
   }
 }
@@ -318,7 +318,12 @@ final class HouraMatrixMembers {
           'Expected m.room.member state events in "chunk".',
         );
       }
-      event.membership;
+      final membership = event.membership;
+      if (membership == null) {
+        throw HouraResponseFormatException(
+          'Expected Matrix membership value "content.membership".',
+        );
+      }
     }
     return HouraMatrixMembers(chunk: List.unmodifiable(events));
   }
@@ -870,6 +875,11 @@ bool? _optionalBool(Map<String, Object?> json, String key) {
     return value;
   }
   throw HouraResponseFormatException('Expected optional boolean "$key".');
+}
+
+bool _isMatrixMembershipValue(String value) {
+  const allowed = {'invite', 'join', 'knock', 'leave', 'ban'};
+  return allowed.contains(value);
 }
 
 List<String> _requiredStringList(Map<String, Object?> json, String key) {
