@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-const expectedSpecIds = [
+import 'release_evidence_helpers.dart';
+
+const expectedProtocolSpecIds = [
   'SPEC-030',
   'SPEC-031',
   'SPEC-032',
@@ -25,6 +27,12 @@ const expectedSpecIds = [
   'SPEC-056',
   'SPEC-068',
   'SPEC-069',
+];
+
+const expectedReleaseEvidenceSpecIds = [
+  ...expectedProtocolSpecIds,
+  'SPEC-079',
+  'SPEC-081',
 ];
 
 void main(List<String> args) {
@@ -78,8 +86,11 @@ void main(List<String> args) {
   );
   _expect(
     failures,
-    _listEquals(tsConstants['specIds'] as List<String>, expectedSpecIds),
-    'TypeScript facade SPEC coverage must exactly match the release gate list.',
+    _listEquals(
+      tsConstants['specIds'] as List<String>,
+      expectedProtocolSpecIds,
+    ),
+    'TypeScript facade SPEC coverage must exactly match the protocol artifact list.',
   );
   _expect(
     failures,
@@ -125,7 +136,7 @@ void main(List<String> args) {
         'split any snapshot drift into a dedicated revalidation issue before publication',
       ],
     },
-    'covered_spec_ids': expectedSpecIds,
+    'covered_spec_ids': expectedReleaseEvidenceSpecIds,
     'protocol_core': {
       'crate_name': rustCore['name'],
       'crate_version': rustCore['version'],
@@ -473,6 +484,13 @@ void main(List<String> args) {
         'QR verification or account recovery UI',
       ],
     },
+    'crypto_evidence_helper_adoption': buildCryptoEvidenceHelper(
+      artifactMetadata: {
+        'contract_boundary': 'parser-only-and-redacted-release-evidence',
+        'raw_requests_or_secrets': false,
+        'release_note_helper': 'metadata-only',
+      },
+    ),
     'dart_binding_candidate': {
       'issue': 77,
       'status': 'candidate-only-implementation-deferred',
@@ -663,7 +681,8 @@ void main(List<String> args) {
         'command': 'cargo test --locked',
         'guards': [
           'artifact manifest serializes stably',
-          'covered SPEC ids include SPEC-030 through SPEC-040, SPEC-045, SPEC-046, SPEC-047, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, SPEC-068, and SPEC-069',
+          'protocol artifact supported SPEC ids include SPEC-030 through SPEC-040, SPEC-045, SPEC-046, SPEC-047, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, SPEC-068, and SPEC-069',
+          'release evidence helper SPEC ids include SPEC-079 and SPEC-081 without widening protocol artifact support',
         ],
       },
       {

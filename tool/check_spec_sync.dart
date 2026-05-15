@@ -51,6 +51,7 @@ void checkSdkBoundary(List<String> failures) {
   const allowedToolFiles = {
     'check_spec_sync.dart',
     'generate_release_evidence.dart',
+    'release_evidence_helpers.dart',
   };
   const canonicalOnlyEntries = {
     'contracts',
