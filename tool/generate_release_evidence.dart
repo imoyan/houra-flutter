@@ -119,7 +119,7 @@ void main(List<String> args) {
         'release notes must explain any intentional historical/current snapshot mix before using this artifact as a release anchor',
       ],
       'release_anchor_checks': [
-        'rerun this generator from the release head with the intended HOURA_SPEC_ROOT',
+        'rerun this script from the release head with the intended HOURA_SPEC_ROOT',
         'confirm covered_spec_ids and adoption blocks still match the intended spec snapshot',
         'split any snapshot drift into a dedicated revalidation issue before publication',
       ],
