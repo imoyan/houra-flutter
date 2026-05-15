@@ -757,6 +757,23 @@ Before treating this repository as externally ready, confirm this checklist:
   adoption demos, provider API-key/token-based examples, customer material, or
   production application policy.
 
+Issue #134 check result on 2026-05-15:
+
+- Pass: README, root `LICENSE`, `CHANGELOG.md`, issue templates, PR template,
+  and `SECURITY.md` are present.
+- Pass: GitHub repository description identifies Houra lab prototypes for the
+  Flutter SDK, Rust protocol core, and thin WASM/TypeScript bindings.
+- Pass: package registry publication remains deferred by `publish_to: none`,
+  Rust `publish = false`, and TypeScript `private: true`.
+- Pass: package dry-run checks are documented and run locally for the
+  TypeScript facade; generated package contents remain limited to
+  `LICENSE`, `README.md`, `dist/`, and `package.json`.
+- Deferred: GitHub Release anchor, Context7, OpenSSF Scorecard, Best Practices
+  Badge, pub.dev, npm, crates.io, docs.rs, and container registry publication.
+  These stay non-normative and must be handled after a release anchor or in
+  focused package-specific issues.
+- Fail: none found in this pass.
+
 External registration order:
 
 1. Keep `houra-spec` snapshot and release evidence gate passing on `main`.

@@ -5107,9 +5107,9 @@ pub fn parse_matrix_keys_claim_response(
     let one_time_keys =
         claimed_keys_from_wire(wire.one_time_keys, "keys_claim_response.one_time_keys")?;
     let fallback_key_returned = one_time_keys.values().any(|devices| {
-        devices.values().any(|keys| {
-            keys.values().any(|key| key.fallback)
-        })
+        devices
+            .values()
+            .any(|keys| keys.values().any(|key| key.fallback))
     });
     Ok(MatrixKeysClaimResponse {
         failures: wire.failures.unwrap_or_default(),
@@ -8770,15 +8770,13 @@ mod tests {
             br#"{"chunk":[{"room_id":"","num_joined_members":1,"world_readable":false,"guest_can_join":false}]}"#,
         )
         .expect_err("invalid public room chunk should report chunk path");
-        assert!(
-            invalid_public_rooms
-                .to_envelope()
-                .details
-                .get("field")
-                .map(String::as_str)
-                .unwrap_or_default()
-                .contains("public_rooms_response.chunk.0")
-        );
+        assert!(invalid_public_rooms
+            .to_envelope()
+            .details
+            .get("field")
+            .map(String::as_str)
+            .unwrap_or_default()
+            .contains("public_rooms_response.chunk.0"));
 
         let filtered = read_spec_vector("test-vectors/rooms/matrix-public-rooms-filter-basic.json");
         let parsed_filter =
@@ -8843,15 +8841,13 @@ mod tests {
             br#"{"room_id":"!room:example.test","invite_state":{"events":[{"type":"","sender":"@alice:example.test","state_key":"@bob:example.test","content":{"membership":"invite"}}]}}"#,
         )
         .expect_err("invalid invite room event should report invite_state path");
-        assert!(
-            invalid_invite_room
-                .to_envelope()
-                .details
-                .get("field")
-                .map(String::as_str)
-                .unwrap_or_default()
-                .contains("invite_room.invite_state.events.0")
-        );
+        assert!(invalid_invite_room
+            .to_envelope()
+            .details
+            .get("field")
+            .map(String::as_str)
+            .unwrap_or_default()
+            .contains("invite_room.invite_state.events.0"));
 
         let alias_forbidden =
             read_spec_vector("test-vectors/rooms/matrix-room-alias-update-forbidden.json");
