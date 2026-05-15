@@ -762,6 +762,8 @@ Completed shared-core history:
 - #74, #75, #76, #77, #79, #80, #81, and #82 completed artifact manifest,
   binding candidate, publish-readiness, parity/performance evidence, and OSS
   readiness planning gates.
+- #135 completed the post-closeout roadmap split so closed parent tracking
+  issues do not need to be reopened.
 
 Deferred implementation backlog:
 
@@ -780,8 +782,6 @@ External readiness backlog:
 
 - #134 tracks the external publication checklist, repository metadata, release
   anchor, and non-normative index order.
-- #135 tracks the post-closeout roadmap split so closed parent tracking issues
-  do not need to be reopened.
 - #136 tracks release evidence `spec_snapshot_ref` consistency before the next
   release anchor.
 

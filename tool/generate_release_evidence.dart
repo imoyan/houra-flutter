@@ -114,7 +114,7 @@ void main(List<String> args) {
       'status': 'current-generation-single-snapshot',
       'generated_snapshot_ref': specRef,
       'semantics': [
-        'spec_snapshot_ref records the sibling houra-spec checkout used when this evidence was generated',
+        'spec_snapshot_ref records the configured canonical spec checkout used when this evidence was generated',
         'README adoption records may include historical spec refs from the adoption PR that introduced the surface',
         'release notes must explain any intentional historical/current snapshot mix before using this artifact as a release anchor',
       ],
