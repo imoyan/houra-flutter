@@ -616,11 +616,16 @@ final class HouraSyncTimeline {
 final class HouraMatrixSyncBatch {
   const HouraMatrixSyncBatch({
     required this.nextBatch,
-    required this.presenceEvents,
     required this.toDeviceEvents,
-    required this.deviceLists,
-    required this.deviceOneTimeKeysCount,
-    required this.rooms,
+    this.presenceEvents = const [],
+    this.deviceLists = const HouraMatrixDeviceLists(changed: [], left: []),
+    this.deviceOneTimeKeysCount = const {},
+    this.rooms = const HouraMatrixSyncRooms(
+      join: {},
+      invite: {},
+      leave: {},
+      knock: {},
+    ),
   });
 
   final String nextBatch;
@@ -727,8 +732,8 @@ final class HouraMatrixDeviceLists {
 
   factory HouraMatrixDeviceLists.fromJson(Map<String, Object?> json) {
     return HouraMatrixDeviceLists(
-      changed: _optionalStringList(json, 'changed'),
-      left: _optionalStringList(json, 'left'),
+      changed: _optionalMatrixUserIdList(json, 'changed'),
+      left: _optionalMatrixUserIdList(json, 'left'),
     );
   }
 }
@@ -1213,6 +1218,17 @@ List<String> _optionalStringList(Map<String, Object?> json, String key) {
     result.add(item);
   }
   return List.unmodifiable(result);
+}
+
+List<String> _optionalMatrixUserIdList(Map<String, Object?> json, String key) {
+  final values = _optionalStringList(json, key);
+  for (final value in values) {
+    if (!value.startsWith('@')) {
+      throw HouraResponseFormatException(
+          'Expected Matrix user ID array "$key".');
+    }
+  }
+  return values;
 }
 
 List<HouraMatrixBasicEvent> _optionalMatrixBasicEvents(

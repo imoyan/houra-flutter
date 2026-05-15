@@ -3586,7 +3586,7 @@ function readMatrixSyncResponseEnvelope(
       value.device_one_time_keys_count !== null &&
       value.device_one_time_keys_count !== undefined
     ) {
-      result.device_one_time_keys_count = readNumberRecord(
+      result.device_one_time_keys_count = readNonNegativeNumberRecord(
         value,
         "device_one_time_keys_count",
       );
@@ -4192,6 +4192,23 @@ function readNumberRecord(
       throw new HouraProtocolCoreFacadeError(
         "invalid_envelope",
         `${field}.${key} must be an integer`,
+      );
+    }
+    entries.push([key, value]);
+  }
+  return Object.fromEntries(entries);
+}
+
+function readNonNegativeNumberRecord(
+  source: Record<string, unknown>,
+  field: string,
+): Record<string, number> {
+  const entries: [string, number][] = [];
+  for (const [key, value] of Object.entries(readRecord(source, field, field))) {
+    if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+      throw new HouraProtocolCoreFacadeError(
+        "invalid_envelope",
+        `${field}.${key} must be a non-negative integer`,
       );
     }
     entries.push([key, value]);

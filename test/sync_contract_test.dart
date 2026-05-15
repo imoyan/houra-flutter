@@ -74,6 +74,13 @@ void main() {
     expect(batch.rooms.invite, contains('!invite:example.test'));
     expect(batch.rooms.leave, contains('!left:example.test'));
     expect(batch.rooms.knock, contains('!knock:example.test'));
+    expect(
+      const HouraMatrixSyncBatch(
+        nextBatch: 's0',
+        toDeviceEvents: [],
+      ).deviceLists.changed,
+      isEmpty,
+    );
   });
 
   test('listRooms follows SPEC-009 vector', () async {
@@ -154,6 +161,13 @@ void main() {
       () => HouraMatrixSyncBatch.fromJson({
         'next_batch': 's1',
         'to_device': {'events': 'bad'},
+      }),
+      throwsA(isA<HouraResponseFormatException>()),
+    );
+    expect(
+      () => HouraMatrixDeviceLists.fromJson({
+        'changed': ['alice'],
+        'left': [],
       }),
       throwsA(isA<HouraResponseFormatException>()),
     );

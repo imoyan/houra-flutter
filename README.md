@@ -397,7 +397,10 @@ sync request descriptors, presence and to-device event snippets, device list
 changes, one-time key counts, and invite / leave / knock room section maps
 without taking ownership of sync long-poll runtime, sync token persistence,
 fanout timing, authorization, filter storage, timeline ordering, device-list
-freshness, or Matrix Client-Server support advertisement.
+freshness, or Matrix Client-Server support advertisement. The SPEC-093 parser
+also treats omitted global and joined-room `account_data` sections as empty
+event lists so broad sync extension samples can be inspected without requiring
+every legacy SPEC-037 section to be present.
 
 SPEC-054 adoption record for issue #69: the Rust prototype now consumes the
 `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`

@@ -3513,6 +3513,28 @@ test("maps SPEC-093 sync breadth extension envelopes", () => {
   assert.equal(Object.keys(sync.value.rooms.invite).length, 1);
   assert.equal(Object.keys(sync.value.rooms.leave).length, 1);
   assert.equal(Object.keys(sync.value.rooms.knock).length, 1);
+
+  const negativeCountCore = createHouraProtocolCore(
+    binding({
+      syncResponseEnvelope: {
+        ok: true,
+        value: {
+          next_batch: "s3",
+          account_data: { events: [] },
+          device_one_time_keys_count: { signed_curve25519: -1 },
+          rooms: { join: {}, invite: {}, leave: {} },
+        },
+        error: null,
+      },
+    }),
+  );
+  assert.throws(
+    () => negativeCountCore.parseMatrixSyncResponse("{}"),
+    (error) =>
+      error instanceof HouraProtocolCoreFacadeError &&
+      error.code === "invalid_envelope" &&
+      error.message.includes("device_one_time_keys_count.signed_curve25519"),
+  );
 });
 
 test("reports joined room context for malformed SPEC-037 sync event lists", () => {
