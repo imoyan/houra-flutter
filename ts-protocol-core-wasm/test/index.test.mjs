@@ -1036,6 +1036,165 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixRelationsRequestDescriptorJson() {
+      return JSON.stringify(
+        overrides.relationsDescriptorEnvelope ?? {
+          ok: true,
+          value: {
+            method: "GET",
+            path: "/_matrix/client/v1/rooms/{roomId}/relations/{eventId}",
+            requires_auth: true,
+            response_parser: "relation_chunk",
+            adopted_runtime_behavior: true,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixRelationChunkResponseJson() {
+      return JSON.stringify(
+        overrides.relationChunkResponseEnvelope ?? {
+          ok: true,
+          value: {
+            chunk: [
+              {
+                content: {
+                  "m.relates_to": {
+                    event_id: "$parent:example.test",
+                    key: "+1",
+                    rel_type: "m.annotation",
+                  },
+                },
+                event_id: "$reaction:example.test",
+                origin_server_ts: 1715754650000,
+                room_id: "!room:example.test",
+                sender: "@alice:example.test",
+                type: "m.reaction",
+              },
+            ],
+            next_batch: "rel_2",
+            prev_batch: "rel_0",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixThreadRootsResponseJson() {
+      return JSON.stringify(
+        overrides.threadRootsResponseEnvelope ?? {
+          ok: true,
+          value: {
+            chunk: [
+              {
+                content: {
+                  body: "Thread root",
+                  msgtype: "m.text",
+                },
+                event_id: "$thread-root:example.test",
+                origin_server_ts: 1715754600000,
+                room_id: "!room:example.test",
+                sender: "@alice:example.test",
+                type: "m.room.message",
+                unsigned: {
+                  "m.relations": {
+                    "m.thread": {
+                      count: 2,
+                      current_user_participated: true,
+                      latest_event: {
+                        content: {
+                          body: "Thread reply",
+                          msgtype: "m.text",
+                        },
+                        event_id: "$thread-reply:example.test",
+                        origin_server_ts: 1715754700000,
+                        room_id: "!room:example.test",
+                        sender: "@bob:example.test",
+                        type: "m.room.message",
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+            next_batch: "thread_2",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixReactionEventJson() {
+      return JSON.stringify(
+        overrides.reactionEventEnvelope ?? {
+          ok: true,
+          value: {
+            content: {
+              "m.relates_to": {
+                event_id: "$parent:example.test",
+                key: "+1",
+                rel_type: "m.annotation",
+              },
+            },
+            event_id: "$reaction:example.test",
+            origin_server_ts: 1715754650000,
+            room_id: "!room:example.test",
+            sender: "@alice:example.test",
+            type: "m.reaction",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixEditEventJson() {
+      return JSON.stringify(
+        overrides.editEventEnvelope ?? {
+          ok: true,
+          value: {
+            content: {
+              body: " * Edited",
+              "m.new_content": {
+                body: "Edited",
+                msgtype: "m.text",
+              },
+              "m.relates_to": {
+                event_id: "$parent:example.test",
+                rel_type: "m.replace",
+              },
+              msgtype: "m.text",
+            },
+            event_id: "$edit:example.test",
+            origin_server_ts: 1715754750000,
+            room_id: "!room:example.test",
+            sender: "@alice:example.test",
+            type: "m.room.message",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixReplyEventJson() {
+      return JSON.stringify(
+        overrides.replyEventEnvelope ?? {
+          ok: true,
+          value: {
+            content: {
+              body: "> <@alice:example.test> Parent\n\nReply",
+              "m.relates_to": {
+                "m.in_reply_to": {
+                  event_id: "$parent:example.test",
+                },
+              },
+              msgtype: "m.text",
+            },
+            event_id: "$reply:example.test",
+            origin_server_ts: 1715754800000,
+            room_id: "!room:example.test",
+            sender: "@bob:example.test",
+            type: "m.room.message",
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixProfileResponseJson() {
       return JSON.stringify(
         overrides.profileResponseEnvelope ?? {
@@ -3129,6 +3288,47 @@ test("maps SPEC-085 event retrieval and membership envelopes", () => {
     },
     error: null,
   });
+});
+
+test("maps SPEC-090 relations threads and reactions envelopes", () => {
+  const core = createHouraProtocolCore(binding());
+  const vector = readSpecVector(
+    "test-vectors/core/" +
+      "matrix-" +
+      "client-server-relations-threads-reactions.json",
+  );
+  assert.equal(vector.contract, "SPEC-090");
+  assert.ok(core.manifest.supported_specs.includes("SPEC-090"));
+
+  assert.deepEqual(core.parseMatrixRelationsRequestDescriptor("{}"), {
+    ok: true,
+    value: {
+      method: "GET",
+      path: "/_matrix/client/v1/rooms/{roomId}/relations/{eventId}",
+      requires_auth: true,
+      response_parser: "relation_chunk",
+      adopted_runtime_behavior: true,
+    },
+    error: null,
+  });
+  const relationChunk = core.parseMatrixRelationChunkResponse("{}");
+  assert.equal(relationChunk.value.chunk[0].type, "m.reaction");
+  assert.equal(
+    relationChunk.value.chunk[0].content["m.relates_to"].rel_type,
+    "m.annotation",
+  );
+  assert.equal(relationChunk.value.next_batch, "rel_2");
+
+  const threads = core.parseMatrixThreadRootsResponse("{}");
+  assert.equal(
+    threads.value.chunk[0].unsigned["m.relations"]["m.thread"].count,
+    2,
+  );
+  assert.equal(threads.value.next_batch, "thread_2");
+
+  assert.equal(core.parseMatrixReactionEvent("{}").value.event_id, "$reaction:example.test");
+  assert.equal(core.parseMatrixEditEvent("{}").value.event_id, "$edit:example.test");
+  assert.equal(core.parseMatrixReplyEvent("{}").value.event_id, "$reply:example.test");
 });
 
 test("maps SPEC-037 Matrix sync envelopes", () => {

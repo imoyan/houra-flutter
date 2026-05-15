@@ -26,6 +26,7 @@ const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
     "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047", "SPEC-048", "SPEC-049",
     "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-068", "SPEC-069", "SPEC-085",
+    "SPEC-090",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -220,6 +221,31 @@ pub struct MatrixMembersResponse {
 pub struct MatrixTimestampToEventResponse {
     pub event_id: String,
     pub origin_server_ts: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRelationsRequestDescriptor {
+    pub method: String,
+    pub path: String,
+    pub requires_auth: bool,
+    pub response_parser: String,
+    pub adopted_runtime_behavior: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixRelationChunkResponse {
+    pub chunk: Vec<MatrixClientEvent>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_batch: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prev_batch: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixThreadRootsResponse {
+    pub chunk: Vec<MatrixClientEvent>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub next_batch: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -1076,6 +1102,27 @@ pub struct MatrixTimestampToEventResponseParseEnvelope {
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixRelationsRequestDescriptorParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRelationsRequestDescriptor>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixRelationChunkResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixRelationChunkResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixThreadRootsResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixThreadRootsResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct MatrixSyncResponseParseEnvelope {
     pub ok: bool,
@@ -1929,6 +1976,28 @@ struct MatrixMembersResponseWire {
 struct MatrixTimestampToEventResponseWire {
     event_id: Option<String>,
     origin_server_ts: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRelationsRequestDescriptorWire {
+    method: Option<String>,
+    path: Option<String>,
+    requires_auth: Option<bool>,
+    response_parser: Option<String>,
+    adopted_runtime_behavior: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixRelationChunkResponseWire {
+    chunk: Option<Vec<MatrixClientEventWire>>,
+    next_batch: Option<String>,
+    prev_batch: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixThreadRootsResponseWire {
+    chunk: Option<Vec<MatrixClientEventWire>>,
+    next_batch: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -3531,6 +3600,221 @@ pub fn parse_matrix_timestamp_to_event_response_envelope(
 
 pub fn parse_matrix_timestamp_to_event_response_json(bytes: &[u8]) -> String {
     serde_json::to_string(&parse_matrix_timestamp_to_event_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_relations_request_descriptor(
+    bytes: &[u8],
+) -> Result<MatrixRelationsRequestDescriptor, ProtocolError> {
+    let wire: MatrixRelationsRequestDescriptorWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let method = required_room_string(wire.method, "relations_descriptor.method")?;
+    if method != "GET" {
+        return Err(invalid_room_field("relations_descriptor.method"));
+    }
+    let response_parser =
+        required_room_string(wire.response_parser, "relations_descriptor.response_parser")?;
+    if response_parser != "relation_chunk" && response_parser != "thread_roots" {
+        return Err(invalid_room_field("relations_descriptor.response_parser"));
+    }
+    let adopted_runtime_behavior = wire
+        .adopted_runtime_behavior
+        .ok_or_else(|| invalid_room_field("relations_descriptor.adopted_runtime_behavior"))?;
+    if !adopted_runtime_behavior {
+        return Err(invalid_room_field(
+            "relations_descriptor.adopted_runtime_behavior",
+        ));
+    }
+    Ok(MatrixRelationsRequestDescriptor {
+        method,
+        path: required_room_string(wire.path, "relations_descriptor.path")?,
+        requires_auth: wire
+            .requires_auth
+            .ok_or_else(|| invalid_room_field("relations_descriptor.requires_auth"))?,
+        response_parser,
+        adopted_runtime_behavior,
+    })
+}
+
+pub fn parse_matrix_relations_request_descriptor_envelope(
+    bytes: &[u8],
+) -> MatrixRelationsRequestDescriptorParseEnvelope {
+    match parse_matrix_relations_request_descriptor(bytes) {
+        Ok(value) => MatrixRelationsRequestDescriptorParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRelationsRequestDescriptorParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_relations_request_descriptor_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_relations_request_descriptor_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_relation_chunk_response(
+    bytes: &[u8],
+) -> Result<MatrixRelationChunkResponse, ProtocolError> {
+    let wire: MatrixRelationChunkResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let chunk = wire
+        .chunk
+        .ok_or_else(|| invalid_room_field("relations.chunk"))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, event)| {
+            let event = matrix_client_event_from_wire(event, &format!("relations.chunk.{index}"))?;
+            if event.event_type == "m.reaction" {
+                validate_matrix_reaction_event(&event, &format!("relations.chunk.{index}"))?;
+            }
+            Ok(event)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(MatrixRelationChunkResponse {
+        chunk,
+        next_batch: optional_room_string(wire.next_batch, "relations.next_batch")?,
+        prev_batch: optional_room_string(wire.prev_batch, "relations.prev_batch")?,
+    })
+}
+
+pub fn parse_matrix_relation_chunk_response_envelope(
+    bytes: &[u8],
+) -> MatrixRelationChunkResponseParseEnvelope {
+    match parse_matrix_relation_chunk_response(bytes) {
+        Ok(value) => MatrixRelationChunkResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixRelationChunkResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_relation_chunk_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_relation_chunk_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_thread_roots_response(
+    bytes: &[u8],
+) -> Result<MatrixThreadRootsResponse, ProtocolError> {
+    let wire: MatrixThreadRootsResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let chunk = wire
+        .chunk
+        .ok_or_else(|| invalid_room_field("threads.chunk"))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, event)| {
+            let event = matrix_client_event_from_wire(event, &format!("threads.chunk.{index}"))?;
+            validate_matrix_thread_summary(&event, &format!("threads.chunk.{index}"))?;
+            Ok(event)
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(MatrixThreadRootsResponse {
+        chunk,
+        next_batch: optional_room_string(wire.next_batch, "threads.next_batch")?,
+    })
+}
+
+pub fn parse_matrix_thread_roots_response_envelope(
+    bytes: &[u8],
+) -> MatrixThreadRootsResponseParseEnvelope {
+    match parse_matrix_thread_roots_response(bytes) {
+        Ok(value) => MatrixThreadRootsResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixThreadRootsResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_thread_roots_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_thread_roots_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_reaction_event_envelope(bytes: &[u8]) -> MatrixClientEventParseEnvelope {
+    match parse_matrix_client_event(bytes).and_then(|event| {
+        validate_matrix_reaction_event(&event, "reaction_event")?;
+        Ok(event)
+    }) {
+        Ok(value) => MatrixClientEventParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixClientEventParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_reaction_event_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_reaction_event_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_edit_event_envelope(bytes: &[u8]) -> MatrixClientEventParseEnvelope {
+    match parse_matrix_client_event(bytes).and_then(|event| {
+        validate_matrix_edit_event(&event, "edit_event")?;
+        Ok(event)
+    }) {
+        Ok(value) => MatrixClientEventParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixClientEventParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_edit_event_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_edit_event_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_reply_event_envelope(bytes: &[u8]) -> MatrixClientEventParseEnvelope {
+    match parse_matrix_client_event(bytes).and_then(|event| {
+        validate_matrix_reply_event(&event, "reply_event")?;
+        Ok(event)
+    }) {
+        Ok(value) => MatrixClientEventParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixClientEventParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_reply_event_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_reply_event_envelope(bytes))
         .expect("parse envelope serialization should be infallible")
 }
 
@@ -6568,6 +6852,104 @@ fn matrix_client_event_from_wire(
     })
 }
 
+fn validate_matrix_reaction_event(
+    event: &MatrixClientEvent,
+    context: &str,
+) -> Result<(), ProtocolError> {
+    if event.event_type != "m.reaction" {
+        return Err(invalid_room_field(&format!("{context}.type")));
+    }
+    let relates_to = event
+        .content
+        .get("m.relates_to")
+        .and_then(Value::as_object)
+        .ok_or_else(|| invalid_room_field(&format!("{context}.content.m.relates_to")))?;
+    required_relation_string(relates_to.get("event_id"), &format!("{context}.event_id"))?;
+    required_relation_string(relates_to.get("key"), &format!("{context}.key"))?;
+    match relates_to.get("rel_type").and_then(Value::as_str) {
+        Some("m.annotation") => Ok(()),
+        _ => Err(invalid_room_field(&format!("{context}.rel_type"))),
+    }
+}
+
+fn validate_matrix_thread_summary(
+    event: &MatrixClientEvent,
+    context: &str,
+) -> Result<(), ProtocolError> {
+    let thread = event
+        .unsigned
+        .as_ref()
+        .and_then(|unsigned| unsigned.get("m.relations"))
+        .and_then(Value::as_object)
+        .and_then(|relations| relations.get("m.thread"))
+        .and_then(Value::as_object)
+        .ok_or_else(|| invalid_room_field(&format!("{context}.unsigned.m.relations.m.thread")))?;
+    match thread.get("count").and_then(Value::as_i64) {
+        Some(count) if count >= 0 => {}
+        _ => return Err(invalid_room_field(&format!("{context}.thread.count"))),
+    }
+    if !matches!(
+        thread.get("current_user_participated"),
+        Some(Value::Bool(_))
+    ) {
+        return Err(invalid_room_field(&format!(
+            "{context}.thread.current_user_participated"
+        )));
+    }
+    let latest_event = thread
+        .get("latest_event")
+        .cloned()
+        .ok_or_else(|| invalid_room_field(&format!("{context}.thread.latest_event")))?;
+    let latest_wire: MatrixClientEventWire = serde_json::from_value(latest_event)
+        .map_err(|error| ProtocolError::Json(error.to_string()))?;
+    matrix_client_event_from_wire(latest_wire, &format!("{context}.thread.latest_event"))?;
+    Ok(())
+}
+
+fn validate_matrix_edit_event(
+    event: &MatrixClientEvent,
+    context: &str,
+) -> Result<(), ProtocolError> {
+    let relates_to = event
+        .content
+        .get("m.relates_to")
+        .and_then(Value::as_object)
+        .ok_or_else(|| invalid_room_field(&format!("{context}.content.m.relates_to")))?;
+    required_relation_string(relates_to.get("event_id"), &format!("{context}.event_id"))?;
+    match relates_to.get("rel_type").and_then(Value::as_str) {
+        Some("m.replace") => {}
+        _ => return Err(invalid_room_field(&format!("{context}.rel_type"))),
+    }
+    if !matches!(event.content.get("m.new_content"), Some(Value::Object(_))) {
+        return Err(invalid_room_field(&format!(
+            "{context}.content.m.new_content"
+        )));
+    }
+    Ok(())
+}
+
+fn validate_matrix_reply_event(
+    event: &MatrixClientEvent,
+    context: &str,
+) -> Result<(), ProtocolError> {
+    let reply = event
+        .content
+        .get("m.relates_to")
+        .and_then(Value::as_object)
+        .and_then(|relates_to| relates_to.get("m.in_reply_to"))
+        .and_then(Value::as_object)
+        .ok_or_else(|| invalid_room_field(&format!("{context}.content.m.in_reply_to")))?;
+    required_relation_string(reply.get("event_id"), &format!("{context}.event_id"))?;
+    Ok(())
+}
+
+fn required_relation_string(value: Option<&Value>, field: &str) -> Result<String, ProtocolError> {
+    match value.and_then(Value::as_str) {
+        Some(value) if !value.is_empty() => Ok(value.to_owned()),
+        _ => Err(invalid_room_field(field)),
+    }
+}
+
 fn matrix_sync_rooms_from_wire(
     wire: MatrixSyncRoomsWire,
     context: &str,
@@ -8076,7 +8458,7 @@ mod tests {
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
                 "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047",
                 "SPEC-048", "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056",
-                "SPEC-068", "SPEC-069", "SPEC-085"
+                "SPEC-068", "SPEC-069", "SPEC-085", "SPEC-090"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -10209,6 +10591,113 @@ mod tests {
 
         let envelope = parse_matrix_timestamp_to_event_response_envelope(
             br#"{"event_id":"$event:example.test","origin_server_ts":-1}"#,
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
+    }
+
+    #[test]
+    fn parses_spec_090_relations_threads_reactions_vectors() {
+        let vector = read_spec_vector(concat!(
+            "test-vectors/core/",
+            "matrix-",
+            "client-server-relations-threads-reactions.json"
+        ));
+        assert_eq!(vector["contract"], "SPEC-090");
+        let event = &vector["event"];
+        let descriptors = event["request_descriptors"]
+            .as_array()
+            .expect("SPEC-090 descriptors should be present");
+        let parsed_descriptors = descriptors
+            .iter()
+            .map(|descriptor| {
+                parse_matrix_relations_request_descriptor(descriptor.to_string().as_bytes())
+                    .expect("SPEC-090 descriptor should parse")
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(parsed_descriptors.len(), 4);
+        assert!(parsed_descriptors
+            .iter()
+            .any(|descriptor| descriptor.response_parser == "relation_chunk"));
+        assert!(parsed_descriptors
+            .iter()
+            .any(|descriptor| descriptor.response_parser == "thread_roots"));
+
+        let responses = &event["sample_responses"];
+        let relations = parse_matrix_relation_chunk_response(
+            responses["relation_chunk"].to_string().as_bytes(),
+        )
+        .expect("SPEC-090 relation chunk should parse");
+        assert_eq!(relations.chunk.len(), 1);
+        assert_eq!(relations.chunk[0].event_type, "m.reaction");
+        assert_eq!(relations.next_batch.as_deref(), Some("rel_2"));
+        assert!(
+            parse_matrix_reaction_event_envelope(
+                responses["relation_chunk"]["chunk"][0]
+                    .to_string()
+                    .as_bytes()
+            )
+            .ok
+        );
+
+        let threads =
+            parse_matrix_thread_roots_response(responses["thread_roots"].to_string().as_bytes())
+                .expect("SPEC-090 thread roots should parse");
+        assert_eq!(threads.chunk.len(), 1);
+        assert_eq!(threads.next_batch.as_deref(), Some("thread_2"));
+
+        let edit = parse_matrix_edit_event_envelope(responses["edit_event"].to_string().as_bytes());
+        assert!(edit.ok);
+        assert_eq!(edit.value.unwrap().event_id, "$edit:example.test");
+
+        let reply =
+            parse_matrix_reply_event_envelope(responses["reply_event"].to_string().as_bytes());
+        assert!(reply.ok);
+        assert_eq!(reply.value.unwrap().event_id, "$reply:example.test");
+
+        let membership_failure = parse_matrix_error_envelope(
+            responses["membership_variant_failure"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-090 membership variant failure should parse");
+        assert_eq!(membership_failure.errcode, "M_FORBIDDEN");
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-090"));
+    }
+
+    #[test]
+    fn rejects_invalid_spec_090_relations_threads_reactions_values() {
+        let envelope = parse_matrix_relations_request_descriptor_envelope(
+            br#"{"method":"POST","path":"/_matrix/client/v1/rooms/{roomId}/relations/{eventId}","requires_auth":true,"adopted_runtime_behavior":true,"response_parser":"relation_chunk"}"#,
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
+
+        let envelope = parse_matrix_relation_chunk_response_envelope(
+            br#"{"chunk":[{"event_id":"$reaction:example.test","room_id":"!room:example.test","sender":"@alice:example.test","origin_server_ts":1715754650000,"type":"m.reaction","content":{"m.relates_to":{"event_id":"$parent:example.test"}}}]}"#,
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
+
+        let envelope = parse_matrix_thread_roots_response_envelope(
+            br#"{"chunk":[{"event_id":"$thread-root:example.test","room_id":"!room:example.test","sender":"@alice:example.test","origin_server_ts":1715754600000,"type":"m.room.message","content":{"body":"Thread root"},"unsigned":{"m.relations":{"m.thread":{"count":-1}}}}]}"#,
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
+
+        let envelope = parse_matrix_edit_event_envelope(
+            br#"{"event_id":"$edit:example.test","room_id":"!room:example.test","sender":"@alice:example.test","origin_server_ts":1715754750000,"type":"m.room.message","content":{"m.relates_to":{"event_id":"$parent:example.test","rel_type":"m.replace"}}}"#,
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_room_field");
+
+        let envelope = parse_matrix_reply_event_envelope(
+            br#"{"event_id":"$reply:example.test","room_id":"!room:example.test","sender":"@bob:example.test","origin_server_ts":1715754800000,"type":"m.room.message","content":{"m.relates_to":{"m.in_reply_to":{}}}}"#,
         );
         assert!(!envelope.ok);
         assert_eq!(envelope.error.unwrap().code, "invalid_room_field");

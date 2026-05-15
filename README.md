@@ -377,6 +377,17 @@ without taking ownership of runtime route behavior, history visibility,
 authorization, storage lookup, deprecated endpoint compatibility, token
 persistence, or Matrix Client-Server support advertisement.
 
+SPEC-090 shared-core adoption record for issue #120: the Rust prototype now
+consumes the `houra-spec` snapshot `6175daf0ba5fa8b5b80f66a7942431e48bfb2a6b`
+SPEC-090 relations / threads / reactions vector for parser-only Client-Server
+relations adoption. The Dart SDK, WASM wrapper, and TypeScript facade expose
+relation request descriptors, relation chunks, thread roots, reaction relation
+content, edit relation content, reply relation content, and membership variant
+failure envelopes without taking ownership of runtime route behavior, relation
+aggregation correctness, thread ordering, fanout, authorization, knock runtime
+behavior, restricted join runtime behavior, or Matrix Client-Server support
+advertisement.
+
 SPEC-054 adoption record for issue #69: the Rust prototype now consumes the
 `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
 (`v0.2.0-pre.58-43-g395c400`) SPEC-054 SAS verification, cross-signing key
