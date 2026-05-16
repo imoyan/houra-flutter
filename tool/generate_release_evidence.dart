@@ -42,6 +42,8 @@ const expectedReleaseEvidenceSpecIds = [
   'SPEC-059',
   'SPEC-076',
   'SPEC-098',
+  'SPEC-099',
+  'SPEC-100',
 ];
 
 void main(List<String> args) {
@@ -567,6 +569,57 @@ void main(List<String> args) {
         'Rust/WASM/TypeScript protocol-core manifest coverage',
       ],
     },
+    'federation_pdu_edu_parser_adoption': {
+      'issue': 124,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-099'],
+      'parity_vectors': [
+        'test-vectors/events/matrix-federation-pdu-edu-parser-helpers.json',
+      ],
+      'parser_only_surfaces': [
+        'federation transaction envelope',
+        'typed PDU envelope',
+        'typed EDU envelope',
+        'canonical JSON input descriptor',
+        'per-PDU response descriptor',
+      ],
+      'out_of_scope': [
+        'event auth',
+        'state resolution',
+        'hash calculation',
+        'signature verification',
+        'storage mutation',
+        'soft-fail policy',
+        'outbound federation execution',
+        'Server-Server API support advertisement',
+      ],
+    },
+    'federation_directory_query_openid_parser_adoption': {
+      'issue': 125,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-100'],
+      'parity_vectors': [
+        'test-vectors/core/matrix-federation-directory-query-openid-parser-helpers.json',
+      ],
+      'parser_only_surfaces': [
+        'federation public rooms response',
+        'federation hierarchy response',
+        'federation directory query response',
+        'federation profile query response',
+        'federation generic query response',
+        'federation OpenID userinfo response',
+      ],
+      'out_of_scope': [
+        'remote network fetch',
+        'visibility decision',
+        'profile privacy policy',
+        'OpenID token verification',
+        'trust decision',
+        'rate limiting',
+        'cache persistence',
+        'Server-Server API support advertisement',
+      ],
+    },
     'oauth_account_management_parser_adoption': {
       'issue': 118,
       'status': 'parser-only-adopted',
@@ -1048,8 +1101,9 @@ bool? _readTomlBoolOrNull(String source, String key) {
 }
 
 int _readTsNumber(String source, String name) {
-  final match =
-      RegExp('(?:export\\s+)?const $name = ([0-9]+);').firstMatch(source);
+  final match = RegExp(
+    '(?:export\\s+)?const $name = ([0-9]+);',
+  ).firstMatch(source);
   if (match == null) {
     throw FormatException('Missing TypeScript numeric constant: $name');
   }
@@ -1057,8 +1111,9 @@ int _readTsNumber(String source, String name) {
 }
 
 String _readTsString(String source, String name) {
-  final match =
-      RegExp('(?:export\\s+)?const $name = "([^"]+)";').firstMatch(source);
+  final match = RegExp(
+    '(?:export\\s+)?const $name = "([^"]+)";',
+  ).firstMatch(source);
   if (match == null) {
     throw FormatException('Missing TypeScript string constant: $name');
   }
@@ -1087,17 +1142,24 @@ Directory _canonicalSpecRoot() {
 }
 
 String? _gitRevParse(String workingDirectory) {
-  final result = Process.runSync(
-      'git',
-      [
-        'rev-parse',
-        'HEAD',
-      ],
-      workingDirectory: workingDirectory);
-  if (result.exitCode != 0) {
-    return null;
+  const gitCandidates = ['git', '/opt/homebrew/bin/git', '/usr/bin/git'];
+  for (final git in gitCandidates) {
+    try {
+      final result = Process.runSync(
+          git,
+          [
+            'rev-parse',
+            'HEAD',
+          ],
+          workingDirectory: workingDirectory);
+      if (result.exitCode == 0) {
+        return result.stdout.toString().trim();
+      }
+    } on ProcessException {
+      continue;
+    }
   }
-  return result.stdout.toString().trim();
+  return null;
 }
 
 void _expect(List<String> failures, bool condition, String message) {

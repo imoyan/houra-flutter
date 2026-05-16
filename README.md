@@ -12,7 +12,7 @@ SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
 SPEC-010, SPEC-011, and SPEC-020. It also exposes parser-only request
 descriptors, public response envelopes, or parser helpers for SPEC-051,
 SPEC-052, SPEC-053, SPEC-054, SPEC-057, SPEC-059, SPEC-069, SPEC-076, SPEC-085,
-SPEC-090, SPEC-093, SPEC-095, SPEC-097, and SPEC-098.
+SPEC-090, SPEC-093, SPEC-095, SPEC-097, SPEC-098, SPEC-099, and SPEC-100.
 
 Claim scope rule: shared-core adoption records below do not extend the Flutter
 SDK claim unless they explicitly say that the Dart SDK or Flutter SDK
@@ -462,6 +462,24 @@ notification UI, or Push Gateway support advertisement. Rust/WASM/TypeScript
 facade adoption remains a follow-up unless a later shared-core PR explicitly
 adds SPEC-098 to the protocol-core manifest.
 
+SPEC-099 Dart SDK adoption record for issue #124: the Flutter SDK prototype now
+consumes the `houra-spec` snapshot `26a47461237d30efb2310bd688559b73d6dc998b`
+SPEC-099 federation transaction / PDU / EDU parser helper vector. The Dart SDK
+exposes parser-only transaction envelopes, typed PDU / EDU envelopes, canonical
+JSON input descriptors, and per-PDU response descriptors without taking
+ownership of event auth, state resolution, hash calculation, signature
+verification, storage mutation, soft-fail policy, outbound federation execution,
+or Server-Server API support advertisement.
+
+SPEC-100 Dart SDK adoption record for issue #125: the Flutter SDK prototype now
+consumes the `houra-spec` snapshot `26a47461237d30efb2310bd688559b73d6dc998b`
+SPEC-100 federation directory / query / OpenID parser helper vector. The Dart
+SDK exposes parser-only public rooms, hierarchy, directory query, profile query,
+generic query, and OpenID userinfo response descriptors without taking ownership
+of remote network fetch, visibility decision, profile privacy policy, OpenID
+token verification, trust decision, rate limiting, cache persistence, or
+Server-Server API support advertisement.
+
 SPEC-054 shared-core adoption record for issue #69: the Rust prototype now consumes the
 `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
 (`v0.2.0-pre.58-43-g395c400`) SPEC-054 SAS verification, cross-signing key
@@ -828,9 +846,8 @@ Current decision: keep this package unpublished while the SDK remains a draft.
 - Supported contract claim: keep the public Flutter SDK claim limited to
   SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
   SPEC-010, SPEC-011, SPEC-020, SPEC-051, SPEC-052, SPEC-053, SPEC-054,
-  SPEC-057, SPEC-059,
-  SPEC-069, SPEC-076, SPEC-085, SPEC-090, SPEC-093, SPEC-095, SPEC-097, and
-  SPEC-098.
+  SPEC-057, SPEC-059, SPEC-069, SPEC-076, SPEC-085, SPEC-090, SPEC-093,
+  SPEC-095, SPEC-097, SPEC-098, SPEC-099, and SPEC-100.
 - Claim expansion rule: shared-core adoption records do not extend the Flutter
   SDK claim unless they explicitly say that the Dart SDK or Flutter SDK
   prototype exposes the surface and matching Dart contract tests plus README
@@ -927,8 +944,9 @@ Completed shared-core history:
 - #65, #66, #68, #69, and #118 completed the current E2EE-adjacent and
   OAuth-adjacent parser-only adoption surface for SPEC-069, SPEC-051, SPEC-053,
   SPEC-054, and SPEC-068.
-- #70, #71, #72, and #123 completed the current federation parser-only adoption
-  surface for SPEC-055, SPEC-056, SPEC-057, and SPEC-097.
+- #70, #71, #72, #123, #124, and #125 completed the current federation
+  parser-only adoption surface for SPEC-055, SPEC-056, SPEC-057, SPEC-097,
+  SPEC-099, and SPEC-100.
 - #73 completed candidate criteria for SPEC-058 through SPEC-060;
   implementation is tracked by the deferred issues below.
 - #74, #75, #76, #77, #79, #80, #81, and #82 completed artifact manifest,
@@ -941,9 +959,8 @@ Deferred implementation backlog:
 
 - #119, #120, #121, and #122 completed the Client-Server parser helper wave for
   event retrieval, relations, sync extensions, and media repository breadth.
-- #123 completed the federation version/key lifecycle parser helper wave.
-  #124 and #125 track the remaining federation parser helper wave for PDU/EDU
-  envelopes and directory/query/OpenID helpers.
+- #123, #124, and #125 completed the federation parser helper wave for
+  version/key lifecycle, PDU/EDU envelopes, and directory/query/OpenID helpers.
 - #128 completed the Dart SDK Push Gateway parser helper surface for pusher,
   push-rule, sync-visibility, malformed descriptor, and redaction evidence.
 - #127 completed the Dart SDK Identity Service parser helper surface for
