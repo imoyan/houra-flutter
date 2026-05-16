@@ -144,5 +144,35 @@ void main() {
       }),
       throwsA(isA<HouraResponseFormatException>()),
     );
+    expect(
+      () => HouraMatrixApplicationServiceNamespaces.fromJson({
+        'users': List<Object?>.filled(33, {
+          'exclusive': true,
+          'regex': '@_irc_.*:example\\.test',
+        }),
+        'aliases': <Object?>[],
+        'rooms': <Object?>[],
+      }),
+      throwsA(isA<HouraResponseFormatException>()),
+    );
+    expect(
+      () => HouraMatrixApplicationServiceTransaction.fromJson({
+        'method': 'PUT',
+        'path': '/_matrix/app/v1/transactions/oversized',
+        'body': {
+          'events': List<Object?>.filled(101, {
+            'type': 'm.room.message',
+            'content': {'body': 'hello'},
+          }),
+        },
+      }),
+      throwsA(isA<HouraResponseFormatException>()),
+    );
+    expect(
+      () => const HouraMatrixApplicationServiceEvidenceRedactor().redact({
+        'items': List<Object?>.filled(65, 'metadata'),
+      }),
+      throwsA(isA<HouraResponseFormatException>()),
+    );
   });
 }

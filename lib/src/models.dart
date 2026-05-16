@@ -1356,9 +1356,21 @@ final class HouraMatrixApplicationServiceNamespaces {
     Map<String, Object?> json,
   ) {
     return HouraMatrixApplicationServiceNamespaces(
-      users: _parseMatrixApplicationServiceNamespaceList(json, 'users'),
-      aliases: _parseMatrixApplicationServiceNamespaceList(json, 'aliases'),
-      rooms: _parseMatrixApplicationServiceNamespaceList(json, 'rooms'),
+      users: _parseMatrixApplicationServiceNamespaceList(
+        json,
+        'users',
+        maxItems: 32,
+      ),
+      aliases: _parseMatrixApplicationServiceNamespaceList(
+        json,
+        'aliases',
+        maxItems: 32,
+      ),
+      rooms: _parseMatrixApplicationServiceNamespaceList(
+        json,
+        'rooms',
+        maxItems: 32,
+      ),
     );
   }
 }
@@ -1465,10 +1477,15 @@ final class HouraMatrixApplicationServiceTransaction {
     }
     return HouraMatrixApplicationServiceTransaction(
       transactionId: transactionId,
-      events: _requiredObjectList(body, 'events')
+      events: _requiredBoundedObjectList(body, 'events', maxItems: 100)
           .map(HouraMatrixBasicEvent.fromJson)
           .toList(growable: false),
-      ephemeral: (_optionalObjectList(body, 'ephemeral') ?? const [])
+      ephemeral: (_optionalBoundedObjectList(
+                body,
+                'ephemeral',
+                maxItems: 100,
+              ) ??
+              const [])
           .map(HouraMatrixBasicEvent.fromJson)
           .toList(growable: false),
     );
@@ -1542,8 +1559,16 @@ final class HouraMatrixApplicationServiceGapLane {
     return HouraMatrixApplicationServiceGapLane(
       id: _requiredString(json, 'id'),
       status: _requiredString(json, 'status'),
-      endpointExamples: _requiredStringList(json, 'endpoint_examples'),
-      ownerRepos: _requiredStringList(json, 'owner_repos'),
+      endpointExamples: _requiredBoundedStringList(
+        json,
+        'endpoint_examples',
+        maxItems: 32,
+      ),
+      ownerRepos: _requiredBoundedStringList(
+        json,
+        'owner_repos',
+        maxItems: 16,
+      ),
       advertisementAllowed: allowed,
     );
   }
@@ -1946,14 +1971,24 @@ void _validateMatrixApplicationServicePath(String value) {
 List<HouraMatrixApplicationServiceNamespace>
     _parseMatrixApplicationServiceNamespaceList(
   Map<String, Object?> json,
-  String key,
-) {
-  return _requiredObjectList(json, key)
+  String key, {
+  required int maxItems,
+}) {
+  final value = _requiredBoundedObjectList(json, key, maxItems: maxItems);
+  return value
       .map(HouraMatrixApplicationServiceNamespace.fromJson)
       .toList(growable: false);
 }
 
 Object? _redactApplicationServiceEvidenceValue(String key, Object? value) {
+  return _redactApplicationServiceEvidenceValueAtDepth(key, value, 0);
+}
+
+Object? _redactApplicationServiceEvidenceValueAtDepth(
+  String key,
+  Object? value,
+  int depth,
+) {
   const sensitiveKeys = {
     'as_token',
     'hs_token',
@@ -1971,18 +2006,35 @@ Object? _redactApplicationServiceEvidenceValue(String key, Object? value) {
   if (sensitiveKeys.contains(key)) {
     return HouraMatrixApplicationServiceEvidenceRedactor.redactionMarker;
   }
+  if (depth >= 8) {
+    return HouraMatrixApplicationServiceEvidenceRedactor.redactionMarker;
+  }
   if (value is Map) {
+    if (value.length > 64) {
+      throw HouraResponseFormatException(
+        'Expected bounded Matrix Application Service evidence object.',
+      );
+    }
     return Map<String, Object?>.unmodifiable({
       for (final entry in value.entries)
-        entry.key.toString(): _redactApplicationServiceEvidenceValue(
+        entry.key.toString(): _redactApplicationServiceEvidenceValueAtDepth(
           entry.key.toString(),
           entry.value,
+          depth + 1,
         ),
     });
   }
   if (value is List) {
+    if (value.length > 64) {
+      throw HouraResponseFormatException(
+        'Expected bounded Matrix Application Service evidence array.',
+      );
+    }
     return List<Object?>.unmodifiable(
-      value.map((item) => _redactApplicationServiceEvidenceValue(key, item)),
+      value.map(
+        (item) =>
+            _redactApplicationServiceEvidenceValueAtDepth(key, item, depth + 1),
+      ),
     );
   }
   return value;
@@ -3713,29 +3765,40 @@ List<Map<String, Object?>> _requiredObjectList(
   String key,
 ) {
   final value = json[key];
-  if (value is! List) {
-    throw HouraResponseFormatException('Expected object array "$key".');
-  }
-  return List<Map<String, Object?>>.unmodifiable(
-    value.map((item) {
-      if (item is Map) {
-        return Map<String, Object?>.unmodifiable(item.cast<String, Object?>());
-      }
-      throw HouraResponseFormatException('Expected object array "$key".');
-    }),
-  );
+  return _objectListFromValue(value, key);
 }
 
-List<Map<String, Object?>>? _optionalObjectList(
+List<Map<String, Object?>> _requiredBoundedObjectList(
   Map<String, Object?> json,
-  String key,
-) {
+  String key, {
+  required int maxItems,
+}) {
+  final value = json[key];
+  return _objectListFromValue(value, key, maxItems: maxItems);
+}
+
+List<Map<String, Object?>>? _optionalBoundedObjectList(
+  Map<String, Object?> json,
+  String key, {
+  required int maxItems,
+}) {
   final value = json[key];
   if (value == null) {
     return null;
   }
+  return _objectListFromValue(value, key, maxItems: maxItems);
+}
+
+List<Map<String, Object?>> _objectListFromValue(
+  Object? value,
+  String key, {
+  int? maxItems,
+}) {
   if (value is! List) {
     throw HouraResponseFormatException('Expected object array "$key".');
+  }
+  if (maxItems != null && value.length > maxItems) {
+    throw HouraResponseFormatException('Expected bounded object array "$key".');
   }
   return List<Map<String, Object?>>.unmodifiable(
     value.map((item) {
