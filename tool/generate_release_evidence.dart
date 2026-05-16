@@ -30,6 +30,7 @@ const expectedProtocolSpecIds = [
   'SPEC-085',
   'SPEC-090',
   'SPEC-093',
+  'SPEC-095',
 ];
 
 const expectedReleaseEvidenceSpecIds = [
@@ -487,6 +488,33 @@ void main(List<String> args) {
         'Matrix Client-Server support advertisement',
       ],
     },
+    'media_repository_breadth_parser_adoption': {
+      'issue': 122,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-095'],
+      'parity_vectors': [
+        'test-vectors/media/matrix-media-repository-breadth.json',
+      ],
+      'parser_only_surfaces': [
+        'media repository request descriptor',
+        'media config metadata',
+        'URL preview metadata',
+        'thumbnail metadata',
+        'async upload metadata',
+        'Content-Disposition filename helper',
+        'Matrix Content URI validation',
+      ],
+      'out_of_scope': [
+        'binary media transfer',
+        'thumbnail generation',
+        'preview crawling',
+        'remote media fetch',
+        'resumable upload runtime',
+        'range requests',
+        'encrypted attachment behavior',
+        'Matrix Client-Server support advertisement',
+      ],
+    },
     'oauth_account_management_parser_adoption': {
       'issue': 118,
       'status': 'parser-only-adopted',
@@ -767,7 +795,7 @@ void main(List<String> args) {
         'command': 'cargo test --locked',
         'guards': [
           'artifact manifest serializes stably',
-          'protocol artifact supported SPEC ids include SPEC-030 through SPEC-040, SPEC-045, SPEC-046, SPEC-047, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, SPEC-068, SPEC-069, SPEC-085, SPEC-090, and SPEC-093',
+          'protocol artifact supported SPEC ids include SPEC-030 through SPEC-040, SPEC-045, SPEC-046, SPEC-047, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, SPEC-068, SPEC-069, SPEC-085, SPEC-090, SPEC-093, and SPEC-095',
           'release evidence helper SPEC ids include SPEC-079 and SPEC-081 without widening protocol artifact support',
         ],
       },

@@ -114,6 +114,10 @@ The current package implements:
 - SPEC-093 Matrix Sync Breadth Extensions parser-only request descriptors,
   presence/to-device snippets, device list changes, one-time key counts, and
   invite/leave/knock room section maps only
+- SPEC-095 Matrix Media Repository Breadth parser-only request descriptors,
+  media config metadata, URL preview metadata, thumbnail metadata, async upload
+  metadata, Content-Disposition filename helpers, and Matrix Content URI
+  validation only
 - SPEC-079 / SPEC-081 shared crypto metadata, redaction, and release evidence
   helper only; this is not crypto stack selection, secure storage ownership, or
   E2EE support advertisement

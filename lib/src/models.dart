@@ -937,6 +937,203 @@ final class HouraMediaMetadata {
   }
 }
 
+/// SPEC-095 parser-only Matrix media repository request descriptor.
+final class HouraMatrixMediaRequestDescriptor {
+  const HouraMatrixMediaRequestDescriptor({
+    required this.method,
+    required this.path,
+    required this.pathParams,
+    required this.queryParams,
+    required this.requiresAuth,
+    required this.responseParser,
+    required this.adoptedRuntimeBehavior,
+  });
+
+  final String method;
+  final String path;
+  final Map<String, Object?> pathParams;
+  final Map<String, Object?> queryParams;
+  final bool requiresAuth;
+  final String responseParser;
+  final bool adoptedRuntimeBehavior;
+
+  factory HouraMatrixMediaRequestDescriptor.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final descriptor = HouraMatrixMediaRequestDescriptor(
+      method: _requiredString(json, 'method'),
+      path: _requiredString(json, 'path'),
+      pathParams: _optionalJsonObject(json, 'path_params') ?? const {},
+      queryParams: _requiredJsonObject(json, 'query_params'),
+      requiresAuth: _requiredBool(json, 'requires_auth'),
+      responseParser: _requiredString(json, 'response_parser'),
+      adoptedRuntimeBehavior: _requiredBool(json, 'adopted_runtime_behavior'),
+    );
+    _validateMatrixMediaDescriptor(descriptor);
+    return descriptor;
+  }
+}
+
+/// SPEC-095 Matrix media config metadata.
+final class HouraMatrixMediaConfig {
+  const HouraMatrixMediaConfig({this.uploadSize});
+
+  final int? uploadSize;
+
+  factory HouraMatrixMediaConfig.fromJson(Map<String, Object?> json) {
+    final uploadSize = json['m.upload.size'];
+    if (uploadSize != null && (uploadSize is! int || uploadSize < 0)) {
+      throw HouraResponseFormatException(
+        'Expected non-negative integer "m.upload.size".',
+      );
+    }
+    return HouraMatrixMediaConfig(uploadSize: uploadSize as int?);
+  }
+}
+
+/// SPEC-095 URL preview metadata parser boundary.
+final class HouraMatrixMediaPreviewMetadata {
+  const HouraMatrixMediaPreviewMetadata({required this.fields});
+
+  final Map<String, Object?> fields;
+
+  String? get imageUri => fields['og:image'] as String?;
+
+  factory HouraMatrixMediaPreviewMetadata.fromJson(Map<String, Object?> json) {
+    final imageUri = json['og:image'];
+    if (imageUri != null) {
+      _parseMatrixMediaContentUri(imageUri);
+    }
+    for (final key in const [
+      'matrix:image:size',
+      'og:image:width',
+      'og:image:height',
+    ]) {
+      final value = json[key];
+      if (value != null && (value is! int || value < 0)) {
+        throw HouraResponseFormatException(
+          'Expected non-negative integer "$key".',
+        );
+      }
+    }
+    return HouraMatrixMediaPreviewMetadata(
+      fields: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+}
+
+/// SPEC-095 thumbnail metadata parser boundary.
+final class HouraMatrixMediaThumbnailMetadata {
+  const HouraMatrixMediaThumbnailMetadata({
+    required this.contentUri,
+    required this.contentType,
+    required this.width,
+    required this.height,
+    required this.method,
+    this.animated,
+  });
+
+  final String contentUri;
+  final String contentType;
+  final int width;
+  final int height;
+  final String method;
+  final bool? animated;
+
+  factory HouraMatrixMediaThumbnailMetadata.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final method = _requiredString(json, 'method');
+    if (method != 'scale' && method != 'crop') {
+      throw HouraResponseFormatException(
+          'Expected supported thumbnail method.');
+    }
+    final contentUri = _requiredString(json, 'content_uri');
+    _parseMatrixMediaContentUri(contentUri);
+    return HouraMatrixMediaThumbnailMetadata(
+      contentUri: contentUri,
+      contentType: _requiredString(json, 'content_type'),
+      width: _requiredNonNegativeInt(json, 'width'),
+      height: _requiredNonNegativeInt(json, 'height'),
+      method: method,
+      animated: _optionalBool(json, 'animated'),
+    );
+  }
+}
+
+/// SPEC-095 async upload metadata parser boundary.
+final class HouraMatrixMediaAsyncUploadMetadata {
+  const HouraMatrixMediaAsyncUploadMetadata({
+    required this.contentUri,
+    this.unusedExpiresAt,
+  });
+
+  final String contentUri;
+  final int? unusedExpiresAt;
+
+  factory HouraMatrixMediaAsyncUploadMetadata.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final contentUri = _requiredString(json, 'content_uri');
+    _parseMatrixMediaContentUri(contentUri);
+    final unusedExpiresAt = json['unused_expires_at'];
+    if (unusedExpiresAt != null &&
+        (unusedExpiresAt is! int || unusedExpiresAt < 0)) {
+      throw HouraResponseFormatException(
+        'Expected non-negative integer "unused_expires_at".',
+      );
+    }
+    return HouraMatrixMediaAsyncUploadMetadata(
+      contentUri: contentUri,
+      unusedExpiresAt: unusedExpiresAt as int?,
+    );
+  }
+}
+
+/// SPEC-095 safe Content-Disposition filename result.
+final class HouraMatrixMediaContentDisposition {
+  const HouraMatrixMediaContentDisposition({
+    required this.disposition,
+    required this.filename,
+  });
+
+  final String disposition;
+  final String filename;
+
+  factory HouraMatrixMediaContentDisposition.parse(String value) {
+    final parts = value.split(';').map((part) => part.trim()).toList();
+    if (parts.length != 2 ||
+        (parts.first != 'inline' && parts.first != 'attachment')) {
+      throw HouraResponseFormatException(
+        'Expected supported Content-Disposition.',
+      );
+    }
+    const prefix = 'filename="';
+    final filenamePart = parts[1];
+    if (!filenamePart.startsWith(prefix) || !filenamePart.endsWith('"')) {
+      throw HouraResponseFormatException('Expected quoted filename.');
+    }
+    final rawFilename = filenamePart.substring(
+      prefix.length,
+      filenamePart.length - 1,
+    );
+    final filename = _decodeMediaFilename(rawFilename);
+    _validateSafeMediaFilename(filename);
+    return HouraMatrixMediaContentDisposition(
+      disposition: parts.first,
+      filename: filename,
+    );
+  }
+}
+
+String _decodeMediaFilename(String value) {
+  try {
+    return Uri.decodeComponent(value);
+  } on FormatException {
+    throw HouraResponseFormatException('Expected decodable media filename.');
+  }
+}
+
 /// SPEC-069 Matrix device key query response.
 final class HouraDeviceKeyQueryResponse {
   const HouraDeviceKeyQueryResponse({
@@ -1365,6 +1562,165 @@ void _validateMatrixSyncFilter(Object? value) {
         'Expected boolean lazy_load_members sync filter.',
       );
     }
+  }
+}
+
+void _validateMatrixMediaDescriptor(
+  HouraMatrixMediaRequestDescriptor descriptor,
+) {
+  const parsersByPath = {
+    '/_matrix/client/v1/media/config': 'media_config',
+    '/_matrix/client/v1/media/preview_url': 'media_preview_url',
+    '/_matrix/client/v1/media/thumbnail/{serverName}/{mediaId}':
+        'media_thumbnail_metadata',
+    '/_matrix/media/v1/create': 'media_upload_create',
+    '/_matrix/media/v3/upload/{serverName}/{mediaId}': 'media_upload_resume',
+  };
+  final expectedParser = parsersByPath[descriptor.path];
+  if (expectedParser == null ||
+      descriptor.responseParser != expectedParser ||
+      descriptor.requiresAuth != true ||
+      descriptor.adoptedRuntimeBehavior != false) {
+    throw HouraResponseFormatException(
+      'Unsupported Matrix media request descriptor.',
+    );
+  }
+  if ((descriptor.path == '/_matrix/client/v1/media/config' ||
+          descriptor.path == '/_matrix/client/v1/media/preview_url' ||
+          descriptor.path ==
+              '/_matrix/client/v1/media/thumbnail/{serverName}/{mediaId}') &&
+      descriptor.method != 'GET') {
+    throw HouraResponseFormatException(
+      'Unsupported Matrix media descriptor method.',
+    );
+  }
+  if (descriptor.path == '/_matrix/media/v1/create' &&
+      descriptor.method != 'POST') {
+    throw HouraResponseFormatException(
+      'Unsupported Matrix media descriptor method.',
+    );
+  }
+  if (descriptor.path == '/_matrix/media/v3/upload/{serverName}/{mediaId}' &&
+      descriptor.method != 'PUT') {
+    throw HouraResponseFormatException(
+      'Unsupported Matrix media descriptor method.',
+    );
+  }
+  final serverName = descriptor.pathParams['serverName'];
+  final mediaId = descriptor.pathParams['mediaId'];
+  if (descriptor.path.contains('{serverName}') &&
+      (serverName is! String ||
+          serverName.isEmpty ||
+          mediaId is! String ||
+          mediaId.isEmpty ||
+          !_isOpaqueMatrixMediaId(mediaId))) {
+    throw HouraResponseFormatException(
+      'Expected Matrix media path parameters.',
+    );
+  }
+  if (descriptor.path ==
+      '/_matrix/client/v1/media/thumbnail/{serverName}/{mediaId}') {
+    _validateMatrixMediaThumbnailQuery(descriptor.queryParams);
+  } else {
+    for (final entry in descriptor.queryParams.entries) {
+      switch (entry.key) {
+        case 'url':
+        case 'filename':
+          if (entry.value is! String || (entry.value as String).isEmpty) {
+            throw HouraResponseFormatException(
+              'Expected non-empty Matrix media query string.',
+            );
+          }
+        case 'ts':
+          if (entry.value is! int || (entry.value as int) < 0) {
+            throw HouraResponseFormatException(
+              'Expected non-negative Matrix media timestamp.',
+            );
+          }
+        default:
+          throw HouraResponseFormatException(
+            'Unsupported Matrix media query parameter "${entry.key}".',
+          );
+      }
+    }
+  }
+}
+
+void _validateMatrixMediaThumbnailQuery(Map<String, Object?> queryParams) {
+  for (final entry in queryParams.entries) {
+    final value = entry.value;
+    switch (entry.key) {
+      case 'width':
+      case 'height':
+        if (value is! int || value <= 0) {
+          throw HouraResponseFormatException(
+            'Expected positive Matrix media thumbnail dimension.',
+          );
+        }
+      case 'timeout_ms':
+        if (value is! int || value < 0) {
+          throw HouraResponseFormatException(
+            'Expected non-negative Matrix media timeout.',
+          );
+        }
+      case 'method':
+        if (value != 'scale' && value != 'crop') {
+          throw HouraResponseFormatException(
+            'Expected supported Matrix media thumbnail method.',
+          );
+        }
+      case 'allow_remote':
+      case 'animated':
+        if (value is! bool) {
+          throw HouraResponseFormatException(
+            'Expected boolean Matrix media thumbnail option.',
+          );
+        }
+      default:
+        throw HouraResponseFormatException(
+          'Unsupported Matrix media thumbnail query parameter "${entry.key}".',
+        );
+    }
+  }
+}
+
+({String serverName, String mediaId}) _parseMatrixMediaContentUri(
+  Object? value,
+) {
+  if (value is! String || !value.startsWith('mxc://')) {
+    throw HouraResponseFormatException('Expected Matrix Content URI.');
+  }
+  final rest = value.substring('mxc://'.length);
+  final slashIndex = rest.indexOf('/');
+  if (slashIndex <= 0 || slashIndex == rest.length - 1) {
+    throw HouraResponseFormatException('Expected Matrix Content URI.');
+  }
+  final serverName = rest.substring(0, slashIndex);
+  final mediaId = rest.substring(slashIndex + 1);
+  if (serverName.trim().isEmpty || !_isOpaqueMatrixMediaId(mediaId)) {
+    throw HouraResponseFormatException('Expected Matrix Content URI.');
+  }
+  return (serverName: serverName, mediaId: mediaId);
+}
+
+bool _isOpaqueMatrixMediaId(String value) {
+  return value.isNotEmpty &&
+      !value.contains('/') &&
+      !value.contains(r'\') &&
+      value != '.' &&
+      value != '..' &&
+      !value.contains(RegExp(r'\s'));
+}
+
+void _validateSafeMediaFilename(String value) {
+  if (value.isEmpty ||
+      value == '.' ||
+      value == '..' ||
+      value.contains('/') ||
+      value.contains(r'\') ||
+      value.contains('"') ||
+      value.codeUnits.any((unit) => unit < 0x20 || unit == 0x7f)) {
+    throw HouraResponseFormatException('Expected safe media filename.');
   }
 }
 

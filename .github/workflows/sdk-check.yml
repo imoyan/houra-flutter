@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  HOURA_SPEC_REF: b2c4d9894ff9273bdf0c80e8c884c0f1dd8ee94e
+  HOURA_SPEC_REF: 01f77b9d39275a2e907f0e58f38b7e8fbad57c3f
 
 jobs:
   sdk-check:

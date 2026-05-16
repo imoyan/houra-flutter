@@ -31,6 +31,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-085",
   "SPEC-090",
   "SPEC-093",
+  "SPEC-095",
 ] as const;
 
 export interface HouraProtocolCoreWasmBinding {
@@ -95,6 +96,12 @@ export interface HouraProtocolCoreWasmBinding {
   reconcileMatrixAccountManagementDeviceDeleteJson(responseBody: string): string;
   parseMatrixMediaContentUriJson(contentUri: string): string;
   parseMatrixMediaUploadResponseJson(responseBody: string): string;
+  parseMatrixMediaRepositoryRequestDescriptorJson(responseBody: string): string;
+  parseMatrixMediaConfigResponseJson(responseBody: string): string;
+  parseMatrixMediaPreviewUrlResponseJson(responseBody: string): string;
+  parseMatrixMediaThumbnailMetadataJson(responseBody: string): string;
+  parseMatrixMediaUploadCreateResponseJson(responseBody: string): string;
+  parseMatrixMediaContentDispositionFilenameJson(headerValue: string): string;
   parseMatrixMessagesResponseJson(responseBody: string): string;
   parseMatrixEventRetrievalRequestDescriptorJson(responseBody: string): string;
   parseMatrixJoinedMembersResponseJson(responseBody: string): string;
@@ -505,6 +512,48 @@ export interface MatrixMediaContentUri {
 
 export interface MatrixMediaUploadResponse {
   content_uri: string;
+}
+
+export interface MatrixMediaRepositoryRequestDescriptor {
+  id: string;
+  method: string;
+  path: string;
+  path_params: Record<string, string>;
+  query_params: Record<string, unknown>;
+  requires_auth: boolean;
+  adopted_runtime_behavior: boolean;
+  response_parser:
+    | "media_config"
+    | "media_preview_url"
+    | "media_thumbnail_metadata"
+    | "media_upload_create"
+    | "media_upload_resume";
+}
+
+export interface MatrixMediaConfigResponse {
+  "m.upload.size"?: number;
+}
+
+export interface MatrixMediaPreviewUrlResponse {
+  fields: Record<string, unknown>;
+}
+
+export interface MatrixMediaThumbnailMetadata {
+  content_uri: string;
+  content_type: string;
+  width: number;
+  height: number;
+  method: "scale" | "crop";
+  animated: boolean;
+}
+
+export interface MatrixMediaUploadCreateResponse {
+  content_uri: string;
+  unused_expires_at?: number;
+}
+
+export interface MatrixMediaFilename {
+  filename: string;
 }
 
 export interface MatrixFederationTransaction {
@@ -1039,6 +1088,24 @@ export interface HouraProtocolCoreFacade {
   parseMatrixMediaUploadResponse(
     responseBody: string,
   ): ProtocolResult<MatrixMediaUploadResponse>;
+  parseMatrixMediaRepositoryRequestDescriptor(
+    responseBody: string,
+  ): ProtocolResult<MatrixMediaRepositoryRequestDescriptor>;
+  parseMatrixMediaConfigResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixMediaConfigResponse>;
+  parseMatrixMediaPreviewUrlResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixMediaPreviewUrlResponse>;
+  parseMatrixMediaThumbnailMetadata(
+    responseBody: string,
+  ): ProtocolResult<MatrixMediaThumbnailMetadata>;
+  parseMatrixMediaUploadCreateResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixMediaUploadCreateResponse>;
+  parseMatrixMediaContentDispositionFilename(
+    headerValue: string,
+  ): ProtocolResult<MatrixMediaFilename>;
   parseMatrixMessagesResponse(
     responseBody: string,
   ): ProtocolResult<MatrixMessagesResponse>;
@@ -1586,6 +1653,48 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixMediaUploadResponseEnvelope(envelope);
+    },
+    parseMatrixMediaRepositoryRequestDescriptor(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixMediaRepositoryRequestDescriptorJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixMediaRepositoryRequestDescriptorEnvelope(envelope);
+    },
+    parseMatrixMediaConfigResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixMediaConfigResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixMediaConfigResponseEnvelope(envelope);
+    },
+    parseMatrixMediaPreviewUrlResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixMediaPreviewUrlResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixMediaPreviewUrlResponseEnvelope(envelope);
+    },
+    parseMatrixMediaThumbnailMetadata(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixMediaThumbnailMetadataJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixMediaThumbnailMetadataEnvelope(envelope);
+    },
+    parseMatrixMediaUploadCreateResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixMediaUploadCreateResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixMediaUploadCreateResponseEnvelope(envelope);
+    },
+    parseMatrixMediaContentDispositionFilename(headerValue: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixMediaContentDispositionFilenameJson(headerValue),
+        "parse envelope",
+      );
+      return readMatrixMediaFilenameEnvelope(envelope);
     },
     parseMatrixMessagesResponse(responseBody: string) {
       const envelope = parseJsonObject(
@@ -3538,6 +3647,104 @@ function readMatrixMediaUploadResponseEnvelope(
 ): ProtocolResult<MatrixMediaUploadResponse> {
   return readProtocolResult(envelope, (value) => ({
     content_uri: readString(value, "content_uri", "invalid_envelope"),
+  }));
+}
+
+function readMatrixMediaRepositoryRequestDescriptorEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixMediaRepositoryRequestDescriptor> {
+  return readProtocolResult(envelope, (value) => {
+    const responseParser = readString(
+      value,
+      "response_parser",
+      "invalid_envelope",
+    );
+    if (
+      responseParser !== "media_config" &&
+      responseParser !== "media_preview_url" &&
+      responseParser !== "media_thumbnail_metadata" &&
+      responseParser !== "media_upload_create" &&
+      responseParser !== "media_upload_resume"
+    ) {
+      throw new HouraProtocolCoreFacadeError(
+        "invalid_envelope",
+        "Expected supported media response_parser.",
+      );
+    }
+    return {
+      id: readString(value, "id", "invalid_envelope"),
+      method: readString(value, "method", "invalid_envelope"),
+      path: readString(value, "path", "invalid_envelope"),
+      path_params: readStringRecord(readRecord(value, "path_params", "media descriptor")),
+      query_params: readRecord(value, "query_params", "media descriptor"),
+      requires_auth: readBoolean(value, "requires_auth"),
+      adopted_runtime_behavior: readBoolean(value, "adopted_runtime_behavior"),
+      response_parser: responseParser,
+    };
+  });
+}
+
+function readMatrixMediaConfigResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixMediaConfigResponse> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixMediaConfigResponse = {};
+    readOptionalNumber(value, "m.upload.size", (uploadSize) => {
+      result["m.upload.size"] = uploadSize;
+    });
+    return result;
+  });
+}
+
+function readMatrixMediaPreviewUrlResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixMediaPreviewUrlResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    fields: readRecord(value, "fields", "media preview"),
+  }));
+}
+
+function readMatrixMediaThumbnailMetadataEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixMediaThumbnailMetadata> {
+  return readProtocolResult(envelope, (value) => {
+    const method = readString(value, "method", "invalid_envelope");
+    if (method !== "scale" && method !== "crop") {
+      throw new HouraProtocolCoreFacadeError(
+        "invalid_envelope",
+        "Expected thumbnail method to be scale or crop.",
+      );
+    }
+    return {
+      content_uri: readString(value, "content_uri", "invalid_envelope"),
+      content_type: readString(value, "content_type", "invalid_envelope"),
+      width: readNumber(value, "width", "invalid_envelope"),
+      height: readNumber(value, "height", "invalid_envelope"),
+      method,
+      animated: readBoolean(value, "animated"),
+    };
+  });
+}
+
+function readMatrixMediaUploadCreateResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixMediaUploadCreateResponse> {
+  return readProtocolResult(envelope, (value) => {
+    const result: MatrixMediaUploadCreateResponse = {
+      content_uri: readString(value, "content_uri", "invalid_envelope"),
+    };
+    readOptionalNumber(value, "unused_expires_at", (expiresAt) => {
+      result.unused_expires_at = expiresAt;
+    });
+    return result;
+  });
+}
+
+function readMatrixMediaFilenameEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixMediaFilename> {
+  return readProtocolResult(envelope, (value) => ({
+    filename: readString(value, "filename", "invalid_envelope"),
   }));
 }
 
