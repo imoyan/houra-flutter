@@ -22,6 +22,7 @@ void main() {
   checkSpec085ProtocolCoreGate(failures);
   checkSpec090ProtocolCoreGate(failures);
   checkSpec093ProtocolCoreGate(failures);
+  checkSpec095ProtocolCoreGate(failures);
 
   if (failures.isNotEmpty) {
     stderr.writeln('Spec sync check failed:');
@@ -1122,6 +1123,98 @@ void checkSpec093ProtocolCoreGate(List<String> failures) {
       'ts-protocol-core-wasm/test/index.test.mjs': [
         'SPEC-093',
         'matrix-sync-breadth-extensions.json',
+      ],
+    },
+  );
+}
+
+void checkSpec095ProtocolCoreGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final contract = File(
+    '${specRoot.path}/contracts/SPEC-095-matrix-media-repository-breadth.md',
+  );
+  final vectors = [
+    'test-vectors/media/matrix-media-repository-breadth.json',
+  ];
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-095 contract: ${contract.path}');
+    return;
+  }
+  checkVectorsHaveContract(failures, specRoot, 'SPEC-095', vectors);
+  checkReleaseEvidenceAdoption(
+    failures,
+    blockName: 'media_repository_breadth_parser_adoption',
+    issue: 122,
+    specId: 'SPEC-095',
+    parityVectors: vectors,
+    parserOnlySurfaces: [
+      'media repository request descriptor',
+      'media config metadata',
+      'URL preview metadata',
+      'thumbnail metadata',
+      'async upload metadata',
+      'Content-Disposition filename helper',
+      'Matrix Content URI validation',
+    ],
+    outOfScope: [
+      'binary media transfer',
+      'thumbnail generation',
+      'preview crawling',
+      'remote media fetch',
+      'resumable upload runtime',
+      'range requests',
+      'encrypted attachment behavior',
+      'Matrix Client-Server support advertisement',
+    ],
+  );
+
+  checkRequiredFragments(
+    failures,
+    specId: 'SPEC-095',
+    requiredFragmentsByFile: {
+      'AGENTS.md': ['SPEC-095'],
+      'README.md': ['SPEC-095', 'media repository breadth'],
+      'lib/src/models.dart': [
+        'HouraMatrixMediaRequestDescriptor',
+        'HouraMatrixMediaConfig',
+        'HouraMatrixMediaPreviewMetadata',
+        'HouraMatrixMediaThumbnailMetadata',
+        'HouraMatrixMediaAsyncUploadMetadata',
+        'HouraMatrixMediaContentDisposition',
+      ],
+      'test/media_contract_test.dart': [
+        'SPEC-095',
+        'matrix-media-repository-breadth.json',
+      ],
+      'rust-protocol-core/src/lib.rs': [
+        '"SPEC-095"',
+        'parse_matrix_media_repository_request_descriptor',
+        'parse_matrix_media_config_response',
+        'parse_matrix_media_preview_url_response',
+        'parse_matrix_media_thumbnail_metadata',
+        'parse_matrix_media_upload_create_response',
+        'parse_matrix_media_content_disposition_filename',
+      ],
+      'rust-protocol-core-wasm/src/lib.rs': [
+        'parseMatrixMediaRepositoryRequestDescriptorJson',
+        'parseMatrixMediaConfigResponseJson',
+        'parseMatrixMediaPreviewUrlResponseJson',
+        'parseMatrixMediaThumbnailMetadataJson',
+        'parseMatrixMediaUploadCreateResponseJson',
+        'parseMatrixMediaContentDispositionFilenameJson',
+      ],
+      'ts-protocol-core-wasm/src/index.ts': [
+        '"SPEC-095"',
+        'parseMatrixMediaRepositoryRequestDescriptor',
+        'parseMatrixMediaConfigResponse',
+        'parseMatrixMediaPreviewUrlResponse',
+        'parseMatrixMediaThumbnailMetadata',
+        'parseMatrixMediaUploadCreateResponse',
+        'parseMatrixMediaContentDispositionFilename',
+      ],
+      'ts-protocol-core-wasm/test/index.test.mjs': [
+        'SPEC-095',
+        'matrix-media-repository-breadth.json',
       ],
     },
   );

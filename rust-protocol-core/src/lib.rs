@@ -26,7 +26,7 @@ const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
     "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047", "SPEC-048", "SPEC-049",
     "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-068", "SPEC-069", "SPEC-085",
-    "SPEC-090", "SPEC-093",
+    "SPEC-090", "SPEC-093", "SPEC-095",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -511,6 +511,51 @@ pub struct MatrixMediaContentUri {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixMediaUploadResponse {
     pub content_uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixMediaRepositoryRequestDescriptor {
+    pub id: String,
+    pub method: String,
+    pub path: String,
+    pub path_params: BTreeMap<String, String>,
+    pub query_params: BTreeMap<String, Value>,
+    pub requires_auth: bool,
+    pub adopted_runtime_behavior: bool,
+    pub response_parser: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixMediaConfigResponse {
+    #[serde(rename = "m.upload.size", skip_serializing_if = "Option::is_none")]
+    pub upload_size: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixMediaPreviewUrlResponse {
+    pub fields: BTreeMap<String, Value>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixMediaThumbnailMetadata {
+    pub content_uri: String,
+    pub content_type: String,
+    pub width: u64,
+    pub height: u64,
+    pub method: String,
+    pub animated: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixMediaUploadCreateResponse {
+    pub content_uri: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unused_expires_at: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixMediaFilename {
+    pub filename: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -1295,6 +1340,48 @@ pub struct MatrixMediaContentUriParseEnvelope {
 pub struct MatrixMediaUploadResponseParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixMediaUploadResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixMediaRepositoryRequestDescriptorParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixMediaRepositoryRequestDescriptor>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixMediaConfigResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixMediaConfigResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixMediaPreviewUrlResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixMediaPreviewUrlResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixMediaThumbnailMetadataParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixMediaThumbnailMetadata>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixMediaUploadCreateResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixMediaUploadCreateResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixMediaFilenameParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixMediaFilename>,
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
@@ -2134,6 +2221,40 @@ struct MatrixSyncUnreadNotificationsWire {
 #[derive(Debug, Deserialize)]
 struct MatrixMediaUploadResponseWire {
     content_uri: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixMediaRepositoryRequestDescriptorWire {
+    id: Option<String>,
+    method: Option<String>,
+    path: Option<String>,
+    path_params: Option<BTreeMap<String, Value>>,
+    query_params: Option<BTreeMap<String, Value>>,
+    requires_auth: Option<bool>,
+    adopted_runtime_behavior: Option<bool>,
+    response_parser: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixMediaConfigResponseWire {
+    #[serde(rename = "m.upload.size")]
+    upload_size: Option<Value>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixMediaThumbnailMetadataWire {
+    content_uri: Option<String>,
+    content_type: Option<String>,
+    width: Option<Value>,
+    height: Option<Value>,
+    method: Option<String>,
+    animated: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixMediaUploadCreateResponseWire {
+    content_uri: Option<String>,
+    unused_expires_at: Option<Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -4679,6 +4800,229 @@ pub fn parse_matrix_media_upload_response_envelope(
 pub fn parse_matrix_media_upload_response_json(bytes: &[u8]) -> String {
     serde_json::to_string(&parse_matrix_media_upload_response_envelope(bytes))
         .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_media_repository_request_descriptor(
+    bytes: &[u8],
+) -> Result<MatrixMediaRepositoryRequestDescriptor, ProtocolError> {
+    let wire: MatrixMediaRepositoryRequestDescriptorWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let descriptor = MatrixMediaRepositoryRequestDescriptor {
+        id: required_room_string(wire.id, "media_descriptor.id")?,
+        method: required_room_string(wire.method, "media_descriptor.method")?,
+        path: required_room_string(wire.path, "media_descriptor.path")?,
+        path_params: media_string_params(wire.path_params.unwrap_or_default(), "path_params")?,
+        query_params: wire.query_params.unwrap_or_default(),
+        requires_auth: wire
+            .requires_auth
+            .ok_or_else(|| invalid_media_field("requires_auth"))?,
+        adopted_runtime_behavior: wire
+            .adopted_runtime_behavior
+            .ok_or_else(|| invalid_media_field("adopted_runtime_behavior"))?,
+        response_parser: required_room_string(wire.response_parser, "response_parser")?,
+    };
+    validate_matrix_media_repository_descriptor(&descriptor)?;
+    Ok(descriptor)
+}
+
+pub fn parse_matrix_media_repository_request_descriptor_envelope(
+    bytes: &[u8],
+) -> MatrixMediaRepositoryRequestDescriptorParseEnvelope {
+    match parse_matrix_media_repository_request_descriptor(bytes) {
+        Ok(value) => MatrixMediaRepositoryRequestDescriptorParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixMediaRepositoryRequestDescriptorParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_media_repository_request_descriptor_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_media_repository_request_descriptor_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_media_config_response(
+    bytes: &[u8],
+) -> Result<MatrixMediaConfigResponse, ProtocolError> {
+    let wire: MatrixMediaConfigResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixMediaConfigResponse {
+        upload_size: optional_media_u64(wire.upload_size, "m.upload.size")?,
+    })
+}
+
+pub fn parse_matrix_media_config_response_envelope(
+    bytes: &[u8],
+) -> MatrixMediaConfigResponseParseEnvelope {
+    match parse_matrix_media_config_response(bytes) {
+        Ok(value) => MatrixMediaConfigResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixMediaConfigResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_media_config_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_media_config_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_media_preview_url_response(
+    bytes: &[u8],
+) -> Result<MatrixMediaPreviewUrlResponse, ProtocolError> {
+    let fields: BTreeMap<String, Value> =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    validate_media_preview_fields(&fields)?;
+    Ok(MatrixMediaPreviewUrlResponse { fields })
+}
+
+pub fn parse_matrix_media_preview_url_response_envelope(
+    bytes: &[u8],
+) -> MatrixMediaPreviewUrlResponseParseEnvelope {
+    match parse_matrix_media_preview_url_response(bytes) {
+        Ok(value) => MatrixMediaPreviewUrlResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixMediaPreviewUrlResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_media_preview_url_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_media_preview_url_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_media_thumbnail_metadata(
+    bytes: &[u8],
+) -> Result<MatrixMediaThumbnailMetadata, ProtocolError> {
+    let wire: MatrixMediaThumbnailMetadataWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let method = required_room_string(wire.method, "thumbnail.method")?;
+    validate_thumbnail_method(&method, "thumbnail.method")?;
+    Ok(MatrixMediaThumbnailMetadata {
+        content_uri: required_media_content_uri(wire.content_uri, "thumbnail.content_uri")?,
+        content_type: required_room_string(wire.content_type, "thumbnail.content_type")?,
+        width: required_media_u64(wire.width, "thumbnail.width")?,
+        height: required_media_u64(wire.height, "thumbnail.height")?,
+        method,
+        animated: wire.animated.unwrap_or(false),
+    })
+}
+
+pub fn parse_matrix_media_thumbnail_metadata_envelope(
+    bytes: &[u8],
+) -> MatrixMediaThumbnailMetadataParseEnvelope {
+    match parse_matrix_media_thumbnail_metadata(bytes) {
+        Ok(value) => MatrixMediaThumbnailMetadataParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixMediaThumbnailMetadataParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_media_thumbnail_metadata_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_media_thumbnail_metadata_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_media_upload_create_response(
+    bytes: &[u8],
+) -> Result<MatrixMediaUploadCreateResponse, ProtocolError> {
+    let wire: MatrixMediaUploadCreateResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixMediaUploadCreateResponse {
+        content_uri: required_media_content_uri(wire.content_uri, "content_uri")?,
+        unused_expires_at: optional_media_u64(wire.unused_expires_at, "unused_expires_at")?,
+    })
+}
+
+pub fn parse_matrix_media_upload_create_response_envelope(
+    bytes: &[u8],
+) -> MatrixMediaUploadCreateResponseParseEnvelope {
+    match parse_matrix_media_upload_create_response(bytes) {
+        Ok(value) => MatrixMediaUploadCreateResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixMediaUploadCreateResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_media_upload_create_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_media_upload_create_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_media_content_disposition_filename(
+    value: &str,
+) -> Result<MatrixMediaFilename, ProtocolError> {
+    let Some(filename) = value
+        .split(';')
+        .map(str::trim)
+        .find_map(|part| part.strip_prefix("filename="))
+    else {
+        return Err(invalid_media_field("content_disposition.filename"));
+    };
+    let filename = filename.trim_matches('"');
+    validate_safe_media_filename(filename, "content_disposition.filename")?;
+    Ok(MatrixMediaFilename {
+        filename: filename.to_owned(),
+    })
+}
+
+pub fn parse_matrix_media_content_disposition_filename_envelope(
+    value: &str,
+) -> MatrixMediaFilenameParseEnvelope {
+    match parse_matrix_media_content_disposition_filename(value) {
+        Ok(value) => MatrixMediaFilenameParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixMediaFilenameParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_media_content_disposition_filename_json(value: &str) -> String {
+    serde_json::to_string(&parse_matrix_media_content_disposition_filename_envelope(
+        value,
+    ))
+    .expect("parse envelope serialization should be infallible")
 }
 
 pub fn parse_matrix_federation_transaction(
@@ -8600,6 +8944,223 @@ fn required_media_content_uri(value: Option<String>, field: &str) -> Result<Stri
     }
 }
 
+fn media_string_params(
+    values: BTreeMap<String, Value>,
+    field: &str,
+) -> Result<BTreeMap<String, String>, ProtocolError> {
+    values
+        .into_iter()
+        .map(|(key, value)| match value.as_str() {
+            Some(value) if !key.is_empty() && !value.is_empty() => Ok((key, value.to_owned())),
+            _ => Err(invalid_media_field(field)),
+        })
+        .collect()
+}
+
+fn validate_matrix_media_repository_descriptor(
+    descriptor: &MatrixMediaRepositoryRequestDescriptor,
+) -> Result<(), ProtocolError> {
+    if !descriptor.requires_auth || descriptor.adopted_runtime_behavior {
+        return Err(invalid_media_field("media_descriptor.runtime"));
+    }
+    match descriptor.response_parser.as_str() {
+        "media_config" => {
+            if descriptor.method != "GET"
+                || descriptor.path != "/_matrix/client/v1/media/config"
+                || !descriptor.path_params.is_empty()
+                || !descriptor.query_params.is_empty()
+            {
+                return Err(invalid_media_field("media_descriptor.media_config"));
+            }
+        }
+        "media_preview_url" => {
+            if descriptor.method != "GET"
+                || descriptor.path != "/_matrix/client/v1/media/preview_url"
+                || !descriptor.path_params.is_empty()
+            {
+                return Err(invalid_media_field("media_descriptor.preview_url"));
+            }
+            validate_media_query_keys(&descriptor.query_params, &["url", "ts"])?;
+            required_media_query_string(&descriptor.query_params, "url")?;
+            optional_media_query_u64(&descriptor.query_params, "ts")?;
+        }
+        "media_thumbnail_metadata" => {
+            if descriptor.method != "GET"
+                || descriptor.path != "/_matrix/client/v1/media/thumbnail/{serverName}/{mediaId}"
+            {
+                return Err(invalid_media_field("media_descriptor.thumbnail"));
+            }
+            validate_media_path_params(&descriptor.path_params)?;
+            validate_media_query_keys(
+                &descriptor.query_params,
+                &[
+                    "width",
+                    "height",
+                    "method",
+                    "timeout_ms",
+                    "allow_remote",
+                    "animated",
+                ],
+            )?;
+            required_positive_media_query_u64(&descriptor.query_params, "width")?;
+            required_positive_media_query_u64(&descriptor.query_params, "height")?;
+            let method = required_media_query_string(&descriptor.query_params, "method")?;
+            validate_thumbnail_method(method, "query_params.method")?;
+            optional_media_query_u64(&descriptor.query_params, "timeout_ms")?;
+            optional_media_query_bool(&descriptor.query_params, "allow_remote")?;
+            optional_media_query_bool(&descriptor.query_params, "animated")?;
+        }
+        "media_upload_create" => {
+            if descriptor.method != "POST"
+                || descriptor.path != "/_matrix/media/v1/create"
+                || !descriptor.path_params.is_empty()
+                || !descriptor.query_params.is_empty()
+            {
+                return Err(invalid_media_field("media_descriptor.upload_create"));
+            }
+        }
+        "media_upload_resume" => {
+            if descriptor.method != "PUT"
+                || descriptor.path != "/_matrix/media/v3/upload/{serverName}/{mediaId}"
+            {
+                return Err(invalid_media_field("media_descriptor.upload_resume"));
+            }
+            validate_media_path_params(&descriptor.path_params)?;
+            validate_media_query_keys(&descriptor.query_params, &["filename"])?;
+            if let Some(filename) = descriptor.query_params.get("filename") {
+                let Some(filename) = filename.as_str() else {
+                    return Err(invalid_media_field("query_params.filename"));
+                };
+                validate_safe_media_filename(filename, "query_params.filename")?;
+            }
+        }
+        _ => return Err(invalid_media_field("response_parser")),
+    }
+    Ok(())
+}
+
+fn validate_media_query_keys(
+    values: &BTreeMap<String, Value>,
+    allowed: &[&str],
+) -> Result<(), ProtocolError> {
+    for key in values.keys() {
+        if !allowed.contains(&key.as_str()) {
+            return Err(invalid_media_field(&format!("query_params.{key}")));
+        }
+    }
+    Ok(())
+}
+
+fn validate_media_path_params(values: &BTreeMap<String, String>) -> Result<(), ProtocolError> {
+    let server_name = values
+        .get("serverName")
+        .ok_or_else(|| invalid_media_field("path_params.serverName"))?;
+    let media_id = values
+        .get("mediaId")
+        .ok_or_else(|| invalid_media_field("path_params.mediaId"))?;
+    if !is_matrix_server_name(server_name) || !is_opaque_part(media_id) {
+        return Err(invalid_media_field("path_params"));
+    }
+    Ok(())
+}
+
+fn required_media_query_string<'a>(
+    values: &'a BTreeMap<String, Value>,
+    field: &str,
+) -> Result<&'a str, ProtocolError> {
+    match values.get(field).and_then(Value::as_str) {
+        Some(value) if !value.is_empty() => Ok(value),
+        _ => Err(invalid_media_field(&format!("query_params.{field}"))),
+    }
+}
+
+fn required_media_query_u64(
+    values: &BTreeMap<String, Value>,
+    field: &str,
+) -> Result<u64, ProtocolError> {
+    required_media_u64(values.get(field).cloned(), &format!("query_params.{field}"))
+}
+
+fn required_positive_media_query_u64(
+    values: &BTreeMap<String, Value>,
+    field: &str,
+) -> Result<u64, ProtocolError> {
+    let value = required_media_query_u64(values, field)?;
+    if value == 0 {
+        return Err(invalid_media_field(&format!("query_params.{field}")));
+    }
+    Ok(value)
+}
+
+fn optional_media_query_u64(
+    values: &BTreeMap<String, Value>,
+    field: &str,
+) -> Result<Option<u64>, ProtocolError> {
+    optional_media_u64(values.get(field).cloned(), &format!("query_params.{field}"))
+}
+
+fn optional_media_query_bool(
+    values: &BTreeMap<String, Value>,
+    field: &str,
+) -> Result<Option<bool>, ProtocolError> {
+    match values.get(field) {
+        None => Ok(None),
+        Some(Value::Bool(value)) => Ok(Some(*value)),
+        _ => Err(invalid_media_field(&format!("query_params.{field}"))),
+    }
+}
+
+fn required_media_u64(value: Option<Value>, field: &str) -> Result<u64, ProtocolError> {
+    optional_media_u64(value, field)?.ok_or_else(|| invalid_media_field(field))
+}
+
+fn optional_media_u64(value: Option<Value>, field: &str) -> Result<Option<u64>, ProtocolError> {
+    match value {
+        None => Ok(None),
+        Some(Value::Number(number)) => number
+            .as_u64()
+            .map(Some)
+            .ok_or_else(|| invalid_media_field(field)),
+        _ => Err(invalid_media_field(field)),
+    }
+}
+
+fn validate_thumbnail_method(method: &str, field: &str) -> Result<(), ProtocolError> {
+    if matches!(method, "scale" | "crop") {
+        Ok(())
+    } else {
+        Err(invalid_media_field(field))
+    }
+}
+
+fn validate_media_preview_fields(fields: &BTreeMap<String, Value>) -> Result<(), ProtocolError> {
+    if let Some(value) = fields.get("og:image") {
+        let Some(uri) = value.as_str() else {
+            return Err(invalid_media_field("og:image"));
+        };
+        required_media_content_uri(Some(uri.to_owned()), "og:image")?;
+    }
+    for field in ["matrix:image:size", "og:image:width", "og:image:height"] {
+        optional_media_u64(fields.get(field).cloned(), field)?;
+    }
+    Ok(())
+}
+
+fn validate_safe_media_filename(filename: &str, field: &str) -> Result<(), ProtocolError> {
+    let lower = filename.to_ascii_lowercase();
+    if filename.is_empty()
+        || filename.contains('/')
+        || filename.contains('\\')
+        || filename.contains('"')
+        || filename.contains('%')
+        || lower.contains("..")
+        || filename.chars().any(|ch| ch.is_control())
+    {
+        return Err(invalid_media_field(field));
+    }
+    Ok(())
+}
+
 fn validate_field(
     value: &Value,
     field: &str,
@@ -8729,7 +9290,7 @@ mod tests {
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
                 "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047",
                 "SPEC-048", "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056",
-                "SPEC-068", "SPEC-069", "SPEC-085", "SPEC-090", "SPEC-093"
+                "SPEC-068", "SPEC-069", "SPEC-085", "SPEC-090", "SPEC-093", "SPEC-095"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -11253,6 +11814,79 @@ mod tests {
     }
 
     #[test]
+    fn parses_spec_095_media_repository_breadth_vectors() {
+        let vector = read_spec_vector("test-vectors/media/matrix-media-repository-breadth.json");
+        assert_eq!(vector["contract"], "SPEC-095");
+        let event = &vector["event"];
+        let descriptors = event["request_descriptors"]
+            .as_array()
+            .expect("SPEC-095 descriptors should be present");
+        let parsed_descriptors = descriptors
+            .iter()
+            .map(|descriptor| {
+                parse_matrix_media_repository_request_descriptor(descriptor.to_string().as_bytes())
+                    .expect("SPEC-095 media descriptor should parse")
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(parsed_descriptors.len(), 5);
+        assert!(parsed_descriptors
+            .iter()
+            .all(|descriptor| !descriptor.adopted_runtime_behavior));
+
+        let responses = &event["sample_responses"];
+        let config =
+            parse_matrix_media_config_response(responses["media_config"].to_string().as_bytes())
+                .expect("SPEC-095 media config should parse");
+        assert_eq!(config.upload_size, Some(10_485_760));
+
+        let preview = parse_matrix_media_preview_url_response(
+            responses["preview_url"].to_string().as_bytes(),
+        )
+        .expect("SPEC-095 preview should parse");
+        assert_eq!(preview.fields["og:image"], "mxc://example.test/preview1");
+
+        let thumbnail = parse_matrix_media_thumbnail_metadata(
+            responses["thumbnail_metadata"].to_string().as_bytes(),
+        )
+        .expect("SPEC-095 thumbnail metadata should parse");
+        assert_eq!(thumbnail.content_uri, "mxc://example.test/thumb1");
+        assert_eq!(thumbnail.width, 64);
+
+        let upload_create = parse_matrix_media_upload_create_response(
+            responses["upload_create"].to_string().as_bytes(),
+        )
+        .expect("SPEC-095 upload create should parse");
+        assert_eq!(upload_create.unused_expires_at, Some(1_710_003_600_000));
+
+        let upload_resume =
+            parse_matrix_media_upload_response(responses["upload_resume"].to_string().as_bytes())
+                .expect("SPEC-095 upload resume should parse");
+        assert_eq!(upload_resume.content_uri, "mxc://example.test/media1");
+
+        let filename = parse_matrix_media_content_disposition_filename(
+            responses["content_disposition"]
+                .as_str()
+                .expect("filename header"),
+        )
+        .expect("SPEC-095 safe filename should parse");
+        assert_eq!(filename.filename, "avatar.png");
+
+        let unsupported = parse_matrix_error_envelope(
+            responses["unsupported_thumbnail_method_error"]
+                .to_string()
+                .as_bytes(),
+        )
+        .expect("SPEC-095 unsupported method error should parse");
+        assert_eq!(unsupported.errcode, "M_INVALID_PARAM");
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-095"));
+    }
+
+    #[test]
     fn serializes_matrix_media_parse_envelopes() {
         assert_eq!(
             parse_matrix_media_content_uri_json("mxc://example.test/media1"),
@@ -11282,6 +11916,22 @@ mod tests {
             .expect("missing media id in upload content_uri should fail");
         assert_eq!(error.code, "invalid_media_field");
         assert_eq!(error.details.get("field"), Some(&"content_uri".to_owned()));
+
+        let envelope = parse_matrix_media_config_response_envelope(br#"{"m.upload.size":-1}"#);
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_media_field");
+
+        let envelope = parse_matrix_media_thumbnail_metadata_envelope(
+            br#"{"content_uri":"mxc://example.test/thumb1","content_type":"image/png","width":64,"height":64,"method":"stretch"}"#,
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_media_field");
+
+        let envelope = parse_matrix_media_content_disposition_filename_envelope(
+            "inline; filename=\"..%2Fsecret.png\"",
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_media_field");
     }
 
     #[test]

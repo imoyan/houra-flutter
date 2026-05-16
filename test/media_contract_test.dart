@@ -69,6 +69,65 @@ void main() {
       throwsA(isA<HouraResponseFormatException>()),
     );
   });
+
+  test('Matrix media repository parsers follow SPEC-095 vector', () {
+    final vector = readVector(
+      'test-vectors/media/matrix-media-repository-breadth.json',
+    );
+    final event = objectFrom(vector.raw, 'event');
+    final descriptors = event['request_descriptors'] as List<Object?>;
+    final responses = objectFrom(event, 'sample_responses');
+
+    final parsedDescriptors = descriptors
+        .map((descriptor) => (descriptor as Map).cast<String, Object?>())
+        .map(HouraMatrixMediaRequestDescriptor.fromJson)
+        .toList();
+    expect(parsedDescriptors, hasLength(vector.expected['descriptor_count']));
+    expect(parsedDescriptors.first.responseParser, 'media_config');
+
+    final config = HouraMatrixMediaConfig.fromJson(
+      objectFrom(responses, 'media_config'),
+    );
+    expect(config.uploadSize, vector.expected['upload_size']);
+
+    final preview = HouraMatrixMediaPreviewMetadata.fromJson(
+      objectFrom(responses, 'preview_url'),
+    );
+    expect(preview.imageUri, vector.expected['preview_image_uri']);
+
+    final thumbnail = HouraMatrixMediaThumbnailMetadata.fromJson(
+      objectFrom(responses, 'thumbnail_metadata'),
+    );
+    expect(thumbnail.contentUri, vector.expected['thumbnail_uri']);
+    expect(thumbnail.method, 'scale');
+
+    final uploadCreate = HouraMatrixMediaAsyncUploadMetadata.fromJson(
+      objectFrom(responses, 'upload_create'),
+    );
+    expect(uploadCreate.contentUri, vector.expected['upload_create_uri']);
+
+    final disposition = HouraMatrixMediaContentDisposition.parse(
+      responses['content_disposition'] as String,
+    );
+    expect(disposition.filename, vector.expected['safe_filename']);
+
+    expect(
+      () => HouraMatrixMediaContentDisposition.parse(
+        responses['unsafe_content_disposition'] as String,
+      ),
+      throwsA(isA<HouraResponseFormatException>()),
+    );
+    expect(
+      () => HouraMatrixMediaThumbnailMetadata.fromJson({
+        'content_uri': 'mxc://example.test/thumb1',
+        'content_type': 'image/png',
+        'width': 64,
+        'height': 64,
+        'method': 'stretch',
+      }),
+      throwsA(isA<HouraResponseFormatException>()),
+    );
+  });
 }
 
 HouraClient _client(Future<http.Response> Function(http.Request) handler) {

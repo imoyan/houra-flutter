@@ -301,6 +301,38 @@ pub fn parse_matrix_media_upload_response_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_media_upload_response_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixMediaRepositoryRequestDescriptorJson)]
+pub fn parse_matrix_media_repository_request_descriptor_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_media_repository_request_descriptor_json(
+        response_body.as_bytes(),
+    )
+}
+
+#[wasm_bindgen(js_name = parseMatrixMediaConfigResponseJson)]
+pub fn parse_matrix_media_config_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_media_config_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixMediaPreviewUrlResponseJson)]
+pub fn parse_matrix_media_preview_url_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_media_preview_url_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixMediaThumbnailMetadataJson)]
+pub fn parse_matrix_media_thumbnail_metadata_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_media_thumbnail_metadata_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixMediaUploadCreateResponseJson)]
+pub fn parse_matrix_media_upload_create_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_media_upload_create_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixMediaContentDispositionFilenameJson)]
+pub fn parse_matrix_media_content_disposition_filename_json(header_value: &str) -> String {
+    houra_protocol_core::parse_matrix_media_content_disposition_filename_json(header_value)
+}
+
 #[wasm_bindgen(js_name = parseMatrixFederationServerNameJson)]
 pub fn parse_matrix_federation_server_name_json(server_name: &str) -> String {
     houra_protocol_core::parse_matrix_federation_server_name_json(server_name)
@@ -582,6 +614,11 @@ mod tests {
             .expect("supported_specs should be an array")
             .iter()
             .any(|spec| spec == "SPEC-093"));
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
+            .any(|spec| spec == "SPEC-095"));
         assert_eq!(
             json,
             houra_protocol_core::artifact_manifest_json_for_binding_kinds(&["wasm"])
@@ -651,6 +688,36 @@ mod tests {
                 "{\"content_uri\":\"mxc://example.test/media1\"}",
             ),
             "{\"ok\":true,\"value\":{\"content_uri\":\"mxc://example.test/media1\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_media_repository_request_descriptor_json(
+                "{\"id\":\"media_config\",\"method\":\"GET\",\"path\":\"/_matrix/client/v1/media/config\",\"path_params\":{},\"query_params\":{},\"requires_auth\":true,\"adopted_runtime_behavior\":false,\"response_parser\":\"media_config\"}",
+            ),
+            "{\"ok\":true,\"value\":{\"id\":\"media_config\",\"method\":\"GET\",\"path\":\"/_matrix/client/v1/media/config\",\"path_params\":{},\"query_params\":{},\"requires_auth\":true,\"adopted_runtime_behavior\":false,\"response_parser\":\"media_config\"},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_media_config_response_json("{\"m.upload.size\":10485760}"),
+            "{\"ok\":true,\"value\":{\"m.upload.size\":10485760},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_media_preview_url_response_json("{\"og:image\":\"mxc://example.test/preview1\"}"),
+            "{\"ok\":true,\"value\":{\"fields\":{\"og:image\":\"mxc://example.test/preview1\"}},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_media_thumbnail_metadata_json(
+                "{\"content_uri\":\"mxc://example.test/thumb1\",\"content_type\":\"image/png\",\"width\":64,\"height\":64,\"method\":\"scale\",\"animated\":false}",
+            ),
+            "{\"ok\":true,\"value\":{\"content_uri\":\"mxc://example.test/thumb1\",\"content_type\":\"image/png\",\"width\":64,\"height\":64,\"method\":\"scale\",\"animated\":false},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_media_upload_create_response_json(
+                "{\"content_uri\":\"mxc://example.test/media1\",\"unused_expires_at\":1710003600000}",
+            ),
+            "{\"ok\":true,\"value\":{\"content_uri\":\"mxc://example.test/media1\",\"unused_expires_at\":1710003600000},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_media_content_disposition_filename_json("inline; filename=\"avatar.png\""),
+            "{\"ok\":true,\"value\":{\"filename\":\"avatar.png\"},\"error\":null}"
         );
     }
 

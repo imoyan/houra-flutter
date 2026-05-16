@@ -1619,6 +1619,182 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixMediaRepositoryRequestDescriptorJson() {
+      return JSON.stringify(
+        overrides.mediaRepositoryRequestDescriptorEnvelope ??
+          overrides.mediaRepositoryDescriptorEnvelope ?? {
+          ok: true,
+          value: {
+            id: "media-thumbnail",
+            method: "GET",
+            path: "/_matrix/client/v1/media/thumbnail/{serverName}/{mediaId}",
+            path_params: {
+              serverName: "example.test",
+              mediaId: "media1",
+            },
+            query_params: {
+              width: 64,
+              height: 64,
+              method: "scale",
+              timeout_ms: 0,
+              allow_remote: false,
+              animated: false,
+            },
+            requires_auth: true,
+            adopted_runtime_behavior: false,
+            response_parser: "media_thumbnail_metadata",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixMediaConfigResponseJson() {
+      return JSON.stringify(
+        overrides.mediaConfigResponseEnvelope ?? overrides.mediaConfigEnvelope ?? {
+          ok: true,
+          value: {
+            "m.upload.size": 10485760,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixMediaPreviewUrlResponseJson() {
+      return JSON.stringify(
+        overrides.mediaPreviewUrlResponseEnvelope ?? overrides.mediaPreviewEnvelope ?? {
+          ok: true,
+          value: {
+            fields: {
+              "og:title": "Example article",
+              "og:image": "mxc://example.test/preview1",
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixMediaThumbnailMetadataJson() {
+      return JSON.stringify(
+        overrides.mediaThumbnailMetadataEnvelope ?? overrides.mediaThumbnailEnvelope ?? {
+          ok: true,
+          value: {
+            content_uri: "mxc://example.test/thumb1",
+            content_type: "image/png",
+            width: 64,
+            height: 64,
+            method: "scale",
+            animated: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixMediaUploadCreateResponseJson() {
+      return JSON.stringify(
+        overrides.mediaUploadCreateResponseEnvelope ?? overrides.mediaUploadCreateEnvelope ?? {
+          ok: true,
+          value: {
+            content_uri: "mxc://example.test/media1",
+            unused_expires_at: 1710003600000,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixMediaContentDispositionFilenameJson() {
+      return JSON.stringify(
+        overrides.mediaContentDispositionFilenameEnvelope ?? overrides.mediaFilenameEnvelope ?? {
+          ok: true,
+          value: {
+            filename: "avatar.png",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixMediaRepositoryRequestDescriptorJson() {
+      return JSON.stringify(
+        overrides.mediaRepositoryRequestDescriptorEnvelope ?? {
+          ok: true,
+          value: {
+            id: "media_config",
+            method: "GET",
+            path: "/_matrix/client/v1/media/config",
+            path_params: {},
+            query_params: {},
+            requires_auth: true,
+            adopted_runtime_behavior: false,
+            response_parser: "media_config",
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixMediaConfigResponseJson() {
+      return JSON.stringify(
+        overrides.mediaConfigResponseEnvelope ?? {
+          ok: true,
+          value: {
+            "m.upload.size": 10485760,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixMediaPreviewUrlResponseJson() {
+      return JSON.stringify(
+        overrides.mediaPreviewUrlResponseEnvelope ?? {
+          ok: true,
+          value: {
+            fields: {
+              "og:image": "mxc://example.test/preview1",
+              "og:image:width": 64,
+              "og:image:height": 64,
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixMediaThumbnailMetadataJson() {
+      return JSON.stringify(
+        overrides.mediaThumbnailMetadataEnvelope ?? {
+          ok: true,
+          value: {
+            content_uri: "mxc://example.test/thumb1",
+            content_type: "image/png",
+            width: 64,
+            height: 64,
+            method: "scale",
+            animated: false,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixMediaUploadCreateResponseJson() {
+      return JSON.stringify(
+        overrides.mediaUploadCreateResponseEnvelope ?? {
+          ok: true,
+          value: {
+            content_uri: "mxc://example.test/media1",
+            unused_expires_at: 1710003600000,
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixMediaContentDispositionFilenameJson() {
+      return JSON.stringify(
+        overrides.mediaContentDispositionFilenameEnvelope ?? {
+          ok: true,
+          value: {
+            filename: "avatar.png",
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixRegistrationAvailabilityJson() {
       return JSON.stringify(
         overrides.registrationAvailabilityEnvelope ?? {
@@ -3669,6 +3845,84 @@ test("maps SPEC-038 Matrix media envelopes", () => {
     },
     error: null,
   });
+});
+
+test("maps SPEC-095 Matrix media repository breadth envelopes", () => {
+  const vector = readSpecVector("test-vectors/media/matrix-media-repository-breadth.json");
+  const descriptors = vector.event.request_descriptors;
+  const responses = vector.event.sample_responses;
+  const descriptor = descriptors.find((item) => item.id === "media-thumbnail");
+  const core = createHouraProtocolCore(
+    binding({
+      mediaRepositoryRequestDescriptorEnvelope: {
+        ok: true,
+        value: descriptor,
+        error: null,
+      },
+      mediaConfigResponseEnvelope: {
+        ok: true,
+        value: responses.media_config,
+        error: null,
+      },
+      mediaPreviewUrlResponseEnvelope: {
+        ok: true,
+        value: { fields: responses.preview_url },
+        error: null,
+      },
+      mediaThumbnailMetadataEnvelope: {
+        ok: true,
+        value: responses.thumbnail_metadata,
+        error: null,
+      },
+      mediaUploadCreateResponseEnvelope: {
+        ok: true,
+        value: responses.upload_create,
+        error: null,
+      },
+      mediaUploadResponseEnvelope: {
+        ok: true,
+        value: responses.upload_resume,
+        error: null,
+      },
+      mediaContentDispositionFilenameEnvelope: {
+        ok: true,
+        value: { filename: vector.expected.safe_filename },
+        error: null,
+      },
+    }),
+  );
+
+  assert.equal(HOURA_PROTOCOL_CORE_SPEC_IDS.includes("SPEC-095"), true);
+  assert.deepEqual(core.parseMatrixMediaRepositoryRequestDescriptor("{}"), {
+    ok: true,
+    value: descriptor,
+    error: null,
+  });
+  assert.deepEqual(core.parseMatrixMediaConfigResponse("{}"), {
+    ok: true,
+    value: responses.media_config,
+    error: null,
+  });
+  assert.equal(
+    core.parseMatrixMediaPreviewUrlResponse("{}").value.fields["og:image"],
+    vector.expected.preview_image_uri,
+  );
+  assert.equal(
+    core.parseMatrixMediaThumbnailMetadata("{}").value.content_uri,
+    vector.expected.thumbnail_uri,
+  );
+  assert.equal(
+    core.parseMatrixMediaUploadCreateResponse("{}").value.content_uri,
+    vector.expected.upload_create_uri,
+  );
+  assert.equal(
+    core.parseMatrixMediaUploadResponse("{}").value.content_uri,
+    vector.expected.upload_create_uri,
+  );
+  assert.equal(
+    core.parseMatrixMediaContentDispositionFilename("").value.filename,
+    vector.expected.safe_filename,
+  );
 });
 
 test("maps SPEC-038 Matrix media parser failures", () => {
