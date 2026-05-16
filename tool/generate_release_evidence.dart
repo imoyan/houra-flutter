@@ -39,6 +39,7 @@ const expectedReleaseEvidenceSpecIds = [
   ...expectedProtocolSpecIds,
   'SPEC-079',
   'SPEC-081',
+  'SPEC-098',
 ];
 
 void main(List<String> args) {
@@ -538,6 +539,30 @@ void main(List<String> args) {
         'private signing-key storage',
         'outbound federation execution',
         'Server-Server API support advertisement',
+      ],
+    },
+    'push_gateway_parser_helper_dart_adoption': {
+      'issue': 128,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-098'],
+      'parity_vectors': [
+        'test-vectors/core/matrix-push-parser-helper-breadth.json',
+      ],
+      'parser_only_surfaces': [
+        'pusher descriptor',
+        'push-rule descriptor',
+        'sync visibility evidence case',
+        'malformed descriptor failure',
+        'redaction helper',
+      ],
+      'out_of_scope': [
+        'pusher persistence',
+        'runtime destination lookup',
+        'retry queue',
+        'provider dispatch',
+        'client notification UI',
+        'Push Gateway support advertisement',
+        'Rust/WASM/TypeScript protocol-core manifest coverage',
       ],
     },
     'oauth_account_management_parser_adoption': {

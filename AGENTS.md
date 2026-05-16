@@ -128,6 +128,9 @@ The current package implements:
 - SPEC-097 Matrix Federation Version / Key Lifecycle / Request Auth
   parser-only version metadata, key lifecycle metadata, and request-auth header
   descriptors only
+- SPEC-098 Matrix Push Gateway parser-only pusher descriptors, push-rule
+  descriptors, sync visibility evidence cases, malformed descriptor failures,
+  and redaction helpers only
 - SPEC-079 / SPEC-081 shared crypto metadata, redaction, and release evidence
   helper only; this is not crypto stack selection, secure storage ownership, or
   E2EE support advertisement

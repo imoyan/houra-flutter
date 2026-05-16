@@ -12,7 +12,7 @@ SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
 SPEC-010, SPEC-011, and SPEC-020. It also exposes parser-only request
 descriptors, public response envelopes, or parser helpers for SPEC-051,
 SPEC-052, SPEC-053, SPEC-054, SPEC-057, SPEC-069, SPEC-085, SPEC-090, SPEC-093,
-SPEC-095, and SPEC-097.
+SPEC-095, SPEC-097, and SPEC-098.
 
 Claim scope rule: shared-core adoption records below do not extend the Flutter
 SDK claim unless they explicitly say that the Dart SDK or Flutter SDK
@@ -430,6 +430,17 @@ taking ownership of DNS/TLS runtime, notary fallback, key-cache persistence,
 request signature verification, private signing-key storage, outbound
 federation execution, or Server-Server API support advertisement.
 
+SPEC-098 Dart SDK adoption record for issue #128: the Flutter SDK prototype now
+consumes the `houra-spec` snapshot `26a47461237d30efb2310bd688559b73d6dc998b`
+SPEC-098 Push Gateway parser helper vector for parser-only Push Gateway
+inspection. The Dart SDK exposes pusher descriptors, push-rule descriptors,
+sync visibility evidence cases, malformed descriptor failures, and push
+evidence redaction helpers without taking ownership of pusher persistence,
+runtime destination lookups, retry queues, provider dispatch, client
+notification UI, or Push Gateway support advertisement. Rust/WASM/TypeScript
+facade adoption remains a follow-up unless a later shared-core PR explicitly
+adds SPEC-098 to the protocol-core manifest.
+
 SPEC-054 shared-core adoption record for issue #69: the Rust prototype now consumes the
 `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
 (`v0.2.0-pre.58-43-g395c400`) SPEC-054 SAS verification, cross-signing key
@@ -797,7 +808,7 @@ Current decision: keep this package unpublished while the SDK remains a draft.
   SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
   SPEC-010, SPEC-011, SPEC-020, SPEC-051, SPEC-052, SPEC-053, SPEC-054,
   SPEC-057,
-  SPEC-069, SPEC-085, SPEC-090, SPEC-093, SPEC-095, and SPEC-097.
+  SPEC-069, SPEC-085, SPEC-090, SPEC-093, SPEC-095, SPEC-097, and SPEC-098.
 - Claim expansion rule: shared-core adoption records do not extend the Flutter
   SDK claim unless they explicitly say that the Dart SDK or Flutter SDK
   prototype exposes the surface and matching Dart contract tests plus README
@@ -911,8 +922,10 @@ Deferred implementation backlog:
 - #123 completed the federation version/key lifecycle parser helper wave.
   #124 and #125 track the remaining federation parser helper wave for PDU/EDU
   envelopes and directory/query/OpenID helpers.
-- #126, #127, and #128 track Application Service, Identity Service, and Push
-  Gateway full-breadth parser helper work.
+- #128 completed the Dart SDK Push Gateway parser helper surface for pusher,
+  push-rule, sync-visibility, malformed descriptor, and redaction evidence.
+- #126 and #127 track Application Service and Identity Service full-breadth
+  parser helper work.
 - #129, #130, and #131 track Room Version helper and fixture-runner candidates.
 - #132 tracks E2EE full-breadth parser artifacts.
 - #133 tracks the adopted shared crypto metadata / redaction / release evidence

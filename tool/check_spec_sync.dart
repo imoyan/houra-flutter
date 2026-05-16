@@ -1454,12 +1454,16 @@ void checkSpec057ProtocolCoreGate(List<String> failures) {
     failures,
     specRoot,
     'SPEC-057',
-    vectors.where((path) => !path.contains('matrix-state-resolution-representative')).toList(),
+    vectors
+        .where(
+            (path) => !path.contains('matrix-state-resolution-representative'))
+        .toList(),
   );
-  final representative =
-      File('${specRoot.path}/test-vectors/events/matrix-state-resolution-representative.json');
+  final representative = File(
+      '${specRoot.path}/test-vectors/events/matrix-state-resolution-representative.json');
   if (!representative.existsSync()) {
-    failures.add('Missing SPEC-041 representative state vector: ${representative.path}');
+    failures.add(
+        'Missing SPEC-041 representative state vector: ${representative.path}');
   }
   checkReleaseEvidenceAdoption(
     failures,
@@ -1839,9 +1843,8 @@ List<String> readFlutterSdkAdoptionSpecIds(String source) {
   for (var index = 0; index < matches.length; index += 1) {
     final match = matches[index];
     final blockStart = match.start;
-    final blockEnd = index + 1 < matches.length
-        ? matches[index + 1].start
-        : source.length;
+    final blockEnd =
+        index + 1 < matches.length ? matches[index + 1].start : source.length;
     final block = source.substring(blockStart, blockEnd);
     if (block.contains('Flutter SDK prototype now') ||
         block.contains('The Dart SDK,')) {
@@ -1875,9 +1878,7 @@ String? extractParagraphStartingWith(String section, String prefix) {
       continue;
     }
     final paragraph = <String>[lines[index]];
-    for (var nextIndex = index + 1;
-        nextIndex < lines.length;
-        nextIndex += 1) {
+    for (var nextIndex = index + 1; nextIndex < lines.length; nextIndex += 1) {
       final line = lines[nextIndex];
       if (line.isEmpty || line.startsWith('### ')) {
         break;
@@ -1896,9 +1897,7 @@ String? extractBulletBlockStartingWith(String section, String prefix) {
       continue;
     }
     final block = <String>[lines[index]];
-    for (var nextIndex = index + 1;
-        nextIndex < lines.length;
-        nextIndex += 1) {
+    for (var nextIndex = index + 1; nextIndex < lines.length; nextIndex += 1) {
       final line = lines[nextIndex];
       if (line.isEmpty || line.startsWith('- ') || line.startsWith('### ')) {
         break;
