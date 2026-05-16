@@ -36,6 +36,7 @@
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "npm run clean && tsc -p tsconfig.json",
+    "benchmark": "npm run build && node benchmark.mjs",
     "pack:dry-run": "npm pack --dry-run",
     "prepack": "npm run build",
     "test": "npm run build && node --test test/*.test.mjs",
