@@ -832,10 +832,13 @@ HOURA_SPEC_ROOT=../houra-spec dart run tool/generate_release_evidence.dart \
   --output build/release-evidence/houra-labs-release-evidence.json
 ```
 
-Treat the generated JSON as CI/release metadata, not a behavior contract. When
-using a `local-ci` status instead of repeating heavy GitHub checks, record the
-exact head SHA, commands, success result, and spec snapshot in the PR body or
-handoff.
+The generated JSON also includes a `conformance_coverage` report that lists the
+Flutter SDK, Rust protocol core manifest, WASM wrapper exports, TypeScript
+facade metadata, source files, test gates, and covered `SPEC-*` ids without
+recording raw requests, prompts, tokens, or secrets. Treat the generated JSON as
+CI/release metadata, not a behavior contract. When using a `local-ci` status
+instead of repeating heavy GitHub checks, record the exact head SHA, commands,
+success result, and spec snapshot in the PR body or handoff.
 
 If Rust is not installed locally, the same checks can run in a Rust Docker image
 with this repository and `houra-spec` mounted into the container. The official

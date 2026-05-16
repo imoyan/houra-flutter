@@ -3,53 +3,6 @@ import 'dart:io';
 
 import 'release_evidence_helpers.dart';
 
-const expectedProtocolSpecIds = [
-  'SPEC-030',
-  'SPEC-031',
-  'SPEC-032',
-  'SPEC-033',
-  'SPEC-034',
-  'SPEC-035',
-  'SPEC-036',
-  'SPEC-037',
-  'SPEC-038',
-  'SPEC-039',
-  'SPEC-040',
-  'SPEC-045',
-  'SPEC-046',
-  'SPEC-047',
-  'SPEC-048',
-  'SPEC-049',
-  'SPEC-051',
-  'SPEC-053',
-  'SPEC-054',
-  'SPEC-055',
-  'SPEC-056',
-  'SPEC-057',
-  'SPEC-068',
-  'SPEC-069',
-  'SPEC-085',
-  'SPEC-090',
-  'SPEC-093',
-  'SPEC-095',
-  'SPEC-097',
-];
-
-const expectedReleaseEvidenceSpecIds = [
-  ...expectedProtocolSpecIds,
-  'SPEC-079',
-  'SPEC-081',
-  'SPEC-058',
-  'SPEC-075',
-  'SPEC-059',
-  'SPEC-076',
-  'SPEC-098',
-  'SPEC-099',
-  'SPEC-100',
-  'SPEC-078',
-  'SPEC-083',
-];
-
 void main(List<String> args) {
   final outputPath = _readOutputPath(args);
   final failures = <String>[];
@@ -103,7 +56,7 @@ void main(List<String> args) {
     failures,
     _listEquals(
       tsConstants['specIds'] as List<String>,
-      expectedProtocolSpecIds,
+      protocolCoreManifestSpecIds,
     ),
     'TypeScript facade SPEC coverage must exactly match the protocol artifact list.',
   );
@@ -151,7 +104,14 @@ void main(List<String> args) {
         'split any snapshot drift into a dedicated revalidation issue before publication',
       ],
     },
-    'covered_spec_ids': expectedReleaseEvidenceSpecIds,
+    'covered_spec_ids': releaseEvidenceSpecIds,
+    'conformance_coverage': buildConformanceCoverageReport(
+      flutterSdkSpecIds: [
+        ...flutterSdkBaseSpecIds,
+        for (final specId in readDartContractTestSpecIds())
+          if (!flutterSdkBaseSpecIds.contains(specId)) specId,
+      ],
+    ),
     'protocol_core': {
       'crate_name': rustCore['name'],
       'crate_version': rustCore['version'],
