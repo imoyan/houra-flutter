@@ -147,6 +147,10 @@ The current package implements:
 - SPEC-100 Matrix Federation Directory / Query / OpenID parser-only public
   rooms, hierarchy, directory query, profile query, generic query, and OpenID
   userinfo response descriptors only
+- SPEC-078 / SPEC-083 Matrix Room Versions parser-only gap lane, event-decision
+  artifact, auth-rule fixture inventory, and state-resolution fixture
+  inventory evidence only; this is not full Room Versions algorithm support
+  advertisement
 - SPEC-079 / SPEC-081 shared crypto metadata, redaction, and release evidence
   helper only; this is not crypto stack selection, secure storage ownership, or
   E2EE support advertisement

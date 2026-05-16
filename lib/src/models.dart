@@ -1291,6 +1291,509 @@ final class HouraMatrixPushParserEvidenceCase {
   }
 }
 
+/// SPEC-078 Room Versions full-algorithm gap inventory.
+final class HouraMatrixRoomVersionsGapInventory {
+  const HouraMatrixRoomVersionsGapInventory({
+    required this.matrixSpecVersion,
+    required this.parentIssue,
+    required this.releaseScopeDecision,
+    required this.coveredSubsetContracts,
+    required this.requiredGapLanes,
+    required this.releaseEvidenceRules,
+  });
+
+  final String matrixSpecVersion;
+  final String parentIssue;
+  final HouraMatrixReleaseScopeDecision releaseScopeDecision;
+  final List<String> coveredSubsetContracts;
+  final List<HouraMatrixGapLane> requiredGapLanes;
+  final HouraMatrixReleaseEvidenceRules releaseEvidenceRules;
+
+  factory HouraMatrixRoomVersionsGapInventory.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final event = _requiredJsonObject(json, 'event');
+    final decision = HouraMatrixReleaseScopeDecision.fromJson(
+      _requiredJsonObject(event, 'release_scope_decision'),
+    );
+    if (decision.advertisementAllowed) {
+      throw HouraResponseFormatException(
+        'Room Versions support advertisement must fail closed.',
+      );
+    }
+    final rules = HouraMatrixReleaseEvidenceRules.fromJson(
+      _requiredJsonObject(event, 'release_evidence_rules'),
+    );
+    if (rules.versionsAdvertisementWidened) {
+      throw HouraResponseFormatException(
+        'Room Versions release evidence must not widen advertisement.',
+      );
+    }
+    return HouraMatrixRoomVersionsGapInventory(
+      matrixSpecVersion: _requiredString(event, 'matrix_spec_version'),
+      parentIssue: _requiredString(event, 'parent_issue'),
+      releaseScopeDecision: decision,
+      coveredSubsetContracts: _requiredBoundedStringList(
+        event,
+        'covered_subset_contracts',
+        maxItems: 32,
+      ),
+      requiredGapLanes: _requiredBoundedObjectList(
+        event,
+        'required_gap_lanes',
+        maxItems: 16,
+      ).map(HouraMatrixGapLane.fromJson).toList(growable: false),
+      releaseEvidenceRules: rules,
+    );
+  }
+
+  HouraMatrixGapLane lane(String id) {
+    for (final lane in requiredGapLanes) {
+      if (lane.id == id) {
+        return lane;
+      }
+    }
+    throw HouraResponseFormatException('Missing Matrix gap lane "$id".');
+  }
+
+  HouraMatrixFixtureRunnerResult runAuthRuleFixtureInventory() {
+    final gapLane = lane('authorization-rules-breadth');
+    return HouraMatrixFixtureRunnerResult.fromGapLane(
+      runner: 'room-version-auth-rule-fixture-runner',
+      lane: gapLane,
+      requiredExamples: const [
+        'm.room.create auth rules',
+        'm.room.member join, invite, leave, ban, and knock rules',
+        'm.room.power_levels validation',
+        'third-party invite auth',
+      ],
+    );
+  }
+
+  HouraMatrixFixtureRunnerResult runStateResolutionFixtureInventory() {
+    final gapLane = lane('state-resolution-algorithm-breadth');
+    return HouraMatrixFixtureRunnerResult.fromGapLane(
+      runner: 'room-version-state-resolution-fixture-runner',
+      lane: gapLane,
+      requiredExamples: const [
+        'state resolution version 1',
+        'state resolution version 2',
+        'unconflicted state map and conflicted state set',
+        'auth chain and power events',
+        'mainline ordering',
+        'iterative auth checks',
+      ],
+    );
+  }
+}
+
+/// SPEC-083 bounded Room Version event-decision artifact.
+final class HouraMatrixRoomVersionEventDecisionArtifact {
+  const HouraMatrixRoomVersionEventDecisionArtifact({
+    required this.roomVersion,
+    required this.resourceBounds,
+    required this.decisions,
+    required this.releaseEvidenceRules,
+  });
+
+  final String roomVersion;
+  final HouraMatrixRoomVersionResourceBounds resourceBounds;
+  final List<HouraMatrixRoomVersionEventDecision> decisions;
+  final HouraMatrixReleaseEvidenceRules releaseEvidenceRules;
+
+  factory HouraMatrixRoomVersionEventDecisionArtifact.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final event = _requiredJsonObject(json, 'event');
+    final bounds = HouraMatrixRoomVersionResourceBounds.fromJson(
+      _requiredJsonObject(event, 'resource_bounds'),
+    );
+    final decisions = _requiredBoundedObjectList(
+      event,
+      'decisions',
+      maxItems: bounds.maxBatchDecisions,
+    ).map(HouraMatrixRoomVersionEventDecision.fromJson).toList(growable: false);
+    final rules = HouraMatrixReleaseEvidenceRules.fromJson(
+      _requiredJsonObject(event, 'release_evidence_rules'),
+    );
+    if (rules.versionsAdvertisementWidened ||
+        rules.fullRoomVersionAlgorithmClaimed ||
+        !rules.resourceBoundsRequired) {
+      throw HouraResponseFormatException(
+        'Room Version event-decision artifact must fail closed.',
+      );
+    }
+    return HouraMatrixRoomVersionEventDecisionArtifact(
+      roomVersion: _requiredString(event, 'matrix_room_version'),
+      resourceBounds: bounds,
+      decisions: List.unmodifiable(decisions),
+      releaseEvidenceRules: rules,
+    );
+  }
+}
+
+/// SPEC-083 resource bounds for Room Version event-decision artifacts.
+final class HouraMatrixRoomVersionResourceBounds {
+  const HouraMatrixRoomVersionResourceBounds({
+    required this.maxCanonicalEventBytes,
+    required this.maxAuthEvents,
+    required this.maxPrevEvents,
+    required this.maxStateEntries,
+    required this.maxBatchDecisions,
+    required this.recursiveGraphExpansion,
+    required this.networkLookupAllowed,
+    required this.unboundedDatabaseScanAllowed,
+  });
+
+  final int maxCanonicalEventBytes;
+  final int maxAuthEvents;
+  final int maxPrevEvents;
+  final int maxStateEntries;
+  final int maxBatchDecisions;
+  final bool recursiveGraphExpansion;
+  final bool networkLookupAllowed;
+  final bool unboundedDatabaseScanAllowed;
+
+  factory HouraMatrixRoomVersionResourceBounds.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final bounds = HouraMatrixRoomVersionResourceBounds(
+      maxCanonicalEventBytes:
+          _requiredPositiveInt(json, 'max_canonical_event_bytes'),
+      maxAuthEvents: _requiredPositiveInt(json, 'max_auth_events'),
+      maxPrevEvents: _requiredPositiveInt(json, 'max_prev_events'),
+      maxStateEntries: _requiredPositiveInt(json, 'max_state_entries'),
+      maxBatchDecisions: _requiredPositiveInt(json, 'max_batch_decisions'),
+      recursiveGraphExpansion: _requiredBool(json, 'recursive_graph_expansion'),
+      networkLookupAllowed: _requiredBool(json, 'network_lookup_allowed'),
+      unboundedDatabaseScanAllowed:
+          _requiredBool(json, 'unbounded_database_scan_allowed'),
+    );
+    if (bounds.recursiveGraphExpansion ||
+        bounds.networkLookupAllowed ||
+        bounds.unboundedDatabaseScanAllowed) {
+      throw HouraResponseFormatException(
+        'Room Version event-decision resource bounds must fail closed.',
+      );
+    }
+    return bounds;
+  }
+}
+
+/// SPEC-083 event decision outcome.
+final class HouraMatrixRoomVersionEventDecision {
+  const HouraMatrixRoomVersionEventDecision({
+    required this.eventId,
+    required this.type,
+    required this.outcome,
+    required this.reason,
+    required this.visibleIn,
+    this.redacts,
+  });
+
+  final String eventId;
+  final String type;
+  final String outcome;
+  final String reason;
+  final HouraMatrixRoomVersionVisibility visibleIn;
+  final String? redacts;
+
+  factory HouraMatrixRoomVersionEventDecision.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final outcome = _requiredString(json, 'outcome');
+    if (!const {'accepted', 'rejected', 'soft_failed', 'redacted'}
+        .contains(outcome)) {
+      throw HouraResponseFormatException(
+        'Unsupported Room Version event decision outcome.',
+      );
+    }
+    final visibleIn = HouraMatrixRoomVersionVisibility.fromJson(
+      _requiredJsonObject(json, 'visible_in'),
+    );
+    if ((outcome == 'rejected' && visibleIn.anyVisible) ||
+        (outcome == 'soft_failed' &&
+            (visibleIn.timeline || visibleIn.stateAtEvent))) {
+      throw HouraResponseFormatException(
+        'Room Version event decision visibility is not fail closed.',
+      );
+    }
+    if (outcome == 'redacted' && _optionalString(json, 'redacts') == null) {
+      throw HouraResponseFormatException(
+        'Expected redacted Room Version event target.',
+      );
+    }
+    return HouraMatrixRoomVersionEventDecision(
+      eventId: _requiredString(json, 'event_id'),
+      type: _requiredString(json, 'type'),
+      outcome: outcome,
+      reason: _requiredString(json, 'reason'),
+      visibleIn: visibleIn,
+      redacts: _optionalString(json, 'redacts'),
+    );
+  }
+}
+
+/// SPEC-083 event visibility flags.
+final class HouraMatrixRoomVersionVisibility {
+  const HouraMatrixRoomVersionVisibility({
+    required this.timeline,
+    required this.stateAtEvent,
+    required this.backfill,
+    required this.getMissingEvents,
+  });
+
+  final bool timeline;
+  final bool stateAtEvent;
+  final bool backfill;
+  final bool getMissingEvents;
+
+  bool get anyVisible =>
+      timeline || stateAtEvent || backfill || getMissingEvents;
+
+  factory HouraMatrixRoomVersionVisibility.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraMatrixRoomVersionVisibility(
+      timeline: _requiredBool(json, 'timeline'),
+      stateAtEvent: _requiredBool(json, 'state_at_event'),
+      backfill: _requiredBool(json, 'backfill'),
+      getMissingEvents: _requiredBool(json, 'get_missing_events'),
+    );
+  }
+}
+
+/// SPEC-079 Olm/Megolm full E2EE gap inventory.
+final class HouraMatrixE2eeGapInventory {
+  const HouraMatrixE2eeGapInventory({
+    required this.matrixSpecVersion,
+    required this.parentIssue,
+    required this.releaseScopeDecision,
+    required this.coveredSubsetContracts,
+    required this.requiredGapLanes,
+    required this.releaseEvidenceRules,
+  });
+
+  final String matrixSpecVersion;
+  final String parentIssue;
+  final HouraMatrixReleaseScopeDecision releaseScopeDecision;
+  final List<String> coveredSubsetContracts;
+  final List<HouraMatrixGapLane> requiredGapLanes;
+  final HouraMatrixReleaseEvidenceRules releaseEvidenceRules;
+
+  factory HouraMatrixE2eeGapInventory.fromJson(Map<String, Object?> json) {
+    final event = _requiredJsonObject(json, 'event');
+    final decision = HouraMatrixReleaseScopeDecision.fromJson(
+      _requiredJsonObject(event, 'release_scope_decision'),
+    );
+    if (decision.advertisementAllowed) {
+      throw HouraResponseFormatException(
+        'Olm/Megolm support advertisement must fail closed.',
+      );
+    }
+    final rules = HouraMatrixReleaseEvidenceRules.fromJson(
+      _requiredJsonObject(event, 'release_evidence_rules'),
+    );
+    if (rules.versionsAdvertisementWidened) {
+      throw HouraResponseFormatException(
+        'Olm/Megolm release evidence must not widen advertisement.',
+      );
+    }
+    return HouraMatrixE2eeGapInventory(
+      matrixSpecVersion: _requiredString(event, 'matrix_spec_version'),
+      parentIssue: _requiredString(event, 'parent_issue'),
+      releaseScopeDecision: decision,
+      coveredSubsetContracts: _requiredBoundedStringList(
+        event,
+        'covered_subset_contracts',
+        maxItems: 32,
+      ),
+      requiredGapLanes: _requiredBoundedObjectList(
+        event,
+        'required_gap_lanes',
+        maxItems: 16,
+      ).map(HouraMatrixGapLane.fromJson).toList(growable: false),
+      releaseEvidenceRules: rules,
+    );
+  }
+
+  HouraMatrixGapLane lane(String id) {
+    for (final lane in requiredGapLanes) {
+      if (lane.id == id) {
+        return lane;
+      }
+    }
+    throw HouraResponseFormatException('Missing Matrix E2EE gap lane "$id".');
+  }
+
+  HouraMatrixFixtureRunnerResult runParserArtifactInventory() {
+    final gapLane =
+        lane('shared-parser-artifacts-security-release-evidence-breadth');
+    return HouraMatrixFixtureRunnerResult.fromGapLane(
+      runner: 'e2ee-parser-artifact-fixture-runner',
+      lane: gapLane,
+      requiredExamples: const [
+        'encrypted event envelope parser',
+        'key, backup, verification, and cross-signing public payload helpers',
+        'secret and local path redaction',
+        'domain coverage and release notes evidence',
+      ],
+    );
+  }
+}
+
+/// Shared Matrix full-breadth gap lane.
+final class HouraMatrixGapLane {
+  const HouraMatrixGapLane({
+    required this.id,
+    required this.status,
+    required this.endpointExamples,
+    required this.ownerRepos,
+    required this.advertisementAllowed,
+    this.relatedContracts = const [],
+    this.relatedDomains = const [],
+  });
+
+  final String id;
+  final String status;
+  final List<String> endpointExamples;
+  final List<String> ownerRepos;
+  final bool advertisementAllowed;
+  final List<String> relatedContracts;
+  final List<String> relatedDomains;
+
+  factory HouraMatrixGapLane.fromJson(Map<String, Object?> json) {
+    final allowed = _requiredBool(json, 'advertisement_allowed');
+    if (allowed) {
+      throw HouraResponseFormatException(
+        'Matrix gap lane advertisement must fail closed.',
+      );
+    }
+    return HouraMatrixGapLane(
+      id: _requiredString(json, 'id'),
+      status: _requiredString(json, 'status'),
+      endpointExamples: _requiredBoundedStringList(
+        json,
+        'endpoint_examples',
+        maxItems: 32,
+      ),
+      ownerRepos: _requiredBoundedStringList(
+        json,
+        'owner_repos',
+        maxItems: 16,
+      ),
+      relatedContracts: _optionalBoundedStringList(
+        json,
+        'related_contracts',
+        maxItems: 16,
+      ),
+      relatedDomains: _optionalBoundedStringList(
+        json,
+        'related_domains',
+        maxItems: 16,
+      ),
+      advertisementAllowed: allowed,
+    );
+  }
+}
+
+/// Shared parser-only fixture runner result for gap-inventory lanes.
+final class HouraMatrixFixtureRunnerResult {
+  const HouraMatrixFixtureRunnerResult({
+    required this.runner,
+    required this.laneId,
+    required this.status,
+    required this.matchedExamples,
+    required this.advertisementAllowed,
+  });
+
+  final String runner;
+  final String laneId;
+  final String status;
+  final List<String> matchedExamples;
+  final bool advertisementAllowed;
+
+  factory HouraMatrixFixtureRunnerResult.fromGapLane({
+    required String runner,
+    required HouraMatrixGapLane lane,
+    required List<String> requiredExamples,
+  }) {
+    final matched = requiredExamples
+        .where((example) => lane.endpointExamples.contains(example))
+        .toList(growable: false);
+    if (matched.length != requiredExamples.length ||
+        lane.advertisementAllowed) {
+      throw HouraResponseFormatException(
+        'Matrix fixture runner lane does not match fail-closed evidence.',
+      );
+    }
+    return HouraMatrixFixtureRunnerResult(
+      runner: runner,
+      laneId: lane.id,
+      status: lane.status,
+      matchedExamples: List.unmodifiable(matched),
+      advertisementAllowed: lane.advertisementAllowed,
+    );
+  }
+}
+
+/// Shared release-scope decision for Matrix gap inventories.
+final class HouraMatrixReleaseScopeDecision {
+  const HouraMatrixReleaseScopeDecision({
+    required this.domain,
+    required this.decision,
+    required this.issue,
+    required this.advertisementAllowed,
+  });
+
+  final String domain;
+  final String decision;
+  final String issue;
+  final bool advertisementAllowed;
+
+  factory HouraMatrixReleaseScopeDecision.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraMatrixReleaseScopeDecision(
+      domain: _requiredString(json, 'domain'),
+      decision: _requiredString(json, 'decision'),
+      issue: _requiredString(json, 'issue'),
+      advertisementAllowed: _requiredBool(json, 'advertisement_allowed'),
+    );
+  }
+}
+
+/// Shared Matrix release-evidence rules.
+final class HouraMatrixReleaseEvidenceRules {
+  const HouraMatrixReleaseEvidenceRules({
+    required this.versionsAdvertisementWidened,
+    this.fullRoomVersionAlgorithmClaimed = false,
+    this.resourceBoundsRequired = false,
+  });
+
+  final bool versionsAdvertisementWidened;
+  final bool fullRoomVersionAlgorithmClaimed;
+  final bool resourceBoundsRequired;
+
+  factory HouraMatrixReleaseEvidenceRules.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraMatrixReleaseEvidenceRules(
+      versionsAdvertisementWidened: _requiredBool(
+        json,
+        'versions_advertisement_widened',
+      ),
+      fullRoomVersionAlgorithmClaimed: _optionalBool(
+            json,
+            'full_room_version_algorithm_claimed',
+          ) ??
+          false,
+      resourceBoundsRequired:
+          _optionalBool(json, 'resource_bounds_required') ?? false,
+    );
+  }
+}
+
 /// SPEC-058 parser-only Application Service registration descriptor.
 final class HouraMatrixApplicationServiceRegistration {
   const HouraMatrixApplicationServiceRegistration({
@@ -3722,6 +4225,14 @@ int _requiredNonNegativeInt(Map<String, Object?> json, String key) {
   throw HouraResponseFormatException('Expected non-negative integer "$key".');
 }
 
+int _requiredPositiveInt(Map<String, Object?> json, String key) {
+  final value = _requiredInt(json, key);
+  if (value > 0) {
+    return value;
+  }
+  throw HouraResponseFormatException('Expected positive integer "$key".');
+}
+
 int? _optionalNonNegativeInt(Map<String, Object?> json, String key) {
   final value = json[key];
   if (value == null) {
@@ -3880,6 +4391,31 @@ List<String> _requiredBoundedStringList(
   required int maxItems,
 }) {
   final value = json[key];
+  if (value is! List) {
+    throw HouraResponseFormatException('Expected string array "$key".');
+  }
+  if (value.length > maxItems) {
+    throw HouraResponseFormatException('Expected bounded string array "$key".');
+  }
+  final result = <String>[];
+  for (final item in value) {
+    if (item is! String || item.isEmpty) {
+      throw HouraResponseFormatException('Expected string array "$key".');
+    }
+    result.add(item);
+  }
+  return List.unmodifiable(result);
+}
+
+List<String> _optionalBoundedStringList(
+  Map<String, Object?> json,
+  String key, {
+  required int maxItems,
+}) {
+  final value = json[key];
+  if (value == null) {
+    return const [];
+  }
   if (value is! List) {
     throw HouraResponseFormatException('Expected string array "$key".');
   }
