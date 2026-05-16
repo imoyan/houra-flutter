@@ -39,6 +39,8 @@ const expectedReleaseEvidenceSpecIds = [
   ...expectedProtocolSpecIds,
   'SPEC-079',
   'SPEC-081',
+  'SPEC-058',
+  'SPEC-075',
   'SPEC-059',
   'SPEC-076',
   'SPEC-098',
@@ -783,7 +785,8 @@ void main(List<String> args) {
     },
     'ecosystem_service_parser_candidates': {
       'issue': 73,
-      'status': 'identity-parser-adopted-candidates-remain',
+      'status':
+          'application-and-identity-parser-adopted-push-candidate-remains',
       'spec_ids': ['SPEC-058', 'SPEC-059', 'SPEC-060'],
       'labs_owned_candidates': {
         'SPEC-058': [
@@ -832,6 +835,42 @@ void main(List<String> args) {
         'owning application service deployment or bridge protocol behavior',
         'owning identity provider delivery or consent policy',
         'owning APNS, FCM, Web Push, or vendor credential handling',
+      ],
+    },
+    'application_service_parser_helper_dart_adoption': {
+      'issue': 126,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-058', 'SPEC-075'],
+      'spec_snapshot': '26a47461237d30efb2310bd688559b73d6dc998b',
+      'vectors': [
+        'test-vectors/core/matrix-appservice-registration-basic.json',
+        'test-vectors/core/matrix-appservice-namespace-ownership.json',
+        'test-vectors/core/matrix-appservice-transaction-basic.json',
+        'test-vectors/core/matrix-appservice-query-user-room-basic.json',
+        'test-vectors/core/matrix-application-service-full-breadth-gap-inventory.json',
+      ],
+      'implemented_surface': [
+        'Application Service registration descriptors',
+        'namespace regex descriptors',
+        'homeserver-to-appservice request descriptors',
+        'transaction envelopes',
+        'user and room-alias query descriptors',
+        'full-breadth gap lane parser evidence',
+        'privacy-sensitive redaction helper',
+      ],
+      'fail_closed_claims': [
+        'Application Service full-breadth runtime support is not claimed',
+        'Matrix versions advertisement is not widened',
+        'delivery retry, bridge runtime, token storage, and server mutation remain server-owned',
+        'third-party network, ping/liveness, and Client-Server extension support remain out of scope',
+      ],
+      'out_of_scope': [
+        'owning application service deployment',
+        'storing application service tokens',
+        'performing delivery retry or bridge runtime behavior',
+        'mutating homeserver state',
+        'claiming third-party network directory or ping support',
+        'claiming Client-Server masquerading or bridge external URL support',
       ],
     },
     'identity_service_parser_helper_dart_adoption': {

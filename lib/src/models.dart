@@ -1291,6 +1291,281 @@ final class HouraMatrixPushParserEvidenceCase {
   }
 }
 
+/// SPEC-058 parser-only Application Service registration descriptor.
+final class HouraMatrixApplicationServiceRegistration {
+  const HouraMatrixApplicationServiceRegistration({
+    required this.id,
+    required this.url,
+    required this.asToken,
+    required this.hsToken,
+    required this.senderLocalpart,
+    required this.namespaces,
+  });
+
+  final String id;
+  final Uri? url;
+  final String asToken;
+  final String hsToken;
+  final String senderLocalpart;
+  final HouraMatrixApplicationServiceNamespaces namespaces;
+
+  String senderUserId(String serverName) {
+    _validateMatrixApplicationServiceServerName(serverName);
+    return '@$senderLocalpart:$serverName';
+  }
+
+  factory HouraMatrixApplicationServiceRegistration.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final asToken = _requiredString(json, 'as_token');
+    final hsToken = _requiredString(json, 'hs_token');
+    if (asToken == hsToken) {
+      throw HouraResponseFormatException(
+        'Expected distinct application service tokens.',
+      );
+    }
+    final rawUrl = _optionalString(json, 'url');
+    return HouraMatrixApplicationServiceRegistration(
+      id: _requiredString(json, 'id'),
+      url: rawUrl == null ? null : _parseMatrixApplicationServiceUrl(rawUrl),
+      asToken: asToken,
+      hsToken: hsToken,
+      senderLocalpart: _parseMatrixApplicationServiceLocalpart(
+        _requiredString(json, 'sender_localpart'),
+      ),
+      namespaces: HouraMatrixApplicationServiceNamespaces.fromJson(
+        _requiredJsonObject(json, 'namespaces'),
+      ),
+    );
+  }
+}
+
+/// SPEC-058 Application Service namespace sections.
+final class HouraMatrixApplicationServiceNamespaces {
+  const HouraMatrixApplicationServiceNamespaces({
+    required this.users,
+    required this.aliases,
+    required this.rooms,
+  });
+
+  final List<HouraMatrixApplicationServiceNamespace> users;
+  final List<HouraMatrixApplicationServiceNamespace> aliases;
+  final List<HouraMatrixApplicationServiceNamespace> rooms;
+
+  factory HouraMatrixApplicationServiceNamespaces.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraMatrixApplicationServiceNamespaces(
+      users: _parseMatrixApplicationServiceNamespaceList(json, 'users'),
+      aliases: _parseMatrixApplicationServiceNamespaceList(json, 'aliases'),
+      rooms: _parseMatrixApplicationServiceNamespaceList(json, 'rooms'),
+    );
+  }
+}
+
+/// SPEC-058 Application Service namespace regex descriptor.
+final class HouraMatrixApplicationServiceNamespace {
+  const HouraMatrixApplicationServiceNamespace({
+    required this.exclusive,
+    required this.regex,
+  });
+
+  final bool exclusive;
+  final RegExp regex;
+
+  bool matches(String entity) => regex.hasMatch(entity);
+
+  factory HouraMatrixApplicationServiceNamespace.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final pattern = _requiredString(json, 'regex');
+    try {
+      return HouraMatrixApplicationServiceNamespace(
+        exclusive: _requiredBool(json, 'exclusive'),
+        regex: RegExp(pattern),
+      );
+    } on FormatException {
+      throw HouraResponseFormatException(
+        'Expected application service namespace regex.',
+      );
+    }
+  }
+}
+
+/// SPEC-058 homeserver-to-Application-Service request descriptor.
+final class HouraMatrixApplicationServiceRequestDescriptor {
+  const HouraMatrixApplicationServiceRequestDescriptor({
+    required this.method,
+    required this.path,
+    required this.authorizationScheme,
+  });
+
+  final String method;
+  final String path;
+  final String? authorizationScheme;
+
+  factory HouraMatrixApplicationServiceRequestDescriptor.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final method = _requiredString(json, 'method');
+    if (!const {'GET', 'PUT', 'POST'}.contains(method)) {
+      throw HouraResponseFormatException(
+        'Unsupported Matrix Application Service method.',
+      );
+    }
+    final path = _requiredString(json, 'path');
+    _validateMatrixApplicationServicePath(path);
+    final authorization = _optionalJsonObject(json, 'authorization');
+    final scheme =
+        authorization == null ? null : _requiredString(authorization, 'scheme');
+    if (scheme != null && scheme != 'Bearer') {
+      throw HouraResponseFormatException(
+        'Expected Matrix Application Service bearer auth.',
+      );
+    }
+    return HouraMatrixApplicationServiceRequestDescriptor(
+      method: method,
+      path: path,
+      authorizationScheme: scheme,
+    );
+  }
+}
+
+/// SPEC-058 Application Service transaction envelope.
+final class HouraMatrixApplicationServiceTransaction {
+  const HouraMatrixApplicationServiceTransaction({
+    required this.transactionId,
+    required this.events,
+    required this.ephemeral,
+  });
+
+  final String transactionId;
+  final List<HouraMatrixBasicEvent> events;
+  final List<HouraMatrixBasicEvent> ephemeral;
+
+  factory HouraMatrixApplicationServiceTransaction.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final request = HouraMatrixApplicationServiceRequestDescriptor.fromJson(
+      json,
+    );
+    if (request.method != 'PUT' ||
+        !request.path.startsWith('/_matrix/app/v1/transactions/')) {
+      throw HouraResponseFormatException(
+        'Expected Matrix Application Service transaction request.',
+      );
+    }
+    final body = _requiredJsonObject(json, 'body');
+    final transactionId =
+        request.path.substring('/_matrix/app/v1/transactions/'.length);
+    if (transactionId.isEmpty || transactionId.contains('/')) {
+      throw HouraResponseFormatException(
+        'Expected Matrix Application Service transaction ID.',
+      );
+    }
+    return HouraMatrixApplicationServiceTransaction(
+      transactionId: transactionId,
+      events: _requiredObjectList(body, 'events')
+          .map(HouraMatrixBasicEvent.fromJson)
+          .toList(growable: false),
+      ephemeral: (_optionalObjectList(body, 'ephemeral') ?? const [])
+          .map(HouraMatrixBasicEvent.fromJson)
+          .toList(growable: false),
+    );
+  }
+}
+
+/// SPEC-058 Application Service query descriptor.
+final class HouraMatrixApplicationServiceQueryDescriptor {
+  const HouraMatrixApplicationServiceQueryDescriptor({
+    required this.id,
+    required this.method,
+    required this.path,
+    required this.expectedStatus,
+    required this.authorizationScheme,
+  });
+
+  final String id;
+  final String method;
+  final String path;
+  final int expectedStatus;
+  final String? authorizationScheme;
+
+  factory HouraMatrixApplicationServiceQueryDescriptor.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final request = HouraMatrixApplicationServiceRequestDescriptor.fromJson(
+      json,
+    );
+    if (request.method != 'GET' ||
+        (!request.path.startsWith('/_matrix/app/v1/users/') &&
+            !request.path.startsWith('/_matrix/app/v1/rooms/'))) {
+      throw HouraResponseFormatException(
+        'Expected Matrix Application Service query request.',
+      );
+    }
+    return HouraMatrixApplicationServiceQueryDescriptor(
+      id: _requiredString(json, 'id'),
+      method: request.method,
+      path: request.path,
+      expectedStatus: _requiredNonNegativeInt(json, 'expected_status'),
+      authorizationScheme: request.authorizationScheme,
+    );
+  }
+}
+
+/// SPEC-075 Application Service full-breadth gap lane.
+final class HouraMatrixApplicationServiceGapLane {
+  const HouraMatrixApplicationServiceGapLane({
+    required this.id,
+    required this.status,
+    required this.endpointExamples,
+    required this.ownerRepos,
+    required this.advertisementAllowed,
+  });
+
+  final String id;
+  final String status;
+  final List<String> endpointExamples;
+  final List<String> ownerRepos;
+  final bool advertisementAllowed;
+
+  factory HouraMatrixApplicationServiceGapLane.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final allowed = _requiredBool(json, 'advertisement_allowed');
+    if (allowed) {
+      throw HouraResponseFormatException(
+        'Application Service support advertisement must fail closed.',
+      );
+    }
+    return HouraMatrixApplicationServiceGapLane(
+      id: _requiredString(json, 'id'),
+      status: _requiredString(json, 'status'),
+      endpointExamples: _requiredStringList(json, 'endpoint_examples'),
+      ownerRepos: _requiredStringList(json, 'owner_repos'),
+      advertisementAllowed: allowed,
+    );
+  }
+}
+
+/// SPEC-058/075 redaction helper for Application Service evidence artifacts.
+final class HouraMatrixApplicationServiceEvidenceRedactor {
+  static const redactionMarker = 'appservice-redacted';
+
+  const HouraMatrixApplicationServiceEvidenceRedactor();
+
+  Map<String, Object?> redact(Map<String, Object?> value) {
+    return Map<String, Object?>.unmodifiable({
+      for (final entry in value.entries)
+        entry.key: _redactApplicationServiceEvidenceValue(
+          entry.key,
+          entry.value,
+        ),
+    });
+  }
+}
+
 /// SPEC-059 parser-only Identity Service request descriptor.
 final class HouraMatrixIdentityRequestDescriptor {
   const HouraMatrixIdentityRequestDescriptor({
@@ -1618,6 +1893,99 @@ void _validateMatrixPushRuleId(String value) {
   if (value.startsWith('.') || value.contains('/') || value.contains(r'\')) {
     throw HouraResponseFormatException('Expected Matrix push rule ID.');
   }
+}
+
+Uri _parseMatrixApplicationServiceUrl(String value) {
+  final uri = Uri.tryParse(value);
+  if (uri == null ||
+      uri.scheme != 'https' ||
+      uri.host.isEmpty ||
+      uri.hasFragment ||
+      uri.userInfo.isNotEmpty) {
+    throw HouraResponseFormatException(
+      'Expected safe Matrix Application Service URL.',
+    );
+  }
+  return uri;
+}
+
+String _parseMatrixApplicationServiceLocalpart(String value) {
+  if (value.isEmpty ||
+      value.startsWith('@') ||
+      value.contains(':') ||
+      value.contains('/')) {
+    throw HouraResponseFormatException(
+      'Expected Matrix Application Service sender localpart.',
+    );
+  }
+  return value;
+}
+
+void _validateMatrixApplicationServiceServerName(String value) {
+  if (value.isEmpty || value.contains('/') || value.contains('@')) {
+    throw HouraResponseFormatException(
+      'Expected Matrix Application Service server name.',
+    );
+  }
+}
+
+void _validateMatrixApplicationServicePath(String value) {
+  if (!value.startsWith('/_matrix/app/v1/') &&
+      !value.startsWith('/_matrix/client/v1/appservice/')) {
+    throw HouraResponseFormatException(
+      'Expected Matrix Application Service path.',
+    );
+  }
+  if (value.contains('..') || value.contains('//')) {
+    throw HouraResponseFormatException(
+      'Expected safe Matrix Application Service path.',
+    );
+  }
+}
+
+List<HouraMatrixApplicationServiceNamespace>
+    _parseMatrixApplicationServiceNamespaceList(
+  Map<String, Object?> json,
+  String key,
+) {
+  return _requiredObjectList(json, key)
+      .map(HouraMatrixApplicationServiceNamespace.fromJson)
+      .toList(growable: false);
+}
+
+Object? _redactApplicationServiceEvidenceValue(String key, Object? value) {
+  const sensitiveKeys = {
+    'as_token',
+    'hs_token',
+    'access_token',
+    'token',
+    'authorization',
+    'registration',
+    'appservice_url',
+    'url',
+    'bridge_protocol_payload',
+    'external_url',
+    'provider_payload',
+    'trace_context',
+  };
+  if (sensitiveKeys.contains(key)) {
+    return HouraMatrixApplicationServiceEvidenceRedactor.redactionMarker;
+  }
+  if (value is Map) {
+    return Map<String, Object?>.unmodifiable({
+      for (final entry in value.entries)
+        entry.key.toString(): _redactApplicationServiceEvidenceValue(
+          entry.key.toString(),
+          entry.value,
+        ),
+    });
+  }
+  if (value is List) {
+    return List<Object?>.unmodifiable(
+      value.map((item) => _redactApplicationServiceEvidenceValue(key, item)),
+    );
+  }
+  return value;
 }
 
 void _validateMatrixIdentityPath(String value) {
@@ -3345,6 +3713,27 @@ List<Map<String, Object?>> _requiredObjectList(
   String key,
 ) {
   final value = json[key];
+  if (value is! List) {
+    throw HouraResponseFormatException('Expected object array "$key".');
+  }
+  return List<Map<String, Object?>>.unmodifiable(
+    value.map((item) {
+      if (item is Map) {
+        return Map<String, Object?>.unmodifiable(item.cast<String, Object?>());
+      }
+      throw HouraResponseFormatException('Expected object array "$key".');
+    }),
+  );
+}
+
+List<Map<String, Object?>>? _optionalObjectList(
+  Map<String, Object?> json,
+  String key,
+) {
+  final value = json[key];
+  if (value == null) {
+    return null;
+  }
   if (value is! List) {
     throw HouraResponseFormatException('Expected object array "$key".');
   }

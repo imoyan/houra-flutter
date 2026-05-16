@@ -108,6 +108,11 @@ The current package implements:
 - SPEC-057 Matrix Federation Backfill / Event Auth / State IDs parser-only
   backfill request shapes, backfill/event-auth PDUs, state ID responses, and
   state-resolution interop records only
+- SPEC-058 Matrix Application Service parser-only registration descriptors,
+  namespace regex descriptors, transaction envelopes, query descriptors, and
+  redaction helpers only
+- SPEC-075 Matrix Application Service full-breadth gap inventory parser
+  evidence only; this is not Application Service runtime support advertisement
 - SPEC-059 Matrix Identity Service parser-only request descriptors, public
   response parsers, Matrix error envelopes, lifecycle evidence cases, and
   privacy-sensitive redaction helpers only

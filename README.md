@@ -11,8 +11,9 @@ Public Flutter SDK claim: the current draft covers the MVP client profiles from
 SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
 SPEC-010, SPEC-011, and SPEC-020. It also exposes parser-only request
 descriptors, public response envelopes, or parser helpers for SPEC-051,
-SPEC-052, SPEC-053, SPEC-054, SPEC-057, SPEC-059, SPEC-069, SPEC-076, SPEC-085,
-SPEC-090, SPEC-093, SPEC-095, SPEC-097, SPEC-098, SPEC-099, and SPEC-100.
+SPEC-052, SPEC-053, SPEC-054, SPEC-057, SPEC-058, SPEC-059, SPEC-069, SPEC-075,
+SPEC-076, SPEC-085, SPEC-090, SPEC-093, SPEC-095, SPEC-097, SPEC-098,
+SPEC-099, and SPEC-100.
 
 Claim scope rule: shared-core adoption records below do not extend the Flutter
 SDK claim unless they explicitly say that the Dart SDK or Flutter SDK
@@ -196,6 +197,26 @@ consent or notification UI stay outside this repository. Implementation work
 must be split into SPEC-sized follow-up issues and tied to the corresponding
 `houra-spec/test-vectors/core/matrix-appservice-*`,
 `matrix-identity-*`, and `matrix-push-*` vectors.
+
+SPEC-058 Dart SDK adoption record for issue #126: the Flutter SDK prototype now
+consumes the `houra-spec` snapshot `26a47461237d30efb2310bd688559b73d6dc998b`
+Application Service registration, namespace ownership, transaction, and
+user/room-alias query vectors. The Dart SDK exposes parser-only registration
+descriptors, namespace regex descriptors, homeserver-to-application-service
+request descriptors, transaction envelopes, query descriptors, and
+privacy-sensitive redaction helpers. Delivery retry, bridge runtime, token
+storage, server mutation, third-party network directories, ping/liveness,
+Client-Server masquerading, and Application Service support advertisement remain
+server/bridge-owned and fail-closed.
+
+SPEC-075 Dart SDK adoption record for issue #126: the Flutter SDK prototype now
+consumes the same `houra-spec` snapshot
+`26a47461237d30efb2310bd688559b73d6dc998b` for the Application Service
+full-breadth gap inventory vector. The Dart SDK exposes parser evidence and
+fail-closed release-evidence checks for the inventory only; it does not claim
+runtime ownership for third-party network lookup, ping/liveness, Client-Server
+extension masquerading, bridge external URLs, observability, or Matrix
+Application Service support advertisement.
 
 SPEC-059 Dart SDK adoption record for issue #127: the Flutter SDK prototype now
 consumes the `houra-spec` snapshot `26a47461237d30efb2310bd688559b73d6dc998b`
@@ -846,8 +867,9 @@ Current decision: keep this package unpublished while the SDK remains a draft.
 - Supported contract claim: keep the public Flutter SDK claim limited to
   SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
   SPEC-010, SPEC-011, SPEC-020, SPEC-051, SPEC-052, SPEC-053, SPEC-054,
-  SPEC-057, SPEC-059, SPEC-069, SPEC-076, SPEC-085, SPEC-090, SPEC-093,
-  SPEC-095, SPEC-097, SPEC-098, SPEC-099, and SPEC-100.
+  SPEC-057, SPEC-058, SPEC-059,
+  SPEC-069, SPEC-075, SPEC-076, SPEC-085, SPEC-090, SPEC-093, SPEC-095,
+  SPEC-097, SPEC-098, SPEC-099, and SPEC-100.
 - Claim expansion rule: shared-core adoption records do not extend the Flutter
   SDK claim unless they explicitly say that the Dart SDK or Flutter SDK
   prototype exposes the surface and matching Dart contract tests plus README
@@ -963,10 +985,12 @@ Deferred implementation backlog:
   version/key lifecycle, PDU/EDU envelopes, and directory/query/OpenID helpers.
 - #128 completed the Dart SDK Push Gateway parser helper surface for pusher,
   push-rule, sync-visibility, malformed descriptor, and redaction evidence.
+- #126 completed the Dart SDK Application Service parser helper surface for
+  registration descriptors, namespace regex descriptors, transaction envelopes,
+  query descriptors, full-breadth gap inventory evidence, and redaction helpers.
 - #127 completed the Dart SDK Identity Service parser helper surface for
   request descriptors, public response parsers, error envelopes, lifecycle
-  evidence, and redaction helpers. #126 tracks the remaining Application
-  Service parser helper work.
+  evidence, and redaction helpers.
 - #129, #130, and #131 track Room Version helper and fixture-runner candidates.
 - #132 tracks E2EE full-breadth parser artifacts.
 - #133 tracks the adopted shared crypto metadata / redaction / release evidence
