@@ -837,6 +837,21 @@ using a `local-ci` status instead of repeating heavy GitHub checks, record the
 exact head SHA, commands, success result, and spec snapshot in the PR body or
 handoff.
 
+For shared-core speed evidence, run the metadata-only benchmark harness:
+
+```bash
+HOURA_SPEC_ROOT=../houra-spec dart run tool/benchmark_shared_core.dart \
+  --iterations 200 \
+  --output build/benchmarks/shared-core-benchmark.json
+```
+
+The harness treats the TypeScript facade baseline as the current production-path
+comparison point, Rust native as the shared-core candidate, and Dart JSON parsing
+as a local runtime baseline. Go remains optional until a focused server-side
+shared-core candidate issue adds a Go package. Benchmark output records p95 and
+payload-size metadata only; it must not record raw requests, prompts, tokens, or
+secrets.
+
 If Rust is not installed locally, the same checks can run in a Rust Docker image
 with this repository and `houra-spec` mounted into the container. The official
 Rust image may not include `cargo fmt`, so install `rustfmt` inside the

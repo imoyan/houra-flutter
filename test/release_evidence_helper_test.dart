@@ -73,4 +73,99 @@ void main() {
       isFalse,
     );
   });
+
+  test('release evidence generation includes benchmark harness metadata', () {
+    final result = Process.runSync('dart', [
+      'run',
+      'tool/generate_release_evidence.dart',
+    ]);
+
+    expect(result.exitCode, 0, reason: result.stderr.toString());
+    final decoded =
+        jsonDecode(result.stdout.toString()) as Map<String, Object?>;
+    final benchmark =
+        decoded['shared_core_benchmark_harness']! as Map<String, Object?>;
+
+    expect(benchmark['issue'], 161);
+    expect(benchmark['redaction'], 'metadata-only-no-raw-requests-or-secrets');
+    expect(benchmark['summary_fields'], contains('p95_microseconds'));
+    expect(
+      benchmark['claim_boundaries'],
+      contains('no production TypeScript client/server adoption'),
+    );
+    expect(
+      benchmark['measured_surfaces'],
+      contains(
+        isA<Map>().having(
+          (surface) => surface['surface_kind'],
+          'surface_kind',
+          'typescript-facade-baseline',
+        ),
+      ),
+    );
+    expect(
+      benchmark['optional_surfaces'],
+      contains(
+        isA<Map>()
+            .having(
+              (surface) => surface['surface_kind'],
+              'surface_kind',
+              'go-server-candidate',
+            )
+            .having(
+              (surface) => surface['status'],
+              'status',
+              'optional_not_implemented',
+            ),
+      ),
+    );
+  });
+
+  test('benchmark harness can emit Dart-only metadata without raw payloads',
+      () {
+    final result = Process.runSync('dart', [
+      'run',
+      'tool/benchmark_shared_core.dart',
+      '--iterations',
+      '5',
+      '--no-external',
+    ]);
+
+    expect(result.exitCode, 0, reason: result.stderr.toString());
+    final decoded =
+        jsonDecode(result.stdout.toString()) as Map<String, Object?>;
+    final results = decoded['results']! as List;
+
+    expect(decoded['redaction'], 'metadata-only-no-raw-requests-or-secrets');
+    expect(decoded.containsKey('raw_request'), isFalse);
+    expect(decoded.containsKey('prompt'), isFalse);
+    expect(decoded.containsKey('token'), isFalse);
+    expect(
+      results,
+      contains(
+        isA<Map>()
+            .having(
+              (surface) => surface['surface_kind'],
+              'surface_kind',
+              'dart-json-baseline',
+            )
+            .having((surface) => surface['status'], 'status', 'measured')
+            .having(
+              (surface) => surface['p95_microseconds'],
+              'p95_microseconds',
+              isA<int>(),
+            ),
+      ),
+    );
+    expect(
+      results,
+      contains(
+        isA<Map>().having(
+          (surface) => surface['surface_kind'],
+          'surface_kind',
+          'go-server-candidate',
+        ),
+      ),
+    );
+  });
 }

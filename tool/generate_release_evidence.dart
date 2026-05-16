@@ -123,6 +123,13 @@ void main(List<String> args) {
         (tsPackage['files'] as List).single == 'dist/',
     'TypeScript package must publish only dist/ until artifact packaging changes.',
   );
+  final tsScripts = tsPackage['scripts'];
+  _expect(
+    failures,
+    tsScripts is Map &&
+        tsScripts['benchmark'] == 'npm run build && node benchmark.mjs',
+    'TypeScript package benchmark script changed without updating release evidence.',
+  );
 
   final specRoot = _canonicalSpecRoot();
   final specRef = _gitRevParse(specRoot.path) ??
@@ -209,6 +216,61 @@ void main(List<String> args) {
       'primary_runtime_target': 'browser-esm',
       'secondary_facade_targets': ['next', 'vue'],
       'node_runtime_status': 'package-validation-and-tests-only',
+    },
+    'shared_core_benchmark_harness': {
+      'issue': 161,
+      'status': 'candidate-evidence-harness-added',
+      'redaction': 'metadata-only-no-raw-requests-or-secrets',
+      'benchmark_command':
+          'HOURA_SPEC_ROOT=../houra-spec dart run tool/benchmark_shared_core.dart --iterations 200 --output build/benchmarks/shared-core-benchmark.json',
+      'benchmark_vector': 'SPEC-030 versions vector',
+      'measured_surfaces': [
+        {
+          'surface_kind': 'typescript-facade-baseline',
+          'role': 'current production path baseline',
+          'command':
+              'cd ts-protocol-core-wasm && HOURA_SPEC_ROOT=../../houra-spec npm run benchmark -- --iterations 200 --json',
+        },
+        {
+          'surface_kind': 'rust-native',
+          'role': 'shared protocol core candidate',
+          'command':
+              'cd rust-protocol-core && HOURA_SPEC_ROOT=../../houra-spec cargo run --bin benchmark_shared_core -- --iterations 200 --json',
+        },
+        {
+          'surface_kind': 'dart-json-baseline',
+          'role': 'Dart runtime parsing baseline only',
+          'command':
+              'HOURA_SPEC_ROOT=../houra-spec dart run tool/benchmark_shared_core.dart --iterations 200 --no-external',
+        },
+      ],
+      'size_evidence_commands': [
+        'cd ts-protocol-core-wasm && npm run pack:dry-run',
+        'cd rust-protocol-core-wasm && cargo build --target wasm32-unknown-unknown',
+      ],
+      'optional_surfaces': [
+        {
+          'surface_kind': 'go-server-candidate',
+          'status': 'optional_not_implemented',
+          'reason':
+              'No Go package is owned by houra-labs; measure Go only in a focused server-side shared-core candidate issue.',
+        },
+      ],
+      'summary_fields': [
+        'surface_kind',
+        'benchmark_id',
+        'spec_id',
+        'payload_bytes',
+        'iterations',
+        'p95_microseconds',
+        'max_microseconds',
+      ],
+      'claim_boundaries': [
+        'candidate evidence only',
+        'no production TypeScript client/server adoption',
+        'no public compatibility claim expansion',
+        'no raw request, prompt, token, or secret capture',
+      ],
     },
     'profile_account_data_parser_adoption': {
       'issue': 60,

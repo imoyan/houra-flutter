@@ -25,6 +25,7 @@ void main() {
   checkVectorReferences(failures);
   checkDocReferences(failures);
   checkFlutterSdkSupportClaim(failures);
+  checkSharedCoreBenchmarkHarness(failures);
   checkSpec039ProtocolCoreGate(failures);
   checkSpec040ProtocolCoreGate(failures);
   checkSpec048ProtocolCoreGate(failures);
@@ -71,6 +72,7 @@ void checkSdkBoundary(List<String> failures) {
     'ts-protocol-core-wasm',
   };
   const allowedToolFiles = {
+    'benchmark_shared_core.dart',
     'check_spec_sync.dart',
     'generate_release_evidence.dart',
     'release_evidence_helpers.dart',
@@ -385,6 +387,130 @@ void checkFlutterSdkSupportClaim(List<String> failures) {
         }
       }
     }
+  }
+}
+
+void checkSharedCoreBenchmarkHarness(List<String> failures) {
+  final requiredFragmentsByFile = {
+    'tool/benchmark_shared_core.dart': [
+      'SPEC-030',
+      'spec-030-versions-parse',
+      'dart-json-baseline',
+      'rust-native',
+      'typescript-facade-baseline',
+      'go-server-candidate',
+      'metadata-only-no-raw-requests-or-secrets',
+    ],
+    'rust-protocol-core/src/bin/benchmark_shared_core.rs': [
+      'SPEC-030',
+      'spec-030-versions-parse',
+      'parse_matrix_client_versions_response',
+      'p95_microseconds',
+    ],
+    'ts-protocol-core-wasm/benchmark.mjs': [
+      'createHouraProtocolCore',
+      'SPEC-030',
+      'spec-030-versions-parse',
+      'typescript-facade-baseline',
+      'p95_microseconds',
+    ],
+    'ts-protocol-core-wasm/package.json': [
+      '"benchmark": "npm run build && node benchmark.mjs"',
+    ],
+    'README.md': [
+      'tool/benchmark_shared_core.dart',
+      'TypeScript facade baseline',
+      'Go remains optional',
+    ],
+  };
+  for (final entry in requiredFragmentsByFile.entries) {
+    final file = File(entry.key);
+    if (!file.existsSync()) {
+      failures.add('Missing shared-core benchmark harness file: ${entry.key}');
+      continue;
+    }
+    final source = file.readAsStringSync();
+    for (final fragment in entry.value) {
+      if (!source.contains(fragment)) {
+        failures.add(
+          '${entry.key} is missing shared-core benchmark fragment: $fragment',
+        );
+      }
+    }
+  }
+
+  final evidence = readGeneratedReleaseEvidence(failures);
+  if (evidence == null) {
+    return;
+  }
+  final benchmark = evidence['shared_core_benchmark_harness'];
+  if (benchmark is! Map<String, Object?>) {
+    failures.add(
+      'Release evidence is missing shared_core_benchmark_harness.',
+    );
+    return;
+  }
+  if (benchmark['issue'] != 161) {
+    failures.add('shared_core_benchmark_harness issue must be 161.');
+  }
+  if (benchmark['status'] != 'candidate-evidence-harness-added') {
+    failures.add(
+      'shared_core_benchmark_harness status must be candidate-evidence-harness-added.',
+    );
+  }
+  if (benchmark['redaction'] != 'metadata-only-no-raw-requests-or-secrets') {
+    failures.add('shared_core_benchmark_harness redaction policy drifted.');
+  }
+  requireListContainsAll(
+    failures,
+    benchmark['summary_fields'],
+    ['surface_kind', 'benchmark_id', 'spec_id', 'p95_microseconds'],
+    'shared_core_benchmark_harness summary_fields',
+  );
+  requireListContainsAll(
+    failures,
+    benchmark['claim_boundaries'],
+    [
+      'candidate evidence only',
+      'no production TypeScript client/server adoption',
+      'no public compatibility claim expansion',
+      'no raw request, prompt, token, or secret capture',
+    ],
+    'shared_core_benchmark_harness claim_boundaries',
+  );
+  final measuredSurfaces = benchmark['measured_surfaces'];
+  if (measuredSurfaces is! List) {
+    failures
+        .add('shared_core_benchmark_harness measured_surfaces must be a list.');
+  } else {
+    final surfaceKinds = <String>{
+      for (final surface in measuredSurfaces)
+        if (surface is Map && surface['surface_kind'] is String)
+          surface['surface_kind']! as String,
+    };
+    for (final surfaceKind in [
+      'typescript-facade-baseline',
+      'rust-native',
+      'dart-json-baseline',
+    ]) {
+      if (!surfaceKinds.contains(surfaceKind)) {
+        failures.add(
+          'shared_core_benchmark_harness measured_surfaces is missing $surfaceKind.',
+        );
+      }
+    }
+  }
+  final optionalSurfaces = benchmark['optional_surfaces'];
+  if (optionalSurfaces is! List ||
+      !optionalSurfaces.any(
+        (surface) =>
+            surface is Map &&
+            surface['surface_kind'] == 'go-server-candidate' &&
+            surface['status'] == 'optional_not_implemented',
+      )) {
+    failures.add(
+      'shared_core_benchmark_harness optional_surfaces must keep Go as optional_not_implemented.',
+    );
   }
 }
 
