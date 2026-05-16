@@ -216,6 +216,36 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixFederationVersionJson() {
+      return JSON.stringify(
+        overrides.federationVersionEnvelope ?? {
+          ok: true,
+          value: {
+            server: {
+              name: "Houra",
+              version: "0.1.0",
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationRequestAuthDescriptorJson() {
+      return JSON.stringify(
+        overrides.federationRequestAuthDescriptorEnvelope ?? {
+          ok: true,
+          value: {
+            scheme: "X-Matrix",
+            origin: "example.test",
+            destination: "remote.example.test",
+            key: "ed25519:auto1",
+            sig: "signature",
+            signed_json_fields: ["method", "uri"],
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixFederationMakeJoinResponseJson() {
       return JSON.stringify(
         overrides.federationMakeJoinResponseEnvelope ?? {
@@ -2047,6 +2077,51 @@ test("maps SPEC-055 federation discovery and signing-key envelopes", () => {
       },
       error: null,
     },
+  );
+});
+
+test("maps SPEC-097 federation version key lifecycle request-auth envelopes", () => {
+  const vector = readSpecVector(
+    "test-vectors/core/matrix-federation-version-key-lifecycle-request-auth.json",
+  );
+  const responses = vector.event.sample_responses;
+  const core = createHouraProtocolCore(
+    binding({
+      federationVersionEnvelope: {
+        ok: true,
+        value: responses.version,
+        error: null,
+      },
+      federationKeyQueryResponseEnvelope: {
+        ok: true,
+        value: responses.key_query,
+        error: null,
+      },
+      federationRequestAuthDescriptorEnvelope: {
+        ok: true,
+        value: responses.request_auth,
+        error: null,
+      },
+    }),
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-097"));
+  assert.equal(vector.contract, "SPEC-097");
+  assert.equal(vector.expected.descriptor_count, vector.event.request_descriptors.length);
+  assert.deepEqual(core.parseMatrixFederationVersion("").value, responses.version);
+  assert.deepEqual(
+    core.parseMatrixFederationKeyQueryResponse("").value,
+    responses.key_query,
+  );
+  assert.deepEqual(
+    core.parseMatrixFederationRequestAuthDescriptor("").value,
+    responses.request_auth,
+  );
+  assert.equal(
+    core.parseMatrixFederationKeyQueryResponse("").value.server_keys[0].verify_keys[
+      "ed25519:auto2"
+    ].key,
+    "VGhpcyBpcyBhbm90aGVyIHRlc3QgcHVibGljIGtleQ",
   );
 });
 

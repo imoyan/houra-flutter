@@ -343,6 +343,11 @@ pub fn parse_matrix_federation_well_known_server_json(response_body: &str) -> St
     houra_protocol_core::parse_matrix_federation_well_known_server_json(response_body.as_bytes())
 }
 
+#[wasm_bindgen(js_name = parseMatrixFederationVersionJson)]
+pub fn parse_matrix_federation_version_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_version_json(response_body.as_bytes())
+}
+
 #[wasm_bindgen(js_name = parseMatrixFederationSigningKeyJson)]
 pub fn parse_matrix_federation_signing_key_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_federation_signing_key_json(response_body.as_bytes())
@@ -361,6 +366,13 @@ pub fn parse_matrix_federation_key_query_response_json(response_body: &str) -> S
 #[wasm_bindgen(js_name = parseMatrixFederationDestinationResolutionFailureJson)]
 pub fn parse_matrix_federation_destination_resolution_failure_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_federation_destination_resolution_failure_json(
+        response_body.as_bytes(),
+    )
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationRequestAuthDescriptorJson)]
+pub fn parse_matrix_federation_request_auth_descriptor_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_request_auth_descriptor_json(
         response_body.as_bytes(),
     )
 }
@@ -619,6 +631,11 @@ mod tests {
             .expect("supported_specs should be an array")
             .iter()
             .any(|spec| spec == "SPEC-095"));
+        assert!(manifest["supported_specs"]
+            .as_array()
+            .expect("supported_specs should be an array")
+            .iter()
+            .any(|spec| spec == "SPEC-097"));
         assert_eq!(
             json,
             houra_protocol_core::artifact_manifest_json_for_binding_kinds(&["wasm"])
@@ -834,6 +851,12 @@ mod tests {
             "{\"ok\":true,\"value\":{\"delegated_server_name\":\"delegated.example.test:8448\",\"host\":\"delegated.example.test\",\"port\":8448},\"error\":null}"
         );
         assert_eq!(
+            parse_matrix_federation_version_json(
+                "{\"server\":{\"name\":\"Houra\",\"version\":\"0.1.0\"}}",
+            ),
+            "{\"ok\":true,\"value\":{\"server\":{\"name\":\"Houra\",\"version\":\"0.1.0\"}},\"error\":null}"
+        );
+        assert_eq!(
             parse_matrix_federation_signing_key_json(
                 "{\"server_name\":\"example.test\",\"verify_keys\":{\"ed25519:auto1\":{\"key\":\"public\"}},\"old_verify_keys\":{},\"valid_until_ts\":1779011408000,\"signatures\":{\"example.test\":{\"ed25519:auto1\":\"signature\"}}}",
             ),
@@ -856,6 +879,12 @@ mod tests {
                 "{\"event\":{\"server_name\":\"broken.example.test\",\"steps\":[{\"stage\":\"failure_cache\",\"result\":{\"destination_resolved\":false,\"federation_request_sent\":false,\"backoff_recorded\":true}}]}}",
             ),
             "{\"ok\":true,\"value\":{\"server_name\":\"broken.example.test\",\"stages\":[\"failure_cache\"],\"destination_resolved\":false,\"federation_request_sent\":false,\"backoff_recorded\":true},\"error\":null}"
+        );
+        assert_eq!(
+            parse_matrix_federation_request_auth_descriptor_json(
+                "{\"scheme\":\"X-Matrix\",\"origin\":\"example.test\",\"destination\":\"remote.example.test\",\"key\":\"ed25519:auto1\",\"sig\":\"signature\",\"signed_json_fields\":[\"method\",\"uri\"]}",
+            ),
+            "{\"ok\":true,\"value\":{\"scheme\":\"X-Matrix\",\"origin\":\"example.test\",\"destination\":\"remote.example.test\",\"key\":\"ed25519:auto1\",\"sig\":\"signature\",\"signed_json_fields\":[\"method\",\"uri\"]},\"error\":null}"
         );
         assert_eq!(
             parse_matrix_federation_transaction_json(

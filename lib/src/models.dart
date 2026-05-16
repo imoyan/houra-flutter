@@ -1140,6 +1140,189 @@ String _decodeMediaFilename(String value) {
   }
 }
 
+/// SPEC-097 parser-only Matrix federation request descriptor.
+final class HouraMatrixFederationRequestDescriptor {
+  const HouraMatrixFederationRequestDescriptor({
+    required this.id,
+    required this.method,
+    required this.path,
+    required this.pathParams,
+    required this.queryParams,
+    required this.requiresAuth,
+    required this.responseParser,
+    required this.adoptedRuntimeBehavior,
+  });
+
+  final String id;
+  final String method;
+  final String path;
+  final Map<String, Object?> pathParams;
+  final Map<String, Object?> queryParams;
+  final bool requiresAuth;
+  final String responseParser;
+  final bool adoptedRuntimeBehavior;
+
+  factory HouraMatrixFederationRequestDescriptor.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final descriptor = HouraMatrixFederationRequestDescriptor(
+      id: _requiredString(json, 'id'),
+      method: _requiredString(json, 'method'),
+      path: _requiredString(json, 'path'),
+      pathParams: _optionalJsonObject(json, 'path_params') ?? const {},
+      queryParams: _requiredJsonObject(json, 'query_params'),
+      requiresAuth: _requiredBool(json, 'requires_auth'),
+      responseParser: _requiredString(json, 'response_parser'),
+      adoptedRuntimeBehavior: _requiredBool(json, 'adopted_runtime_behavior'),
+    );
+    _validateMatrixFederationDescriptor(descriptor);
+    return descriptor;
+  }
+}
+
+/// SPEC-097 federation version metadata.
+final class HouraMatrixFederationVersion {
+  const HouraMatrixFederationVersion({
+    required this.serverName,
+    required this.serverVersion,
+  });
+
+  final String serverName;
+  final String serverVersion;
+
+  factory HouraMatrixFederationVersion.fromJson(Map<String, Object?> json) {
+    final server = _requiredJsonObject(json, 'server');
+    return HouraMatrixFederationVersion(
+      serverName: _requiredString(server, 'name'),
+      serverVersion: _requiredString(server, 'version'),
+    );
+  }
+}
+
+/// SPEC-097 federation signing-key lifecycle metadata.
+final class HouraMatrixFederationSigningKey {
+  const HouraMatrixFederationSigningKey({
+    required this.serverName,
+    required this.verifyKeys,
+    required this.oldVerifyKeys,
+    required this.validUntilTs,
+    required this.signatures,
+  });
+
+  final String serverName;
+  final Map<String, String> verifyKeys;
+  final Map<String, HouraMatrixFederationOldVerifyKey> oldVerifyKeys;
+  final int validUntilTs;
+  final Map<String, Map<String, String>> signatures;
+
+  factory HouraMatrixFederationSigningKey.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final serverName = _requiredString(json, 'server_name');
+    _validateMatrixFederationServerName(serverName);
+    final verifyKeys = _requiredFederationVerifyKeys(json, 'verify_keys');
+    if (verifyKeys.isEmpty) {
+      throw HouraResponseFormatException('Expected federation verify keys.');
+    }
+    return HouraMatrixFederationSigningKey(
+      serverName: serverName,
+      verifyKeys: verifyKeys,
+      oldVerifyKeys: _requiredFederationOldVerifyKeys(json, 'old_verify_keys'),
+      validUntilTs: _requiredNonNegativeInt(json, 'valid_until_ts'),
+      signatures: _requiredNestedStringMap(json, 'signatures'),
+    );
+  }
+}
+
+/// SPEC-097 federation old signing-key metadata.
+final class HouraMatrixFederationOldVerifyKey {
+  const HouraMatrixFederationOldVerifyKey({
+    required this.expiredTs,
+    required this.key,
+  });
+
+  final int expiredTs;
+  final String key;
+}
+
+/// SPEC-097 federation key query response.
+final class HouraMatrixFederationKeyQueryResponse {
+  const HouraMatrixFederationKeyQueryResponse({required this.serverKeys});
+
+  final List<HouraMatrixFederationSigningKey> serverKeys;
+
+  factory HouraMatrixFederationKeyQueryResponse.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final value = json['server_keys'];
+    if (value is! List) {
+      throw HouraResponseFormatException('Expected federation key array.');
+    }
+    return HouraMatrixFederationKeyQueryResponse(
+      serverKeys: List.unmodifiable(
+        value.map((item) {
+          if (item is Map) {
+            return HouraMatrixFederationSigningKey.fromJson(
+              item.cast<String, Object?>(),
+            );
+          }
+          throw HouraResponseFormatException(
+            'Expected federation signing key object.',
+          );
+        }),
+      ),
+    );
+  }
+}
+
+/// SPEC-097 parser-only federation request-auth header descriptor.
+final class HouraMatrixFederationRequestAuthDescriptor {
+  const HouraMatrixFederationRequestAuthDescriptor({
+    required this.scheme,
+    required this.origin,
+    required this.destination,
+    required this.key,
+    required this.sig,
+    required this.signedJsonFields,
+  });
+
+  final String scheme;
+  final String origin;
+  final String destination;
+  final String key;
+  final String sig;
+  final List<String> signedJsonFields;
+
+  factory HouraMatrixFederationRequestAuthDescriptor.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final scheme = _requiredString(json, 'scheme');
+    if (scheme != 'X-Matrix') {
+      throw HouraResponseFormatException('Expected X-Matrix auth scheme.');
+    }
+    final origin = _requiredString(json, 'origin');
+    final destination = _requiredString(json, 'destination');
+    _validateMatrixFederationServerName(origin);
+    _validateMatrixFederationServerName(destination);
+    final key = _requiredString(json, 'key');
+    _validateMatrixFederationKeyId(key);
+    final signedJsonFields = _requiredStringList(json, 'signed_json_fields');
+    if (signedJsonFields.isEmpty) {
+      throw HouraResponseFormatException(
+        'Expected federation signed JSON fields.',
+      );
+    }
+    return HouraMatrixFederationRequestAuthDescriptor(
+      scheme: scheme,
+      origin: origin,
+      destination: destination,
+      key: key,
+      sig: _requiredString(json, 'sig'),
+      signedJsonFields: signedJsonFields,
+    );
+  }
+}
+
 /// SPEC-069 Matrix device key query response.
 final class HouraDeviceKeyQueryResponse {
   const HouraDeviceKeyQueryResponse({
@@ -1765,6 +1948,144 @@ void _validateSafeMediaFilename(String value) {
       value.codeUnits.any((unit) => unit < 0x20 || unit == 0x7f)) {
     throw HouraResponseFormatException('Expected safe media filename.');
   }
+}
+
+void _validateMatrixFederationDescriptor(
+  HouraMatrixFederationRequestDescriptor descriptor,
+) {
+  const expectedParsers = {
+    '/_matrix/federation/v1/version': 'federation_version',
+    '/_matrix/key/v2/query': 'federation_key_query_response',
+    '/_matrix/key/v2/query/{serverName}/{keyId}':
+        'federation_key_query_response',
+    '/_matrix/federation/v1/send/{txnId}': 'federation_request_auth_descriptor',
+  };
+  final expectedParser = expectedParsers[descriptor.path];
+  if (expectedParser == null ||
+      descriptor.responseParser != expectedParser ||
+      descriptor.adoptedRuntimeBehavior != false) {
+    throw HouraResponseFormatException(
+      'Unsupported Matrix federation request descriptor.',
+    );
+  }
+  if ((descriptor.path == '/_matrix/federation/v1/version' &&
+          (descriptor.method != 'GET' || descriptor.requiresAuth)) ||
+      (descriptor.path == '/_matrix/key/v2/query' &&
+          (descriptor.method != 'POST' || descriptor.requiresAuth)) ||
+      (descriptor.path == '/_matrix/key/v2/query/{serverName}/{keyId}' &&
+          (descriptor.method != 'GET' || descriptor.requiresAuth)) ||
+      (descriptor.path == '/_matrix/federation/v1/send/{txnId}' &&
+          (descriptor.method != 'PUT' || !descriptor.requiresAuth))) {
+    throw HouraResponseFormatException(
+      'Unsupported Matrix federation descriptor method.',
+    );
+  }
+  if (descriptor.queryParams.isNotEmpty) {
+    throw HouraResponseFormatException(
+      'Unsupported Matrix federation query parameters.',
+    );
+  }
+  final serverName = descriptor.pathParams['serverName'];
+  if (descriptor.path.contains('{serverName}')) {
+    if (serverName is! String) {
+      throw HouraResponseFormatException(
+        'Expected Matrix federation server name.',
+      );
+    }
+    _validateMatrixFederationServerName(serverName);
+  }
+  final keyId = descriptor.pathParams['keyId'];
+  if (descriptor.path.contains('{keyId}')) {
+    if (keyId is! String) {
+      throw HouraResponseFormatException('Expected Matrix federation key ID.');
+    }
+    _validateMatrixFederationKeyId(keyId);
+  }
+  final txnId = descriptor.pathParams['txnId'];
+  if (descriptor.path.contains('{txnId}') &&
+      (txnId is! String || txnId.isEmpty || txnId.contains('/'))) {
+    throw HouraResponseFormatException(
+      'Expected Matrix federation transaction ID.',
+    );
+  }
+}
+
+void _validateMatrixFederationServerName(String value) {
+  if (value.isEmpty ||
+      value.length > 255 ||
+      value.contains('/') ||
+      value.contains('@') ||
+      value.contains('#')) {
+    throw HouraResponseFormatException('Expected Matrix federation server.');
+  }
+  final parts = value.split(':');
+  final host = parts.length == 2 ? parts.first : value;
+  if (parts.length > 2 ||
+      host.isEmpty ||
+      host.startsWith('.') ||
+      host.endsWith('.')) {
+    throw HouraResponseFormatException('Expected Matrix federation server.');
+  }
+  if (parts.length == 2) {
+    final port = int.tryParse(parts.last);
+    if (port == null || port < 0 || port > 65535) {
+      throw HouraResponseFormatException('Expected Matrix federation port.');
+    }
+  }
+}
+
+void _validateMatrixFederationKeyId(String value) {
+  if (!RegExp(r'^ed25519:[A-Za-z0-9_]+$').hasMatch(value)) {
+    throw HouraResponseFormatException('Expected Matrix federation key ID.');
+  }
+}
+
+Map<String, String> _requiredFederationVerifyKeys(
+  Map<String, Object?> json,
+  String key,
+) {
+  final value = json[key];
+  if (value is! Map) {
+    throw HouraResponseFormatException('Expected federation verify keys.');
+  }
+  return Map<String, String>.unmodifiable(
+    value.cast<String, Object?>().map((keyId, keyValue) {
+      _validateMatrixFederationKeyId(keyId);
+      if (keyValue is! Map) {
+        throw HouraResponseFormatException('Expected federation verify key.');
+      }
+      final keyObject = keyValue.cast<String, Object?>();
+      return MapEntry(keyId, _requiredString(keyObject, 'key'));
+    }),
+  );
+}
+
+Map<String, HouraMatrixFederationOldVerifyKey> _requiredFederationOldVerifyKeys(
+  Map<String, Object?> json,
+  String key,
+) {
+  final value = json[key];
+  if (value is! Map) {
+    throw HouraResponseFormatException('Expected old federation verify keys.');
+  }
+  return Map<String, HouraMatrixFederationOldVerifyKey>.unmodifiable(
+    value.cast<String, Object?>().map((keyId, keyValue) {
+      _validateMatrixFederationKeyId(keyId);
+      if (keyValue is! Map) {
+        throw HouraResponseFormatException(
+          'Expected old federation verify key.',
+        );
+      }
+      final keyObject = keyValue.cast<String, Object?>();
+      return MapEntry(
+        keyId,
+        HouraMatrixFederationOldVerifyKey(
+          expiredTs: _requiredNonNegativeInt(keyObject, 'expired_ts'),
+          key: _requiredString(keyObject, 'key'),
+        ),
+      );
+    }),
+  );
 }
 
 Map<String, String> _requiredStringMap(Map<String, Object?> json, String key) {

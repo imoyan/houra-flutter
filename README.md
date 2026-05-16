@@ -15,11 +15,13 @@ response parsing, plus SPEC-085 Matrix event retrieval / membership history
 request descriptors and public response envelopes, and SPEC-090 Matrix
 relations / threads / reactions parser-only helpers, and SPEC-093 Matrix sync
 breadth extension parser helpers, and SPEC-095 Matrix media repository parser
-helpers, without claiming Matrix OAuth, E2EE, relation aggregation correctness,
-thread ordering, sync long-poll runtime, token persistence, fanout timing,
-media binary transfer, thumbnail generation, preview crawling, remote fetch,
-range/resumable transfer, encrypted attachment behavior, or Client-Server
-support.
+helpers, and SPEC-097 Matrix federation version/key lifecycle parser helpers,
+without claiming Matrix OAuth, E2EE, relation aggregation correctness, thread
+ordering, sync long-poll runtime, token persistence, fanout timing, media binary
+transfer, thumbnail generation, preview crawling, remote fetch,
+range/resumable transfer, encrypted attachment behavior, federation DNS/TLS
+runtime, notary fallback, request signature verification, outbound federation
+execution, Client-Server support, or Server-Server API support.
 
 ## Repository Role
 
@@ -93,8 +95,8 @@ contracts and test vectors.
 Vue, and Next client experiments. It uses `wasm-bindgen` to export the manifest
 and `SPEC-030` / `SPEC-031` / `SPEC-032` / `SPEC-033` / `SPEC-034` /
 `SPEC-035` / `SPEC-036` / `SPEC-037` / `SPEC-038` / `SPEC-045` / `SPEC-046` /
-`SPEC-047` / `SPEC-068` / `SPEC-085` / `SPEC-090` / `SPEC-093` / `SPEC-095` JSON envelopes
-plus `SPEC-039` / `SPEC-040` manifest coverage, but it does not own HTTP,
+`SPEC-047` / `SPEC-068` / `SPEC-085` / `SPEC-090` / `SPEC-093` / `SPEC-095` /
+`SPEC-097` JSON envelopes plus `SPEC-039` / `SPEC-040` manifest coverage, but it does not own HTTP,
 retries, cancellation, token storage, UI state, or framework lifecycle.
 Generated JS, `.wasm` files, generated-artifact packaging, and Next server /
 Node bindings are intentionally left out until a focused package artifact issue
@@ -416,6 +418,16 @@ without taking ownership of binary media transfer, cache persistence,
 thumbnail generation, preview crawling, remote fetch, resumable upload runtime,
 range requests, encrypted attachment behavior, or Matrix Client-Server support
 advertisement.
+
+SPEC-097 shared-core adoption record for issue #123: the Rust prototype now
+consumes the `houra-spec` snapshot `e997f74d1ddf19770d45d98ae41c7965c51ba46a`
+SPEC-097 federation version/key lifecycle request-auth vector for parser-only
+Server-Server federation inspection. The Dart SDK, WASM wrapper, and TypeScript
+facade expose federation version metadata, key query lifecycle metadata, server
+signing key lifecycle metadata, and request-auth header descriptors without
+taking ownership of DNS/TLS runtime, notary fallback, key-cache persistence,
+request signature verification, private signing-key storage, outbound
+federation execution, or Server-Server API support advertisement.
 
 SPEC-054 adoption record for issue #69: the Rust prototype now consumes the
 `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
@@ -850,8 +862,8 @@ Completed shared-core history:
 - #65, #66, #68, #69, and #118 completed the current E2EE-adjacent and
   OAuth-adjacent parser-only adoption surface for SPEC-069, SPEC-051, SPEC-053,
   SPEC-054, and SPEC-068.
-- #70 and #71 completed the current federation parser-only adoption surface for
-  SPEC-055 and SPEC-056.
+- #70, #71, and #123 completed the current federation parser-only adoption
+  surface for SPEC-055, SPEC-056, and SPEC-097.
 - #72 and #73 completed candidate criteria for SPEC-057 and SPEC-058 through
   SPEC-060; implementation is tracked by the deferred issues below.
 - #74, #75, #76, #77, #79, #80, #81, and #82 completed artifact manifest,
@@ -864,8 +876,9 @@ Deferred implementation backlog:
 
 - #119, #120, #121, and #122 completed the Client-Server parser helper wave for
   event retrieval, relations, sync extensions, and media repository breadth.
-- #123, #124, and #125 track the next federation parser helper wave for
-  version/key lifecycle, PDU/EDU envelopes, and directory/query/OpenID helpers.
+- #123 completed the federation version/key lifecycle parser helper wave.
+  #124 and #125 track the remaining federation parser helper wave for PDU/EDU
+  envelopes and directory/query/OpenID helpers.
 - #126, #127, and #128 track Application Service, Identity Service, and Push
   Gateway full-breadth parser helper work.
 - #129, #130, and #131 track Room Version helper and fixture-runner candidates.
