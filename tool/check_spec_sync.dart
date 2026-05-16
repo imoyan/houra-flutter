@@ -162,21 +162,27 @@ void checkDesignSync(List<String> failures) {
     final local = localFiles[relativePath];
     final canonical = canonicalFiles[relativePath]!;
     if (local == null) {
-      failures.add('Missing bundled design file: design/$relativePath');
+      failures.add(
+        'Missing bundled design file: design/$relativePath. '
+        'Copy it from ${specRoot.path}/design/$relativePath or update '
+        'the canonical design source first.',
+      );
       continue;
     }
     if (local.readAsStringSync() != canonical.readAsStringSync()) {
       failures.add(
-        'design/$relativePath differs from '
-        '${specRoot.path}/design/$relativePath',
+        'Bundled design drift: design/$relativePath differs from '
+        '${specRoot.path}/design/$relativePath. Update the bundled copy '
+        'from the canonical design file or change houra-spec first.',
       );
     }
   }
   for (final relativePath in localFiles.keys) {
     if (!canonicalFiles.containsKey(relativePath)) {
       failures.add(
-        'Bundled design file has no canonical source: '
-        'design/$relativePath',
+        'Bundled design file has no canonical source: design/$relativePath. '
+        'Remove the local copy or add the matching canonical design file '
+        'under ${specRoot.path}/design/.',
       );
     }
   }

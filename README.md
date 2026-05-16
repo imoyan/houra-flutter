@@ -748,6 +748,11 @@ The canonical copy is expected to live in `../houra-spec/design`; this
 package keeps bundled copies for Flutter asset loading and checks that they stay
 in sync during local development.
 
+The Flutter adapter fails closed unless the resolved theme includes the
+platform-neutral tokens it maps to Material fields: `primary`, `secondary`,
+`accent`, `error`, `surface`, `text`, `border`, `background`,
+`surfaceRaised`, `focus`, `shadow`, and `textMuted`.
+
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
