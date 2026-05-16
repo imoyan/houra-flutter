@@ -25,7 +25,7 @@ pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
     "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047", "SPEC-048", "SPEC-049",
-    "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-068", "SPEC-069", "SPEC-085",
+    "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-057", "SPEC-068", "SPEC-069", "SPEC-085",
     "SPEC-090", "SPEC-093", "SPEC-095", "SPEC-097",
 ];
 
@@ -682,6 +682,88 @@ pub struct MatrixFederationRequestAuthDescriptor {
     pub key: String,
     pub sig: String,
     pub signed_json_fields: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationRequestAuthorization {
+    pub scheme: String,
+    pub origin: String,
+    pub destination: String,
+    pub key: String,
+    pub signed_json: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationBackfillRequest {
+    pub method: String,
+    pub path: String,
+    pub from_event_ids: Vec<String>,
+    pub limit: u64,
+    pub authorization: MatrixFederationRequestAuthorization,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationPdu {
+    pub content: BTreeMap<String, Value>,
+    pub event_id: String,
+    pub origin_server_ts: u64,
+    pub room_id: String,
+    pub sender: String,
+    pub depth: u64,
+    pub prev_events: Vec<String>,
+    pub auth_events: Vec<String>,
+    pub hashes: BTreeMap<String, String>,
+    pub signatures: BTreeMap<String, BTreeMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state_key: Option<String>,
+    #[serde(rename = "type")]
+    pub event_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub unsigned: Option<BTreeMap<String, Value>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationBackfillResponse {
+    pub origin: String,
+    pub origin_server_ts: u64,
+    pub pdus: Vec<MatrixFederationPdu>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationEventAuthResponse {
+    pub auth_chain: Vec<MatrixFederationPdu>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationStateIdsResponse {
+    pub pdu_ids: Vec<String>,
+    pub auth_chain_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationStateResolutionInteropStep {
+    pub id: String,
+    pub contract: String,
+    pub required: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub endpoint: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allowed_results: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationStateResolutionInteropRecord {
+    pub matrix_spec_version: String,
+    pub matrix_spec_source: String,
+    pub checked_at: String,
+    pub required_contracts: Vec<String>,
+    pub local_server: String,
+    pub remote_server: String,
+    pub room_id: String,
+    pub room_version: String,
+    pub target_event_id: String,
+    pub steps: Vec<MatrixFederationStateResolutionInteropStep>,
+    pub required_evidence: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -1501,6 +1583,41 @@ pub struct MatrixFederationDestinationResolutionFailureParseEnvelope {
 pub struct MatrixFederationRequestAuthDescriptorParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixFederationRequestAuthDescriptor>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationBackfillRequestParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationBackfillRequest>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationBackfillResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationBackfillResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct MatrixFederationEventAuthResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationEventAuthResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationStateIdsResponseParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationStateIdsResponse>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationStateResolutionInteropRecordParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationStateResolutionInteropRecord>,
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
@@ -2397,6 +2514,89 @@ struct MatrixFederationRequestAuthDescriptorWire {
     key: Option<String>,
     sig: Option<String>,
     signed_json_fields: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationRequestAuthorizationWire {
+    scheme: Option<String>,
+    origin: Option<String>,
+    destination: Option<String>,
+    key: Option<String>,
+    signed_json: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationBackfillQueryWire {
+    v: Option<Vec<String>>,
+    limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationBackfillRequestWire {
+    method: Option<String>,
+    path: Option<String>,
+    query: Option<MatrixFederationBackfillQueryWire>,
+    authorization: Option<MatrixFederationRequestAuthorizationWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationPduWire {
+    content: Option<BTreeMap<String, Value>>,
+    event_id: Option<String>,
+    origin_server_ts: Option<i64>,
+    room_id: Option<String>,
+    sender: Option<String>,
+    depth: Option<i64>,
+    prev_events: Option<Vec<String>>,
+    auth_events: Option<Vec<String>>,
+    hashes: Option<BTreeMap<String, String>>,
+    signatures: Option<BTreeMap<String, BTreeMap<String, String>>>,
+    state_key: Option<String>,
+    #[serde(rename = "type")]
+    event_type: Option<String>,
+    unsigned: Option<BTreeMap<String, Value>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationBackfillResponseWire {
+    origin: Option<String>,
+    origin_server_ts: Option<i64>,
+    pdus: Option<Vec<MatrixFederationPduWire>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationEventAuthResponseWire {
+    auth_chain: Option<Vec<MatrixFederationPduWire>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationStateIdsResponseWire {
+    pdu_ids: Option<Vec<String>>,
+    auth_chain_ids: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationStateResolutionInteropStepWire {
+    id: Option<String>,
+    contract: Option<String>,
+    required: Option<bool>,
+    endpoint: Option<String>,
+    allowed_results: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationStateResolutionInteropRecordWire {
+    matrix_spec_version: Option<String>,
+    matrix_spec_source: Option<String>,
+    checked_at: Option<String>,
+    required_contracts: Option<Vec<String>>,
+    local_server: Option<String>,
+    remote_server: Option<String>,
+    room_id: Option<String>,
+    room_version: Option<String>,
+    target_event_id: Option<String>,
+    steps: Option<Vec<MatrixFederationStateResolutionInteropStepWire>>,
+    required_evidence: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -5717,6 +5917,334 @@ pub fn parse_matrix_federation_request_auth_descriptor_json(bytes: &[u8]) -> Str
     .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_federation_backfill_request(
+    bytes: &[u8],
+) -> Result<MatrixFederationBackfillRequest, ProtocolError> {
+    let wire: MatrixFederationBackfillRequestWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let method = required_federation_string(wire.method, "federation.backfill_request.method")?;
+    if method != "GET" {
+        return Err(invalid_federation_field("federation.backfill_request.method"));
+    }
+    let path = required_federation_string(wire.path, "federation.backfill_request.path")?;
+    if !path.starts_with("/_matrix/federation/v1/backfill/") {
+        return Err(invalid_federation_field("federation.backfill_request.path"));
+    }
+    let query = wire
+        .query
+        .ok_or_else(|| invalid_federation_field("federation.backfill_request.query"))?;
+    let from_event_ids = required_federation_string_array(
+        query.v,
+        "federation.backfill_request.query.v",
+    )?;
+    let limit = match query.limit {
+        Some(limit) if limit > 0 => limit as u64,
+        _ => {
+            return Err(invalid_federation_field(
+                "federation.backfill_request.query.limit",
+            ));
+        }
+    };
+
+    Ok(MatrixFederationBackfillRequest {
+        method,
+        path,
+        from_event_ids,
+        limit,
+        authorization: matrix_federation_request_authorization_from_wire(
+            wire.authorization,
+            "federation.backfill_request.authorization",
+        )?,
+    })
+}
+
+pub fn parse_matrix_federation_backfill_request_envelope(
+    bytes: &[u8],
+) -> MatrixFederationBackfillRequestParseEnvelope {
+    match parse_matrix_federation_backfill_request(bytes) {
+        Ok(value) => MatrixFederationBackfillRequestParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationBackfillRequestParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_backfill_request_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_backfill_request_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_backfill_response(
+    bytes: &[u8],
+) -> Result<MatrixFederationBackfillResponse, ProtocolError> {
+    let wire: MatrixFederationBackfillResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let origin = required_federation_string(wire.origin, "federation.backfill_response.origin")?;
+    parse_matrix_federation_server_name(&origin)?;
+    let origin_server_ts = required_federation_timestamp(
+        wire.origin_server_ts,
+        "federation.backfill_response.origin_server_ts",
+    )?;
+    let pdus = wire
+        .pdus
+        .ok_or_else(|| invalid_federation_field("federation.backfill_response.pdus"))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, pdu)| {
+            matrix_federation_pdu_from_wire(
+                pdu,
+                &format!("federation.backfill_response.pdus.{index}"),
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(MatrixFederationBackfillResponse {
+        origin,
+        origin_server_ts,
+        pdus,
+    })
+}
+
+pub fn parse_matrix_federation_backfill_response_envelope(
+    bytes: &[u8],
+) -> MatrixFederationBackfillResponseParseEnvelope {
+    match parse_matrix_federation_backfill_response(bytes) {
+        Ok(value) => MatrixFederationBackfillResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationBackfillResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_backfill_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_backfill_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_event_auth_response(
+    bytes: &[u8],
+) -> Result<MatrixFederationEventAuthResponse, ProtocolError> {
+    let wire: MatrixFederationEventAuthResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let auth_chain = wire
+        .auth_chain
+        .ok_or_else(|| invalid_federation_field("federation.event_auth_response.auth_chain"))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, pdu)| {
+            matrix_federation_pdu_from_wire(
+                pdu,
+                &format!("federation.event_auth_response.auth_chain.{index}"),
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(MatrixFederationEventAuthResponse { auth_chain })
+}
+
+pub fn parse_matrix_federation_event_auth_response_envelope(
+    bytes: &[u8],
+) -> MatrixFederationEventAuthResponseParseEnvelope {
+    match parse_matrix_federation_event_auth_response(bytes) {
+        Ok(value) => MatrixFederationEventAuthResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationEventAuthResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_event_auth_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_event_auth_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_state_ids_response(
+    bytes: &[u8],
+) -> Result<MatrixFederationStateIdsResponse, ProtocolError> {
+    let wire: MatrixFederationStateIdsResponseWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    Ok(MatrixFederationStateIdsResponse {
+        pdu_ids: required_federation_string_list(
+            wire.pdu_ids,
+            "federation.state_ids_response.pdu_ids",
+        )?,
+        auth_chain_ids: required_federation_string_list(
+            wire.auth_chain_ids,
+            "federation.state_ids_response.auth_chain_ids",
+        )?,
+    })
+}
+
+pub fn parse_matrix_federation_state_ids_response_envelope(
+    bytes: &[u8],
+) -> MatrixFederationStateIdsResponseParseEnvelope {
+    match parse_matrix_federation_state_ids_response(bytes) {
+        Ok(value) => MatrixFederationStateIdsResponseParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationStateIdsResponseParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_state_ids_response_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_state_ids_response_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_state_resolution_interop_record(
+    bytes: &[u8],
+) -> Result<MatrixFederationStateResolutionInteropRecord, ProtocolError> {
+    let wire: MatrixFederationStateResolutionInteropRecordWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let local_server = required_federation_string(
+        wire.local_server,
+        "federation.state_resolution_interop.local_server",
+    )?;
+    parse_matrix_federation_server_name(&local_server)?;
+    let remote_server = required_federation_string(
+        wire.remote_server,
+        "federation.state_resolution_interop.remote_server",
+    )?;
+    parse_matrix_federation_server_name(&remote_server)?;
+    let steps = wire
+        .steps
+        .ok_or_else(|| invalid_federation_field("federation.state_resolution_interop.steps"))?
+        .into_iter()
+        .enumerate()
+        .map(|(index, step)| {
+            let allowed_results = match step.allowed_results {
+                Some(results) => {
+                    let results = required_federation_string_array(
+                        Some(results),
+                        &format!(
+                            "federation.state_resolution_interop.steps.{index}.allowed_results"
+                        ),
+                    )?;
+                    for result in &results {
+                        if result != "accepted"
+                            && result != "soft_failed"
+                            && result != "rejected"
+                        {
+                            return Err(invalid_federation_field(&format!(
+                                "federation.state_resolution_interop.steps.{index}.allowed_results"
+                            )));
+                        }
+                    }
+                    Some(results)
+                }
+                None => None,
+            };
+
+            Ok(MatrixFederationStateResolutionInteropStep {
+                id: required_federation_string(
+                    step.id,
+                    &format!("federation.state_resolution_interop.steps.{index}.id"),
+                )?,
+                contract: required_federation_string(
+                    step.contract,
+                    &format!("federation.state_resolution_interop.steps.{index}.contract"),
+                )?,
+                required: step.required.ok_or_else(|| {
+                    invalid_federation_field(&format!(
+                        "federation.state_resolution_interop.steps.{index}.required"
+                    ))
+                })?,
+                endpoint: optional_federation_string(
+                    step.endpoint,
+                    &format!("federation.state_resolution_interop.steps.{index}.endpoint"),
+                )?,
+                allowed_results,
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(MatrixFederationStateResolutionInteropRecord {
+        matrix_spec_version: required_federation_string(
+            wire.matrix_spec_version,
+            "federation.state_resolution_interop.matrix_spec_version",
+        )?,
+        matrix_spec_source: required_federation_string(
+            wire.matrix_spec_source,
+            "federation.state_resolution_interop.matrix_spec_source",
+        )?,
+        checked_at: required_federation_string(
+            wire.checked_at,
+            "federation.state_resolution_interop.checked_at",
+        )?,
+        required_contracts: required_federation_string_array(
+            wire.required_contracts,
+            "federation.state_resolution_interop.required_contracts",
+        )?,
+        local_server,
+        remote_server,
+        room_id: required_federation_string(
+            wire.room_id,
+            "federation.state_resolution_interop.room_id",
+        )?,
+        room_version: required_federation_string(
+            wire.room_version,
+            "federation.state_resolution_interop.room_version",
+        )?,
+        target_event_id: required_federation_string(
+            wire.target_event_id,
+            "federation.state_resolution_interop.target_event_id",
+        )?,
+        steps,
+        required_evidence: required_federation_string_array(
+            wire.required_evidence,
+            "federation.state_resolution_interop.required_evidence",
+        )?,
+    })
+}
+
+pub fn parse_matrix_federation_state_resolution_interop_record_envelope(
+    bytes: &[u8],
+) -> MatrixFederationStateResolutionInteropRecordParseEnvelope {
+    match parse_matrix_federation_state_resolution_interop_record(bytes) {
+        Ok(value) => MatrixFederationStateResolutionInteropRecordParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationStateResolutionInteropRecordParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_state_resolution_interop_record_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_state_resolution_interop_record_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
+}
+
 pub fn parse_matrix_verification_sas_flow(
     bytes: &[u8],
 ) -> Result<MatrixVerificationSasFlow, ProtocolError> {
@@ -8973,6 +9501,17 @@ fn required_federation_string_array(
     Ok(values)
 }
 
+fn required_federation_string_list(
+    value: Option<Vec<String>>,
+    field: &str,
+) -> Result<Vec<String>, ProtocolError> {
+    let values = value.ok_or_else(|| invalid_federation_field(field))?;
+    if values.iter().any(String::is_empty) {
+        return Err(invalid_federation_field(field));
+    }
+    Ok(values)
+}
+
 fn required_federation_array(
     value: Option<Vec<Value>>,
     field: &str,
@@ -9054,6 +9593,89 @@ fn federation_signatures(
         }
     }
     Ok(signatures)
+}
+
+fn federation_string_map(
+    value: Option<BTreeMap<String, String>>,
+    field: &str,
+) -> Result<BTreeMap<String, String>, ProtocolError> {
+    let map = value.ok_or_else(|| invalid_federation_field(field))?;
+    if map.is_empty() {
+        return Err(invalid_federation_field(field));
+    }
+    if map
+        .iter()
+        .any(|(key, value)| key.is_empty() || value.trim().is_empty())
+    {
+        return Err(invalid_federation_field(field));
+    }
+    Ok(map)
+}
+
+fn matrix_federation_request_authorization_from_wire(
+    wire: Option<MatrixFederationRequestAuthorizationWire>,
+    field: &str,
+) -> Result<MatrixFederationRequestAuthorization, ProtocolError> {
+    let wire = wire.ok_or_else(|| invalid_federation_field(field))?;
+    let scheme = required_federation_string(wire.scheme, &format!("{field}.scheme"))?;
+    if scheme != "X-Matrix" {
+        return Err(invalid_federation_field(&format!("{field}.scheme")));
+    }
+    let origin = required_federation_string(wire.origin, &format!("{field}.origin"))?;
+    parse_matrix_federation_server_name(&origin)?;
+    let destination =
+        required_federation_string(wire.destination, &format!("{field}.destination"))?;
+    parse_matrix_federation_server_name(&destination)?;
+    let key = required_federation_string(wire.key, &format!("{field}.key"))?;
+    required_federation_key_id(&key, &format!("{field}.key"))?;
+    let signed_json = wire
+        .signed_json
+        .ok_or_else(|| invalid_federation_field(&format!("{field}.signed_json")))?;
+    if !signed_json {
+        return Err(invalid_federation_field(&format!("{field}.signed_json")));
+    }
+    Ok(MatrixFederationRequestAuthorization {
+        scheme,
+        origin,
+        destination,
+        key,
+        signed_json,
+    })
+}
+
+fn matrix_federation_pdu_from_wire(
+    wire: MatrixFederationPduWire,
+    context: &str,
+) -> Result<MatrixFederationPdu, ProtocolError> {
+    let origin_server_ts = required_federation_timestamp(
+        wire.origin_server_ts,
+        &format!("{context}.origin_server_ts"),
+    )?;
+    let depth = required_federation_timestamp(wire.depth, &format!("{context}.depth"))?;
+
+    Ok(MatrixFederationPdu {
+        content: wire
+            .content
+            .ok_or_else(|| invalid_federation_field(&format!("{context}.content")))?,
+        event_id: required_federation_string(wire.event_id, &format!("{context}.event_id"))?,
+        origin_server_ts,
+        room_id: required_federation_string(wire.room_id, &format!("{context}.room_id"))?,
+        sender: required_federation_string(wire.sender, &format!("{context}.sender"))?,
+        depth,
+        prev_events: required_federation_string_list(
+            wire.prev_events,
+            &format!("{context}.prev_events"),
+        )?,
+        auth_events: required_federation_string_list(
+            wire.auth_events,
+            &format!("{context}.auth_events"),
+        )?,
+        hashes: federation_string_map(wire.hashes, &format!("{context}.hashes"))?,
+        signatures: federation_signatures(wire.signatures, &format!("{context}.signatures"))?,
+        state_key: wire.state_key,
+        event_type: required_federation_string(wire.event_type, &format!("{context}.type"))?,
+        unsigned: wire.unsigned,
+    })
 }
 
 fn matrix_federation_signing_key_from_wire(
@@ -9470,6 +10092,7 @@ mod tests {
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
                 "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047",
                 "SPEC-048", "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056",
+                "SPEC-057",
                 "SPEC-068", "SPEC-069", "SPEC-085", "SPEC-090", "SPEC-093", "SPEC-095", "SPEC-097"
             ]
         );
@@ -10879,6 +11502,86 @@ mod tests {
             .supported_specs
             .iter()
             .any(|spec| spec == "SPEC-055"));
+    }
+
+    #[test]
+    fn parses_spec_057_federation_backfill_auth_and_state_vectors() {
+        let backfill = read_spec_vector("test-vectors/events/matrix-federation-backfill-basic.json");
+        assert_eq!(backfill["contract"], "SPEC-057");
+        let parsed_request = parse_matrix_federation_backfill_request(
+            backfill["request"].to_string().as_bytes(),
+        )
+        .expect("SPEC-057 backfill request should parse");
+        assert_eq!(parsed_request.method, "GET");
+        assert_eq!(parsed_request.from_event_ids, vec!["$event3:example.test"]);
+        assert_eq!(parsed_request.limit, 2);
+        assert!(parsed_request.authorization.signed_json);
+
+        let parsed_response = parse_matrix_federation_backfill_response(
+            backfill["response"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-057 backfill response should parse");
+        assert_eq!(parsed_response.origin, "example.test");
+        assert_eq!(parsed_response.pdus.len(), 1);
+        assert_eq!(parsed_response.pdus[0].depth, 2);
+        assert_eq!(parsed_response.pdus[0].prev_events, vec!["$event1:example.test"]);
+
+        let event_auth =
+            read_spec_vector("test-vectors/events/matrix-federation-event-auth-basic.json");
+        let parsed_auth = parse_matrix_federation_event_auth_response(
+            event_auth["response"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-057 event_auth response should parse");
+        assert_eq!(parsed_auth.auth_chain.len(), 2);
+        assert_eq!(parsed_auth.auth_chain[0].event_type, "m.room.create");
+        assert_eq!(parsed_auth.auth_chain[1].event_type, "m.room.power_levels");
+
+        let state_ids = read_spec_vector("test-vectors/events/matrix-federation-state-ids-basic.json");
+        let parsed_state_ids = parse_matrix_federation_state_ids_response(
+            state_ids["response"]["body"].to_string().as_bytes(),
+        )
+        .expect("SPEC-057 state_ids response should parse");
+        assert_eq!(parsed_state_ids.pdu_ids.len(), 3);
+        assert_eq!(parsed_state_ids.auth_chain_ids.len(), 2);
+
+        let interop = read_spec_vector(
+            "test-vectors/events/matrix-federation-state-resolution-interop-gate.json",
+        );
+        let parsed_interop = parse_matrix_federation_state_resolution_interop_record(
+            interop["event"].to_string().as_bytes(),
+        )
+        .expect("SPEC-057 interop record should parse");
+        assert_eq!(parsed_interop.local_server, "local.example.test");
+        assert_eq!(parsed_interop.remote_server, "remote.example.test");
+        assert_eq!(parsed_interop.steps.len(), 7);
+        assert_eq!(
+            parsed_interop
+                .steps
+                .last()
+                .and_then(|step| step.allowed_results.as_ref())
+                .expect("record-event-decision should declare allowed results"),
+            &vec![
+                "accepted".to_owned(),
+                "soft_failed".to_owned(),
+                "rejected".to_owned(),
+            ]
+        );
+
+        let representative =
+            read_spec_vector("test-vectors/events/matrix-state-resolution-representative.json");
+        assert_eq!(representative["contract"], "SPEC-041");
+        assert_eq!(representative["expected"]["case_count"], 2);
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-057"));
+
+        let envelope = parse_matrix_federation_backfill_request_envelope(
+            br#"{"method":"POST","path":"/_matrix/federation/v1/backfill/!room:example.test","query":{"v":["$event3:example.test"],"limit":2},"authorization":{"scheme":"X-Matrix","origin":"remote.example.test","destination":"example.test","key":"ed25519:auto1","signed_json":true}}"#,
+        );
+        assert!(!envelope.ok);
     }
 
     #[test]

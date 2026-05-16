@@ -4,6 +4,19 @@ import 'dart:io';
 Map<String, Object?>? _releaseEvidenceCache;
 bool _releaseEvidenceReadAttempted = false;
 
+const _flutterSdkBaseSpecIds = [
+  'SPEC-001',
+  'SPEC-003',
+  'SPEC-004',
+  'SPEC-006',
+  'SPEC-007',
+  'SPEC-008',
+  'SPEC-009',
+  'SPEC-010',
+  'SPEC-011',
+  'SPEC-020',
+];
+
 void main() {
   final failures = <String>[];
   checkSdkBoundary(failures);
@@ -11,6 +24,7 @@ void main() {
   checkDesignSync(failures);
   checkVectorReferences(failures);
   checkDocReferences(failures);
+  checkFlutterSdkSupportClaim(failures);
   checkSpec039ProtocolCoreGate(failures);
   checkSpec040ProtocolCoreGate(failures);
   checkSpec048ProtocolCoreGate(failures);
@@ -18,6 +32,7 @@ void main() {
   checkSpec051ProtocolCoreGate(failures);
   checkSpec053ProtocolCoreGate(failures);
   checkSpec054ProtocolCoreGate(failures);
+  checkSpec057ProtocolCoreGate(failures);
   checkSpec069ProtocolCoreGate(failures);
   checkSpec085ProtocolCoreGate(failures);
   checkSpec090ProtocolCoreGate(failures);
@@ -247,6 +262,128 @@ void checkDocReferences(List<String> failures) {
       final resolved = resolveSpecReference(path, specRoot);
       if (!File(resolved).existsSync() && !Directory(resolved).existsSync()) {
         failures.add('${doc.path} references missing spec path: $resolved');
+      }
+    }
+  }
+}
+
+void checkFlutterSdkSupportClaim(List<String> failures) {
+  final readme = File('README.md');
+  if (!readme.existsSync()) {
+    failures.add('Missing documentation file: ${readme.path}');
+    return;
+  }
+
+  final source = readme.readAsStringSync();
+  final contractTestSpecIds = readDartContractTestSpecIds();
+  final parserOnlySpecIds = contractTestSpecIds
+      .where((specId) => !_flutterSdkBaseSpecIds.contains(specId))
+      .toList()
+    ..sort(compareSpecIds);
+  final adoptionSpecIds = readFlutterSdkAdoptionSpecIds(source);
+  final duplicateAdoptionSpecIds = duplicateValues(adoptionSpecIds)
+    ..sort(compareSpecIds);
+  if (duplicateAdoptionSpecIds.isNotEmpty) {
+    failures.add(
+      'README Flutter SDK adoption records repeat spec ids: ${duplicateAdoptionSpecIds.join(', ')}.',
+    );
+  }
+  final uniqueAdoptionSpecIds = adoptionSpecIds.toSet().toList()
+    ..sort(compareSpecIds);
+  requireOrderedSpecList(
+    failures,
+    uniqueAdoptionSpecIds,
+    parserOnlySpecIds,
+    'README Flutter SDK adoption records',
+  );
+
+  final expectedSpecIds = [
+    ..._flutterSdkBaseSpecIds,
+    ...parserOnlySpecIds,
+  ];
+
+  final statusSection = extractMarkdownSection(source, '## Status');
+  if (statusSection == null) {
+    failures.add('README.md is missing ## Status section.');
+  } else {
+    final statusClaim = extractParagraphStartingWith(
+      statusSection,
+      'Public Flutter SDK claim:',
+    );
+    if (statusClaim == null) {
+      failures.add(
+        'README ## Status is missing Public Flutter SDK claim paragraph.',
+      );
+    } else {
+      requireOrderedSpecList(
+        failures,
+        uniqueSpecIdsFromText(statusClaim),
+        expectedSpecIds,
+        'README Status Flutter SDK claim',
+      );
+    }
+  }
+
+  final localChecksSection = extractMarkdownSection(source, '## Local checks');
+  if (localChecksSection == null) {
+    failures.add('README.md is missing ## Local checks section.');
+  } else {
+    for (final fragment in [
+      'README Status / Pre-1.0 Release Decision Flutter SDK support claims',
+      'Dart contract tests',
+      'README adoption records',
+    ]) {
+      if (!containsNormalizedText(localChecksSection, fragment)) {
+        failures.add(
+          'README Local checks section is missing Flutter SDK claim check fragment: $fragment',
+        );
+      }
+    }
+  }
+
+  final releaseDecisionSection = extractMarkdownSection(
+    source,
+    '## Pre-1.0 Release Decision',
+  );
+  if (releaseDecisionSection == null) {
+    failures.add('README.md is missing ## Pre-1.0 Release Decision section.');
+  } else {
+    final releaseClaim = extractBulletBlockStartingWith(
+      releaseDecisionSection,
+      '- Supported contract claim:',
+    );
+    if (releaseClaim == null) {
+      failures.add(
+        'README Pre-1.0 Release Decision section is missing Supported contract claim bullet.',
+      );
+    } else {
+      requireOrderedSpecList(
+        failures,
+        uniqueSpecIdsFromText(releaseClaim),
+        expectedSpecIds,
+        'README Pre-1.0 Release Decision Flutter SDK claim',
+      );
+    }
+
+    final claimExpansionRule = extractBulletBlockStartingWith(
+      releaseDecisionSection,
+      '- Claim expansion rule:',
+    );
+    if (claimExpansionRule == null) {
+      failures.add(
+        'README Pre-1.0 Release Decision section is missing Claim expansion rule bullet.',
+      );
+    } else {
+      for (final fragment in [
+        'Dart SDK or Flutter SDK prototype',
+        'Dart contract tests',
+        'README adoption records',
+      ]) {
+        if (!containsNormalizedText(claimExpansionRule, fragment)) {
+          failures.add(
+            'README Claim expansion rule is missing fragment: $fragment',
+          );
+        }
       }
     }
   }
@@ -1297,6 +1434,101 @@ void checkSpec097ProtocolCoreGate(List<String> failures) {
   );
 }
 
+void checkSpec057ProtocolCoreGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final contract = File(
+    '${specRoot.path}/contracts/SPEC-057-matrix-federation-backfill-auth-state.md',
+  );
+  final vectors = [
+    'test-vectors/events/matrix-federation-backfill-basic.json',
+    'test-vectors/events/matrix-federation-event-auth-basic.json',
+    'test-vectors/events/matrix-federation-state-ids-basic.json',
+    'test-vectors/events/matrix-federation-state-resolution-interop-gate.json',
+    'test-vectors/events/matrix-state-resolution-representative.json',
+  ];
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-057 contract: ${contract.path}');
+    return;
+  }
+  checkVectorsHaveContract(
+    failures,
+    specRoot,
+    'SPEC-057',
+    vectors.where((path) => !path.contains('matrix-state-resolution-representative')).toList(),
+  );
+  final representative =
+      File('${specRoot.path}/test-vectors/events/matrix-state-resolution-representative.json');
+  if (!representative.existsSync()) {
+    failures.add('Missing SPEC-041 representative state vector: ${representative.path}');
+  }
+  checkReleaseEvidenceAdoption(
+    failures,
+    blockName: 'federation_backfill_auth_state_parser_adoption',
+    issue: 72,
+    specId: 'SPEC-057',
+    parityVectors: vectors,
+    parserOnlySurfaces: [
+      'backfill request shape',
+      'backfill response PDUs',
+      'event auth PDUs',
+      'state IDs response',
+      'state-resolution interop record',
+    ],
+    outOfScope: [
+      'server persistence',
+      'missing-event recovery policy',
+      'federation request authentication',
+      'federation retry and backoff',
+      'remote trust policy',
+      'room-version state-resolution algorithms',
+      'full state-resolution correctness',
+      'Server-Server API support advertisement',
+    ],
+  );
+
+  checkRequiredFragments(
+    failures,
+    specId: 'SPEC-057',
+    requiredFragmentsByFile: {
+      'AGENTS.md': ['SPEC-057'],
+      'README.md': ['SPEC-057', 'state-resolution interop'],
+      'lib/src/models.dart': [
+        'HouraMatrixFederationBackfillRequest',
+        'HouraMatrixFederationPdu',
+        'HouraMatrixFederationEventAuthResponse',
+        'HouraMatrixFederationStateIdsResponse',
+        'HouraMatrixFederationStateResolutionInteropRecord',
+      ],
+      'test/federation_contract_test.dart': [
+        'SPEC-057',
+        'matrix-federation-backfill-basic.json',
+        'matrix-federation-state-resolution-interop-gate.json',
+      ],
+      'rust-protocol-core/src/lib.rs': [
+        '"SPEC-057"',
+        'parse_matrix_federation_backfill_request',
+        'parse_matrix_federation_event_auth_response',
+        'parse_matrix_federation_state_ids_response',
+        'parse_matrix_federation_state_resolution_interop_record',
+      ],
+      'rust-protocol-core-wasm/src/lib.rs': [
+        'parseMatrixFederationBackfillRequestJson',
+        'parseMatrixFederationStateResolutionInteropRecordJson',
+      ],
+      'ts-protocol-core-wasm/src/index.ts': [
+        '"SPEC-057"',
+        'parseMatrixFederationBackfillRequest',
+        'parseMatrixFederationEventAuthResponse',
+        'MatrixFederationStateResolutionInteropRecord',
+      ],
+      'ts-protocol-core-wasm/test/index.test.mjs': [
+        'SPEC-057',
+        'matrix-federation-backfill-basic.json',
+      ],
+    },
+  );
+}
+
 void checkSpec048ProtocolCoreGate(List<String> failures) {
   final specRoot = canonicalSpecRoot();
   final contract = File(
@@ -1555,6 +1787,19 @@ void requireListContainsAll(
   }
 }
 
+void requireOrderedSpecList(
+  List<String> failures,
+  List<String> actual,
+  List<String> expected,
+  String label,
+) {
+  if (orderedListEquals(actual, expected)) {
+    return;
+  }
+  final actualValue = actual.isEmpty ? '(none)' : actual.join(', ');
+  failures.add('$label must list ${expected.join(', ')}. Found $actualValue.');
+}
+
 bool orderedListEquals(List actual, List<String> expected) {
   if (actual.length != expected.length) {
     return false;
@@ -1565,6 +1810,142 @@ bool orderedListEquals(List actual, List<String> expected) {
     }
   }
   return true;
+}
+
+List<String> readDartContractTestSpecIds() {
+  final testRoot = Directory('test');
+  if (!testRoot.existsSync()) {
+    return const [];
+  }
+
+  final specIds = <String>{};
+  for (final file in testRoot.listSync(recursive: true).whereType<File>()) {
+    if (!file.path.endsWith('_contract_test.dart')) {
+      continue;
+    }
+    specIds.addAll(uniqueSpecIdsFromText(file.readAsStringSync()));
+  }
+  final ordered = specIds.toList()..sort(compareSpecIds);
+  return ordered;
+}
+
+List<String> readFlutterSdkAdoptionSpecIds(String source) {
+  final adoptionPattern = RegExp(
+    r'^(SPEC-\d{3}).*adoption record.*$',
+    multiLine: true,
+  );
+  final matches = adoptionPattern.allMatches(source).toList(growable: false);
+  final specIds = <String>[];
+  for (var index = 0; index < matches.length; index += 1) {
+    final match = matches[index];
+    final blockStart = match.start;
+    final blockEnd = index + 1 < matches.length
+        ? matches[index + 1].start
+        : source.length;
+    final block = source.substring(blockStart, blockEnd);
+    if (block.contains('Flutter SDK prototype now') ||
+        block.contains('The Dart SDK,')) {
+      specIds.add(match.group(1)!);
+    }
+  }
+  return specIds;
+}
+
+String? extractMarkdownSection(String source, String heading) {
+  final lines = LineSplitter.split(source).toList(growable: false);
+  final startIndex = lines.indexOf(heading);
+  if (startIndex == -1) {
+    return null;
+  }
+  final section = <String>[];
+  for (var index = startIndex + 1; index < lines.length; index += 1) {
+    final line = lines[index];
+    if (line.startsWith('## ')) {
+      break;
+    }
+    section.add(line);
+  }
+  return section.join('\n');
+}
+
+String? extractParagraphStartingWith(String section, String prefix) {
+  final lines = LineSplitter.split(section).toList(growable: false);
+  for (var index = 0; index < lines.length; index += 1) {
+    if (!lines[index].startsWith(prefix)) {
+      continue;
+    }
+    final paragraph = <String>[lines[index]];
+    for (var nextIndex = index + 1;
+        nextIndex < lines.length;
+        nextIndex += 1) {
+      final line = lines[nextIndex];
+      if (line.isEmpty || line.startsWith('### ')) {
+        break;
+      }
+      paragraph.add(line);
+    }
+    return paragraph.join('\n');
+  }
+  return null;
+}
+
+String? extractBulletBlockStartingWith(String section, String prefix) {
+  final lines = LineSplitter.split(section).toList(growable: false);
+  for (var index = 0; index < lines.length; index += 1) {
+    if (!lines[index].startsWith(prefix)) {
+      continue;
+    }
+    final block = <String>[lines[index]];
+    for (var nextIndex = index + 1;
+        nextIndex < lines.length;
+        nextIndex += 1) {
+      final line = lines[nextIndex];
+      if (line.isEmpty || line.startsWith('- ') || line.startsWith('### ')) {
+        break;
+      }
+      block.add(line);
+    }
+    return block.join('\n');
+  }
+  return null;
+}
+
+List<String> uniqueSpecIdsFromText(String source) {
+  final specPattern = RegExp(r'\bSPEC-\d{3}\b');
+  final seen = <String>{};
+  final specIds = <String>[];
+  for (final match in specPattern.allMatches(source)) {
+    final specId = match.group(0)!;
+    if (seen.add(specId)) {
+      specIds.add(specId);
+    }
+  }
+  return specIds;
+}
+
+List<String> duplicateValues(List<String> values) {
+  final seen = <String>{};
+  final duplicates = <String>{};
+  for (final value in values) {
+    if (!seen.add(value)) {
+      duplicates.add(value);
+    }
+  }
+  return duplicates.toList(growable: false);
+}
+
+bool containsNormalizedText(String source, String fragment) {
+  String normalize(String value) {
+    return value.replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
+  return normalize(source).contains(normalize(fragment));
+}
+
+int compareSpecIds(String left, String right) {
+  final leftValue = int.parse(left.substring('SPEC-'.length));
+  final rightValue = int.parse(right.substring('SPEC-'.length));
+  return leftValue.compareTo(rightValue);
 }
 
 Directory canonicalSpecRoot() {

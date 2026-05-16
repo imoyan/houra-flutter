@@ -246,6 +246,96 @@ function binding(overrides = {}) {
         },
       );
     },
+    parseMatrixFederationBackfillRequestJson() {
+      return JSON.stringify(
+        overrides.federationBackfillRequestEnvelope ?? {
+          ok: true,
+          value: {
+            method: "GET",
+            path: "/_matrix/federation/v1/backfill/!room:example.test",
+            from_event_ids: ["$event3:example.test"],
+            limit: 2,
+            authorization: {
+              scheme: "X-Matrix",
+              origin: "remote.example.test",
+              destination: "example.test",
+              key: "ed25519:auto1",
+              signed_json: true,
+            },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationBackfillResponseJson() {
+      return JSON.stringify(
+        overrides.federationBackfillResponseEnvelope ?? {
+          ok: true,
+          value: {
+            origin: "example.test",
+            origin_server_ts: 1778409314000,
+            pdus: [
+              {
+                event_id: "$event2:example.test",
+                type: "m.room.message",
+                room_id: "!room:example.test",
+                sender: "@alice:example.test",
+                origin_server_ts: 1778409300000,
+                depth: 2,
+                prev_events: ["$event1:example.test"],
+                auth_events: ["$auth:example.test"],
+                content: {
+                  msgtype: "m.text",
+                  body: "older message",
+                },
+                hashes: {
+                  sha256: "base64-event-content-hash",
+                },
+                signatures: {
+                  "example.test": {
+                    "ed25519:auto1": "base64-event-signature",
+                  },
+                },
+              },
+            ],
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationEventAuthResponseJson() {
+      return JSON.stringify(
+        overrides.federationEventAuthResponseEnvelope ?? {
+          ok: true,
+          value: {
+            auth_chain: [
+              {
+                event_id: "$create:example.test",
+                type: "m.room.create",
+                room_id: "!room:example.test",
+                sender: "@creator:example.test",
+                origin_server_ts: 1778409000000,
+                depth: 1,
+                prev_events: [],
+                auth_events: [],
+                content: {
+                  room_version: "12",
+                },
+                hashes: {
+                  sha256: "base64-create-hash",
+                },
+                signatures: {
+                  "example.test": {
+                    "ed25519:auto1": "base64-create-signature",
+                  },
+                },
+              },
+            ],
+          },
+          error: null,
+        },
+      );
+    },
     parseMatrixFederationMakeJoinResponseJson() {
       return JSON.stringify(
         overrides.federationMakeJoinResponseEnvelope ?? {
@@ -256,6 +346,70 @@ function binding(overrides = {}) {
               type: "m.room.member",
               content: { membership: "join" },
             },
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationStateIdsResponseJson() {
+      return JSON.stringify(
+        overrides.federationStateIdsResponseEnvelope ?? {
+          ok: true,
+          value: {
+            pdu_ids: [
+              "$create:example.test",
+              "$auth:example.test",
+              "$member:example.test",
+            ],
+            auth_chain_ids: [
+              "$create:example.test",
+              "$auth:example.test",
+            ],
+          },
+          error: null,
+        },
+      );
+    },
+    parseMatrixFederationStateResolutionInteropRecordJson() {
+      return JSON.stringify(
+        overrides.federationStateResolutionInteropRecordEnvelope ?? {
+          ok: true,
+          value: {
+            matrix_spec_version: "v1.18",
+            matrix_spec_source:
+              "https://spec.matrix.org/v1.18/server-server-api/#room-state-resolution",
+            checked_at: "2026-05-10T20:55:14+09:00",
+            required_contracts: [
+              "SPEC-040",
+              "SPEC-041",
+              "SPEC-043",
+              "SPEC-055",
+              "SPEC-056",
+              "SPEC-057",
+            ],
+            local_server: "local.example.test",
+            remote_server: "remote.example.test",
+            room_id: "!room:example.test",
+            room_version: "12",
+            target_event_id: "$event3:example.test",
+            steps: [
+              {
+                id: "record-event-decision",
+                contract: "SPEC-057",
+                required: true,
+                allowed_results: ["accepted", "soft_failed", "rejected"],
+              },
+            ],
+            required_evidence: [
+              "houra_spec_ref",
+              "houra_server_ref",
+              "local_server",
+              "remote_server",
+              "room_version",
+              "commands",
+              "per_step_pass_fail",
+              "event_decision",
+            ],
           },
           error: null,
         },
@@ -2122,6 +2276,91 @@ test("maps SPEC-097 federation version key lifecycle request-auth envelopes", ()
       "ed25519:auto2"
     ].key,
     "VGhpcyBpcyBhbm90aGVyIHRlc3QgcHVibGljIGtleQ",
+  );
+});
+
+test("maps SPEC-057 federation backfill, event auth, and state envelopes", () => {
+  const backfill = readSpecVector(
+    "test-vectors/events/matrix-federation-backfill-basic.json",
+  );
+  const eventAuth = readSpecVector(
+    "test-vectors/events/matrix-federation-event-auth-basic.json",
+  );
+  const stateIds = readSpecVector(
+    "test-vectors/events/matrix-federation-state-ids-basic.json",
+  );
+  const interop = readSpecVector(
+    "test-vectors/events/matrix-federation-state-resolution-interop-gate.json",
+  );
+  const representative = readSpecVector(
+    "test-vectors/events/matrix-state-resolution-representative.json",
+  );
+  const core = createHouraProtocolCore(
+    binding({
+      federationBackfillRequestEnvelope: {
+        ok: true,
+        value: {
+          method: backfill.request.method,
+          path: backfill.request.path,
+          from_event_ids: backfill.request.query.v,
+          limit: backfill.request.query.limit,
+          authorization: {
+            scheme: backfill.request.authorization.scheme,
+            origin: backfill.request.authorization.origin,
+            destination: backfill.request.authorization.destination,
+            key: backfill.request.authorization.key,
+            signed_json: backfill.request.authorization.signed_json,
+          },
+        },
+        error: null,
+      },
+      federationBackfillResponseEnvelope: {
+        ok: true,
+        value: backfill.response.body,
+        error: null,
+      },
+      federationEventAuthResponseEnvelope: {
+        ok: true,
+        value: eventAuth.response.body,
+        error: null,
+      },
+      federationStateIdsResponseEnvelope: {
+        ok: true,
+        value: stateIds.response.body,
+        error: null,
+      },
+      federationStateResolutionInteropRecordEnvelope: {
+        ok: true,
+        value: interop.event,
+        error: null,
+      },
+    }),
+  );
+
+  assert.ok(core.manifest.supported_specs.includes("SPEC-057"));
+  assert.equal(backfill.contract, "SPEC-057");
+  assert.equal(eventAuth.contract, "SPEC-057");
+  assert.equal(stateIds.contract, "SPEC-057");
+  assert.equal(interop.contract, "SPEC-057");
+  assert.equal(representative.contract, "SPEC-041");
+  assert.equal(representative.expected.case_count, 2);
+  assert.equal(core.parseMatrixFederationBackfillRequest("").value.limit, 2);
+  assert.deepEqual(core.parseMatrixFederationBackfillResponse("").value, backfill.response.body);
+  assert.deepEqual(
+    core.parseMatrixFederationEventAuthResponse("").value,
+    eventAuth.response.body,
+  );
+  assert.deepEqual(
+    core.parseMatrixFederationStateIdsResponse("").value,
+    stateIds.response.body,
+  );
+  assert.equal(
+    core.parseMatrixFederationStateResolutionInteropRecord("").value.steps.length,
+    interop.event.steps.length,
+  );
+  assert.deepEqual(
+    core.parseMatrixFederationStateResolutionInteropRecord("").value.required_evidence,
+    interop.event.required_evidence,
   );
 });
 

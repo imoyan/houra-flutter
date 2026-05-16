@@ -1323,11 +1323,379 @@ final class HouraMatrixFederationRequestAuthDescriptor {
   }
 }
 
+/// SPEC-057 parser-only federation request authorization metadata.
+final class HouraMatrixFederationRequestAuthorization {
+  const HouraMatrixFederationRequestAuthorization({
+    required this.scheme,
+    required this.origin,
+    required this.destination,
+    required this.key,
+    required this.signedJson,
+  });
+
+  final String scheme;
+  final String origin;
+  final String destination;
+  final String key;
+  final bool signedJson;
+
+  factory HouraMatrixFederationRequestAuthorization.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final scheme = _requiredString(json, 'scheme');
+    if (scheme != 'X-Matrix') {
+      throw HouraResponseFormatException('Expected X-Matrix auth scheme.');
+    }
+    final origin = _requiredString(json, 'origin');
+    final destination = _requiredString(json, 'destination');
+    _validateMatrixFederationServerName(origin);
+    _validateMatrixFederationServerName(destination);
+    final key = _requiredString(json, 'key');
+    _validateMatrixFederationKeyId(key);
+    final signedJson = _requiredBool(json, 'signed_json');
+    if (!signedJson) {
+      throw HouraResponseFormatException(
+        'Expected signed federation authorization metadata.',
+      );
+    }
+    return HouraMatrixFederationRequestAuthorization(
+      scheme: scheme,
+      origin: origin,
+      destination: destination,
+      key: key,
+      signedJson: signedJson,
+    );
+  }
+}
+
+/// SPEC-057 parser-only Matrix federation backfill request shape.
+final class HouraMatrixFederationBackfillRequest {
+  const HouraMatrixFederationBackfillRequest({
+    required this.method,
+    required this.path,
+    required this.fromEventIds,
+    required this.limit,
+    required this.authorization,
+  });
+
+  final String method;
+  final String path;
+  final List<String> fromEventIds;
+  final int limit;
+  final HouraMatrixFederationRequestAuthorization authorization;
+
+  factory HouraMatrixFederationBackfillRequest.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final method = _requiredString(json, 'method');
+    if (method != 'GET') {
+      throw HouraResponseFormatException(
+        'Unsupported Matrix federation backfill method.',
+      );
+    }
+    final path = _requiredString(json, 'path');
+    if (!path.startsWith('/_matrix/federation/v1/backfill/')) {
+      throw HouraResponseFormatException(
+        'Unsupported Matrix federation backfill path.',
+      );
+    }
+    final query = _requiredJsonObject(json, 'query');
+    final fromEventIds = _requiredStringList(query, 'v');
+    final limit = _requiredNonNegativeInt(query, 'limit');
+    if (fromEventIds.isEmpty || limit <= 0) {
+      throw HouraResponseFormatException(
+        'Expected Matrix federation backfill query parameters.',
+      );
+    }
+    return HouraMatrixFederationBackfillRequest(
+      method: method,
+      path: path,
+      fromEventIds: fromEventIds,
+      limit: limit,
+      authorization: HouraMatrixFederationRequestAuthorization.fromJson(
+        _requiredJsonObject(json, 'authorization'),
+      ),
+    );
+  }
+}
+
+/// SPEC-057 parser-only Matrix federation PDU envelope.
+final class HouraMatrixFederationPdu {
+  const HouraMatrixFederationPdu({
+    required this.eventId,
+    required this.type,
+    required this.roomId,
+    required this.sender,
+    required this.originServerTs,
+    required this.depth,
+    required this.prevEvents,
+    required this.authEvents,
+    required this.content,
+    required this.hashes,
+    required this.signatures,
+    required this.raw,
+    this.stateKey,
+    this.unsigned,
+  });
+
+  final String eventId;
+  final String type;
+  final String roomId;
+  final String sender;
+  final int originServerTs;
+  final int depth;
+  final List<String> prevEvents;
+  final List<String> authEvents;
+  final Map<String, Object?> content;
+  final Map<String, String> hashes;
+  final Map<String, Map<String, String>> signatures;
+  final String? stateKey;
+  final Map<String, Object?>? unsigned;
+  final Map<String, Object?> raw;
+
+  factory HouraMatrixFederationPdu.fromJson(Map<String, Object?> json) {
+    return HouraMatrixFederationPdu(
+      eventId: _requiredString(json, 'event_id'),
+      type: _requiredString(json, 'type'),
+      roomId: _requiredString(json, 'room_id'),
+      sender: _requiredString(json, 'sender'),
+      originServerTs: _requiredNonNegativeInt(json, 'origin_server_ts'),
+      depth: _requiredNonNegativeInt(json, 'depth'),
+      prevEvents: _requiredStringList(json, 'prev_events'),
+      authEvents: _requiredStringList(json, 'auth_events'),
+      content: _requiredJsonObject(json, 'content'),
+      hashes: _requiredStringMap(json, 'hashes'),
+      signatures: _requiredNestedStringMap(json, 'signatures'),
+      stateKey: _optionalString(json, 'state_key'),
+      unsigned: _optionalJsonObject(json, 'unsigned'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+}
+
+/// SPEC-057 parser-only Matrix federation backfill response.
+final class HouraMatrixFederationBackfillResponse {
+  const HouraMatrixFederationBackfillResponse({
+    required this.origin,
+    required this.originServerTs,
+    required this.pdus,
+  });
+
+  final String origin;
+  final int originServerTs;
+  final List<HouraMatrixFederationPdu> pdus;
+
+  factory HouraMatrixFederationBackfillResponse.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final origin = _requiredString(json, 'origin');
+    _validateMatrixFederationServerName(origin);
+    final value = json['pdus'];
+    if (value is! List) {
+      throw HouraResponseFormatException(
+          'Expected Matrix federation PDU array.');
+    }
+    return HouraMatrixFederationBackfillResponse(
+      origin: origin,
+      originServerTs: _requiredNonNegativeInt(json, 'origin_server_ts'),
+      pdus: List.unmodifiable(
+        value.map((item) {
+          if (item is Map) {
+            return HouraMatrixFederationPdu.fromJson(
+              item.cast<String, Object?>(),
+            );
+          }
+          throw HouraResponseFormatException(
+            'Expected Matrix federation PDU object.',
+          );
+        }),
+      ),
+    );
+  }
+}
+
+/// SPEC-057 parser-only Matrix federation event auth response.
+final class HouraMatrixFederationEventAuthResponse {
+  const HouraMatrixFederationEventAuthResponse({required this.authChain});
+
+  final List<HouraMatrixFederationPdu> authChain;
+
+  factory HouraMatrixFederationEventAuthResponse.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final value = json['auth_chain'];
+    if (value is! List) {
+      throw HouraResponseFormatException(
+        'Expected Matrix federation auth chain array.',
+      );
+    }
+    return HouraMatrixFederationEventAuthResponse(
+      authChain: List.unmodifiable(
+        value.map((item) {
+          if (item is Map) {
+            return HouraMatrixFederationPdu.fromJson(
+              item.cast<String, Object?>(),
+            );
+          }
+          throw HouraResponseFormatException(
+            'Expected Matrix federation auth chain PDU object.',
+          );
+        }),
+      ),
+    );
+  }
+}
+
+/// SPEC-057 parser-only Matrix federation state_ids response.
+final class HouraMatrixFederationStateIdsResponse {
+  const HouraMatrixFederationStateIdsResponse({
+    required this.pduIds,
+    required this.authChainIds,
+  });
+
+  final List<String> pduIds;
+  final List<String> authChainIds;
+
+  factory HouraMatrixFederationStateIdsResponse.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraMatrixFederationStateIdsResponse(
+      pduIds: _requiredStringList(json, 'pdu_ids'),
+      authChainIds: _requiredStringList(json, 'auth_chain_ids'),
+    );
+  }
+}
+
+/// SPEC-057 parser-only Matrix federation state-resolution interop step.
+final class HouraMatrixFederationStateResolutionInteropStep {
+  const HouraMatrixFederationStateResolutionInteropStep({
+    required this.id,
+    required this.contract,
+    required this.required,
+    this.endpoint,
+    this.allowedResults,
+  });
+
+  final String id;
+  final String contract;
+  final bool required;
+  final String? endpoint;
+  final List<String>? allowedResults;
+
+  factory HouraMatrixFederationStateResolutionInteropStep.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final allowedResults = json['allowed_results'];
+    List<String>? parsedAllowedResults;
+    if (allowedResults != null) {
+      parsedAllowedResults = _requiredStringList(json, 'allowed_results');
+      if (parsedAllowedResults.isEmpty ||
+          parsedAllowedResults.any(
+            (value) =>
+                value != 'accepted' &&
+                value != 'soft_failed' &&
+                value != 'rejected',
+          )) {
+        throw HouraResponseFormatException(
+          'Expected supported interop decision result values.',
+        );
+      }
+    }
+    return HouraMatrixFederationStateResolutionInteropStep(
+      id: _requiredString(json, 'id'),
+      contract: _requiredString(json, 'contract'),
+      required: _requiredBool(json, 'required'),
+      endpoint: _optionalString(json, 'endpoint'),
+      allowedResults: parsedAllowedResults == null
+          ? null
+          : List.unmodifiable(parsedAllowedResults),
+    );
+  }
+}
+
+/// SPEC-057 parser-only Matrix federation state-resolution interop record.
+final class HouraMatrixFederationStateResolutionInteropRecord {
+  const HouraMatrixFederationStateResolutionInteropRecord({
+    required this.matrixSpecVersion,
+    required this.matrixSpecSource,
+    required this.checkedAt,
+    required this.requiredContracts,
+    required this.localServer,
+    required this.remoteServer,
+    required this.roomId,
+    required this.roomVersion,
+    required this.targetEventId,
+    required this.steps,
+    required this.requiredEvidence,
+  });
+
+  final String matrixSpecVersion;
+  final String matrixSpecSource;
+  final String checkedAt;
+  final List<String> requiredContracts;
+  final String localServer;
+  final String remoteServer;
+  final String roomId;
+  final String roomVersion;
+  final String targetEventId;
+  final List<HouraMatrixFederationStateResolutionInteropStep> steps;
+  final List<String> requiredEvidence;
+
+  factory HouraMatrixFederationStateResolutionInteropRecord.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final requiredContracts = _requiredStringList(json, 'required_contracts');
+    final requiredEvidence = _requiredStringList(json, 'required_evidence');
+    if (requiredContracts.isEmpty || requiredEvidence.isEmpty) {
+      throw HouraResponseFormatException(
+        'Expected non-empty state-resolution interop metadata.',
+      );
+    }
+    final stepsValue = json['steps'];
+    if (stepsValue is! List || stepsValue.isEmpty) {
+      throw HouraResponseFormatException(
+        'Expected state-resolution interop step array.',
+      );
+    }
+    final localServer = _requiredString(json, 'local_server');
+    final remoteServer = _requiredString(json, 'remote_server');
+    _validateMatrixFederationServerName(localServer);
+    _validateMatrixFederationServerName(remoteServer);
+    return HouraMatrixFederationStateResolutionInteropRecord(
+      matrixSpecVersion: _requiredString(json, 'matrix_spec_version'),
+      matrixSpecSource: _requiredString(json, 'matrix_spec_source'),
+      checkedAt: _requiredString(json, 'checked_at'),
+      requiredContracts: requiredContracts,
+      localServer: localServer,
+      remoteServer: remoteServer,
+      roomId: _requiredString(json, 'room_id'),
+      roomVersion: _requiredString(json, 'room_version'),
+      targetEventId: _requiredString(json, 'target_event_id'),
+      steps: List.unmodifiable(
+        stepsValue.map((item) {
+          if (item is Map) {
+            return HouraMatrixFederationStateResolutionInteropStep.fromJson(
+              item.cast<String, Object?>(),
+            );
+          }
+          throw HouraResponseFormatException(
+            'Expected state-resolution interop step object.',
+          );
+        }),
+      ),
+      requiredEvidence: requiredEvidence,
+    );
+  }
+}
+
 /// SPEC-069 Matrix device key query response.
 final class HouraDeviceKeyQueryResponse {
   const HouraDeviceKeyQueryResponse({
     required this.failures,
     required this.deviceKeys,
+    this.masterKeys = const {},
+    this.selfSigningKeys = const {},
+    this.userSigningKeys = const {},
   });
 
   /// Remote homeserver failures, keyed by homeserver name.
@@ -1336,10 +1704,25 @@ final class HouraDeviceKeyQueryResponse {
   /// Public device keys keyed by Matrix user id, then device id.
   final Map<String, Map<String, HouraMatrixDeviceKey>> deviceKeys;
 
+  /// Optional public cross-signing master keys keyed by Matrix user id.
+  final Map<String, HouraMatrixCrossSigningKey> masterKeys;
+
+  /// Optional public self-signing keys keyed by Matrix user id.
+  final Map<String, HouraMatrixCrossSigningKey> selfSigningKeys;
+
+  /// Optional public user-signing keys keyed by Matrix user id.
+  final Map<String, HouraMatrixCrossSigningKey> userSigningKeys;
+
   factory HouraDeviceKeyQueryResponse.fromJson(Map<String, Object?> json) {
     return HouraDeviceKeyQueryResponse(
       failures: _requiredJsonObject(json, 'failures'),
       deviceKeys: _requiredDeviceKeyUsers(json, 'device_keys'),
+      masterKeys: _optionalCrossSigningKeyUsers(json, 'master_keys'),
+      selfSigningKeys: _optionalCrossSigningKeyUsers(
+        json,
+        'self_signing_keys',
+      ),
+      userSigningKeys: _optionalCrossSigningKeyUsers(json, 'user_signing_keys'),
     );
   }
 }
@@ -1455,6 +1838,486 @@ final class HouraMatrixSignedKey {
         'key': key,
         'signatures': signatures,
         if (fallback != null) 'fallback': fallback,
+      };
+}
+
+/// SPEC-053 Matrix key-backup create response.
+final class HouraKeyBackupVersionCreateResponse {
+  const HouraKeyBackupVersionCreateResponse({required this.version});
+
+  final String version;
+
+  factory HouraKeyBackupVersionCreateResponse.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraKeyBackupVersionCreateResponse(
+      version: _requiredString(json, 'version'),
+    );
+  }
+}
+
+/// SPEC-053 Matrix key-backup version metadata.
+final class HouraKeyBackupVersion {
+  const HouraKeyBackupVersion({
+    required this.version,
+    required this.algorithm,
+    required this.raw,
+    this.authData,
+  });
+
+  final String version;
+  final String algorithm;
+  final Map<String, Object?>? authData;
+  final Map<String, Object?> raw;
+
+  factory HouraKeyBackupVersion.fromJson(Map<String, Object?> json) {
+    return HouraKeyBackupVersion(
+      version: _requiredString(json, 'version'),
+      algorithm: _requiredString(json, 'algorithm'),
+      authData: _optionalJsonObject(json, 'auth_data'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+
+  Map<String, Object?> toJson({bool includeVersion = true}) => {
+        ...raw,
+        if (includeVersion) 'version': version,
+        'algorithm': algorithm,
+        if (authData != null) 'auth_data': authData,
+      };
+}
+
+/// SPEC-053 Matrix room-key backup upload response.
+final class HouraKeyBackupUploadResponse {
+  const HouraKeyBackupUploadResponse({
+    required this.etag,
+    required this.count,
+  });
+
+  final String etag;
+  final int count;
+
+  factory HouraKeyBackupUploadResponse.fromJson(Map<String, Object?> json) {
+    return HouraKeyBackupUploadResponse(
+      etag: _requiredString(json, 'etag'),
+      count: _requiredNonNegativeInt(json, 'count'),
+    );
+  }
+}
+
+/// SPEC-053 Matrix room-key backup session metadata.
+final class HouraKeyBackupSessionData {
+  const HouraKeyBackupSessionData({
+    required this.firstMessageIndex,
+    required this.forwardedCount,
+    required this.isVerified,
+    required this.sessionData,
+    required this.raw,
+  });
+
+  final int firstMessageIndex;
+  final int forwardedCount;
+  final bool isVerified;
+  final Map<String, Object?> sessionData;
+  final Map<String, Object?> raw;
+
+  factory HouraKeyBackupSessionData.fromJson(Map<String, Object?> json) {
+    return HouraKeyBackupSessionData(
+      firstMessageIndex: _requiredNonNegativeInt(json, 'first_message_index'),
+      forwardedCount: _requiredNonNegativeInt(json, 'forwarded_count'),
+      isVerified: _requiredBool(json, 'is_verified'),
+      sessionData: _requiredJsonObject(json, 'session_data'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+        ...raw,
+        'first_message_index': firstMessageIndex,
+        'forwarded_count': forwardedCount,
+        'is_verified': isVerified,
+        'session_data': sessionData,
+      };
+}
+
+/// SPEC-054 Matrix public cross-signing key object.
+final class HouraMatrixCrossSigningKey {
+  const HouraMatrixCrossSigningKey({
+    required this.usage,
+    required this.raw,
+    this.userId,
+    this.keys = const {},
+    this.signatures = const {},
+  });
+
+  final String? userId;
+  final List<String> usage;
+  final Map<String, String> keys;
+  final Map<String, Map<String, String>> signatures;
+  final Map<String, Object?> raw;
+
+  factory HouraMatrixCrossSigningKey.fromJson(Map<String, Object?> json) {
+    return HouraMatrixCrossSigningKey(
+      userId: _optionalString(json, 'user_id'),
+      usage: _requiredStringList(json, 'usage'),
+      keys: _optionalStringMap(json, 'keys'),
+      signatures: _optionalNestedStringMap(json, 'signatures'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    if (usage.isEmpty) {
+      throw const HouraResponseFormatException(
+          'Expected string array "usage".');
+    }
+    if (userId == null) {
+      throw const HouraResponseFormatException(
+        'Expected non-empty string "user_id".',
+      );
+    }
+    if (keys.isEmpty) {
+      throw const HouraResponseFormatException('Expected string map "keys".');
+    }
+    return {
+      ...raw,
+      'user_id': _requiredToJsonString(userId, 'user_id'),
+      'usage': usage,
+      'keys': keys,
+      if (signatures.isNotEmpty) 'signatures': signatures,
+    };
+  }
+}
+
+/// SPEC-054 Matrix signed device or cross-signing key object.
+final class HouraMatrixSignedJsonObject {
+  const HouraMatrixSignedJsonObject({
+    required this.userId,
+    required this.keys,
+    required this.signatures,
+    required this.raw,
+    this.deviceId,
+    this.algorithms = const [],
+    this.usage = const [],
+  });
+
+  final String userId;
+  final String? deviceId;
+  final List<String> algorithms;
+  final List<String> usage;
+  final Map<String, String> keys;
+  final Map<String, Map<String, String>> signatures;
+  final Map<String, Object?> raw;
+
+  factory HouraMatrixSignedJsonObject.fromJson(Map<String, Object?> json) {
+    return HouraMatrixSignedJsonObject(
+      userId: _requiredString(json, 'user_id'),
+      deviceId: _optionalString(json, 'device_id'),
+      algorithms: _optionalStringList(json, 'algorithms'),
+      usage: _optionalStringList(json, 'usage'),
+      keys: _requiredStringMap(json, 'keys'),
+      signatures: _requiredNestedStringMap(json, 'signatures'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+        ...raw,
+        'user_id': userId,
+        if (deviceId != null) 'device_id': deviceId,
+        if (algorithms.isNotEmpty) 'algorithms': algorithms,
+        if (usage.isNotEmpty) 'usage': usage,
+        'keys': keys,
+        'signatures': signatures,
+      };
+}
+
+/// SPEC-054 Matrix key-signature upload response.
+final class HouraKeySignatureUploadResponse {
+  const HouraKeySignatureUploadResponse({required this.failures});
+
+  final Map<String, Object?> failures;
+
+  factory HouraKeySignatureUploadResponse.fromJson(Map<String, Object?> json) {
+    return HouraKeySignatureUploadResponse(
+      failures: _requiredJsonObject(json, 'failures'),
+    );
+  }
+}
+
+/// SPEC-054 `m.key.verification.request` to-device content.
+final class HouraMatrixVerificationRequestContent {
+  const HouraMatrixVerificationRequestContent({
+    required this.fromDevice,
+    required this.methods,
+    required this.timestamp,
+    required this.transactionId,
+    required this.raw,
+  });
+
+  final String fromDevice;
+  final List<String> methods;
+  final int timestamp;
+  final String transactionId;
+  final Map<String, Object?> raw;
+
+  factory HouraMatrixVerificationRequestContent.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraMatrixVerificationRequestContent(
+      fromDevice: _requiredString(json, 'from_device'),
+      methods: _requiredStringList(json, 'methods'),
+      timestamp: _requiredNonNegativeInt(json, 'timestamp'),
+      transactionId: _requiredString(json, 'transaction_id'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+        ...raw,
+        'from_device': fromDevice,
+        'methods': methods,
+        'timestamp': timestamp,
+        'transaction_id': transactionId,
+      };
+}
+
+/// SPEC-054 `m.key.verification.ready` to-device content.
+final class HouraMatrixVerificationReadyContent {
+  const HouraMatrixVerificationReadyContent({
+    required this.fromDevice,
+    required this.methods,
+    required this.transactionId,
+    required this.raw,
+  });
+
+  final String fromDevice;
+  final List<String> methods;
+  final String transactionId;
+  final Map<String, Object?> raw;
+
+  factory HouraMatrixVerificationReadyContent.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraMatrixVerificationReadyContent(
+      fromDevice: _requiredString(json, 'from_device'),
+      methods: _requiredStringList(json, 'methods'),
+      transactionId: _requiredString(json, 'transaction_id'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+        ...raw,
+        'from_device': fromDevice,
+        'methods': methods,
+        'transaction_id': transactionId,
+      };
+}
+
+/// SPEC-054 `m.key.verification.start` to-device content.
+final class HouraMatrixVerificationStartContent {
+  const HouraMatrixVerificationStartContent({
+    required this.fromDevice,
+    required this.hashes,
+    required this.keyAgreementProtocols,
+    required this.messageAuthenticationCodes,
+    required this.method,
+    required this.shortAuthenticationString,
+    required this.transactionId,
+    required this.raw,
+  });
+
+  final String fromDevice;
+  final List<String> hashes;
+  final List<String> keyAgreementProtocols;
+  final List<String> messageAuthenticationCodes;
+  final String method;
+  final List<String> shortAuthenticationString;
+  final String transactionId;
+  final Map<String, Object?> raw;
+
+  factory HouraMatrixVerificationStartContent.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraMatrixVerificationStartContent(
+      fromDevice: _requiredString(json, 'from_device'),
+      hashes: _requiredStringList(json, 'hashes'),
+      keyAgreementProtocols: _requiredStringList(
+        json,
+        'key_agreement_protocols',
+      ),
+      messageAuthenticationCodes: _requiredStringList(
+        json,
+        'message_authentication_codes',
+      ),
+      method: _requiredString(json, 'method'),
+      shortAuthenticationString: _requiredStringList(
+        json,
+        'short_authentication_string',
+      ),
+      transactionId: _requiredString(json, 'transaction_id'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+        ...raw,
+        'from_device': fromDevice,
+        'hashes': hashes,
+        'key_agreement_protocols': keyAgreementProtocols,
+        'message_authentication_codes': messageAuthenticationCodes,
+        'method': method,
+        'short_authentication_string': shortAuthenticationString,
+        'transaction_id': transactionId,
+      };
+}
+
+/// SPEC-054 `m.key.verification.accept` to-device content.
+final class HouraMatrixVerificationAcceptContent {
+  const HouraMatrixVerificationAcceptContent({
+    required this.commitment,
+    required this.hash,
+    required this.keyAgreementProtocol,
+    required this.messageAuthenticationCode,
+    required this.method,
+    required this.shortAuthenticationString,
+    required this.transactionId,
+    required this.raw,
+  });
+
+  final String commitment;
+  final String hash;
+  final String keyAgreementProtocol;
+  final String messageAuthenticationCode;
+  final String method;
+  final List<String> shortAuthenticationString;
+  final String transactionId;
+  final Map<String, Object?> raw;
+
+  factory HouraMatrixVerificationAcceptContent.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraMatrixVerificationAcceptContent(
+      commitment: _requiredString(json, 'commitment'),
+      hash: _requiredString(json, 'hash'),
+      keyAgreementProtocol: _requiredString(json, 'key_agreement_protocol'),
+      messageAuthenticationCode: _requiredString(
+        json,
+        'message_authentication_code',
+      ),
+      method: _requiredString(json, 'method'),
+      shortAuthenticationString: _requiredStringList(
+        json,
+        'short_authentication_string',
+      ),
+      transactionId: _requiredString(json, 'transaction_id'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+        ...raw,
+        'commitment': commitment,
+        'hash': hash,
+        'key_agreement_protocol': keyAgreementProtocol,
+        'message_authentication_code': messageAuthenticationCode,
+        'method': method,
+        'short_authentication_string': shortAuthenticationString,
+        'transaction_id': transactionId,
+      };
+}
+
+/// SPEC-054 `m.key.verification.key` to-device content.
+final class HouraMatrixVerificationKeyContent {
+  const HouraMatrixVerificationKeyContent({
+    required this.key,
+    required this.transactionId,
+    required this.raw,
+  });
+
+  final String key;
+  final String transactionId;
+  final Map<String, Object?> raw;
+
+  factory HouraMatrixVerificationKeyContent.fromJson(
+      Map<String, Object?> json) {
+    return HouraMatrixVerificationKeyContent(
+      key: _requiredString(json, 'key'),
+      transactionId: _requiredString(json, 'transaction_id'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+        ...raw,
+        'key': key,
+        'transaction_id': transactionId,
+      };
+}
+
+/// SPEC-054 `m.key.verification.mac` to-device content.
+final class HouraMatrixVerificationMacContent {
+  const HouraMatrixVerificationMacContent({
+    required this.keys,
+    required this.mac,
+    required this.transactionId,
+    required this.raw,
+  });
+
+  final String keys;
+  final Map<String, String> mac;
+  final String transactionId;
+  final Map<String, Object?> raw;
+
+  factory HouraMatrixVerificationMacContent.fromJson(
+      Map<String, Object?> json) {
+    return HouraMatrixVerificationMacContent(
+      keys: _requiredString(json, 'keys'),
+      mac: _requiredStringMap(json, 'mac'),
+      transactionId: _requiredString(json, 'transaction_id'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+        ...raw,
+        'keys': keys,
+        'mac': mac,
+        'transaction_id': transactionId,
+      };
+}
+
+/// SPEC-054 `m.key.verification.cancel` to-device content.
+final class HouraMatrixVerificationCancelContent {
+  const HouraMatrixVerificationCancelContent({
+    required this.code,
+    required this.reason,
+    required this.transactionId,
+    required this.raw,
+  });
+
+  final String code;
+  final String reason;
+  final String transactionId;
+  final Map<String, Object?> raw;
+
+  factory HouraMatrixVerificationCancelContent.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraMatrixVerificationCancelContent(
+      code: _requiredString(json, 'code'),
+      reason: _requiredString(json, 'reason'),
+      transactionId: _requiredString(json, 'transaction_id'),
+      raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+
+  Map<String, Object?> toJson() => {
+        ...raw,
+        'code': code,
+        'reason': reason,
+        'transaction_id': transactionId,
       };
 }
 
@@ -2103,6 +2966,24 @@ Map<String, String> _requiredStringMap(Map<String, Object?> json, String key) {
   );
 }
 
+Map<String, String> _optionalStringMap(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value == null) {
+    return const {};
+  }
+  if (value is! Map) {
+    throw HouraResponseFormatException('Expected string map "$key".');
+  }
+  return Map<String, String>.unmodifiable(
+    value.cast<String, Object?>().map((mapKey, mapValue) {
+      if (mapValue is! String || mapValue.isEmpty) {
+        throw HouraResponseFormatException('Expected string map "$key".');
+      }
+      return MapEntry(mapKey, mapValue);
+    }),
+  );
+}
+
 Map<String, int> _requiredIntMap(Map<String, Object?> json, String key) {
   final value = json[key];
   if (value is! Map) {
@@ -2145,6 +3026,67 @@ Map<String, Map<String, String>> _requiredNestedStringMap(
         return MapEntry(innerKey, innerValue);
       });
       return MapEntry(mapKey, Map<String, String>.unmodifiable(inner));
+    }),
+  );
+}
+
+Map<String, Map<String, String>> _optionalNestedStringMap(
+  Map<String, Object?> json,
+  String key,
+) {
+  final value = json[key];
+  if (value == null) {
+    return const {};
+  }
+  if (value is! Map) {
+    throw HouraResponseFormatException('Expected nested string map "$key".');
+  }
+  return Map<String, Map<String, String>>.unmodifiable(
+    value.cast<String, Object?>().map((mapKey, mapValue) {
+      if (mapValue is! Map) {
+        throw HouraResponseFormatException(
+          'Expected nested string map "$key".',
+        );
+      }
+      final inner = mapValue.cast<String, Object?>().map((
+        innerKey,
+        innerValue,
+      ) {
+        if (innerValue is! String || innerValue.isEmpty) {
+          throw HouraResponseFormatException(
+            'Expected nested string map "$key".',
+          );
+        }
+        return MapEntry(innerKey, innerValue);
+      });
+      return MapEntry(mapKey, Map<String, String>.unmodifiable(inner));
+    }),
+  );
+}
+
+Map<String, HouraMatrixCrossSigningKey> _optionalCrossSigningKeyUsers(
+  Map<String, Object?> json,
+  String key,
+) {
+  final value = json[key];
+  if (value == null) {
+    return const {};
+  }
+  if (value is! Map) {
+    throw HouraResponseFormatException(
+        'Expected cross-signing key map "$key".');
+  }
+  return Map<String, HouraMatrixCrossSigningKey>.unmodifiable(
+    value.cast<String, Object?>().map((userId, keyValue) {
+      if (keyValue is! Map) {
+        throw HouraResponseFormatException(
+          'Expected cross-signing key map "$key".',
+        );
+      }
+      return MapEntry(
+        userId,
+        HouraMatrixCrossSigningKey.fromJson(keyValue.cast<String, Object?>()),
+      );
     }),
   );
 }

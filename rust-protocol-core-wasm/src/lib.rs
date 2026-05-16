@@ -377,6 +377,33 @@ pub fn parse_matrix_federation_request_auth_descriptor_json(response_body: &str)
     )
 }
 
+#[wasm_bindgen(js_name = parseMatrixFederationBackfillRequestJson)]
+pub fn parse_matrix_federation_backfill_request_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_backfill_request_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationBackfillResponseJson)]
+pub fn parse_matrix_federation_backfill_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_backfill_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationEventAuthResponseJson)]
+pub fn parse_matrix_federation_event_auth_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_event_auth_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationStateIdsResponseJson)]
+pub fn parse_matrix_federation_state_ids_response_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_state_ids_response_json(response_body.as_bytes())
+}
+
+#[wasm_bindgen(js_name = parseMatrixFederationStateResolutionInteropRecordJson)]
+pub fn parse_matrix_federation_state_resolution_interop_record_json(response_body: &str) -> String {
+    houra_protocol_core::parse_matrix_federation_state_resolution_interop_record_json(
+        response_body.as_bytes(),
+    )
+}
+
 #[wasm_bindgen(js_name = parseMatrixFederationTransactionJson)]
 pub fn parse_matrix_federation_transaction_json(response_body: &str) -> String {
     houra_protocol_core::parse_matrix_federation_transaction_json(response_body.as_bytes())

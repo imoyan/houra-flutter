@@ -25,6 +25,7 @@ const expectedProtocolSpecIds = [
   'SPEC-054',
   'SPEC-055',
   'SPEC-056',
+  'SPEC-057',
   'SPEC-068',
   'SPEC-069',
   'SPEC-085',
@@ -753,21 +754,16 @@ void main(List<String> args) {
         'owning APNS, FCM, Web Push, or vendor credential handling',
       ],
     },
-    'federation_state_interop_helper_candidates': {
+    'federation_backfill_auth_state_parser_adoption': {
       'issue': 72,
-      'status': 'candidate-only-implementation-deferred',
+      'status': 'parser-only-adopted',
       'spec_ids': ['SPEC-057'],
-      'parser_only_candidates': [
-        'backfill request shape parser',
-        'backfill transaction-style response parser',
-        'event auth response parser',
-        'state IDs response parser',
-        'state-resolution interop evidence record parser',
-      ],
-      'algorithm_helper_candidates': [
-        'room-version state set helper',
-        'representative state-resolution input normalizer',
-        'auth-chain summary helper for evidence records',
+      'parser_only_surfaces': [
+        'backfill request shape',
+        'backfill response PDUs',
+        'event auth PDUs',
+        'state IDs response',
+        'state-resolution interop record',
       ],
       'parity_vectors': [
         'test-vectors/events/matrix-federation-backfill-basic.json',
@@ -776,30 +772,15 @@ void main(List<String> args) {
         'test-vectors/events/matrix-federation-state-resolution-interop-gate.json',
         'test-vectors/events/matrix-state-resolution-representative.json',
       ],
-      'algorithm_gate_required_before_implementation': [
-        'parity vectors cover accepted, soft-failed, and rejected outcomes',
-        'p95 runtime threshold is defined',
-        'payload size and nesting depth limits are defined',
-        'artifact boundary is reviewed for Rust/WASM/TypeScript exposure',
-        'CI runtime impact is measured',
-      ],
-      'server_owned_boundaries': [
+      'out_of_scope': [
         'server persistence',
         'missing-event recovery policy',
         'federation request authentication',
         'federation retry and backoff',
         'remote trust policy',
+        'room-version state-resolution algorithms',
         'full state-resolution correctness',
-      ],
-      'follow_up_split': [
-        'SPEC-057 parser-only backfill/event_auth/state_ids helpers',
-        'SPEC-057 room-version/state algorithm helper gate',
-      ],
-      'out_of_scope': [
-        'claiming production federation behavior from labs helpers',
-        'owning server persistence or missing-event recovery',
-        'owning federation authentication or remote trust policy',
-        'claiming full Matrix state-resolution compliance',
+        'Server-Server API support advertisement',
       ],
     },
     'checks': [

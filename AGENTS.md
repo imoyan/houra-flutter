@@ -101,6 +101,13 @@ The current package implements:
   parsers only
 - SPEC-052 Matrix To-Device / Encrypted Room request descriptors and public
   envelope parsers only
+- SPEC-053 Matrix Key Backup / Restore request descriptors and public response
+  parsers only
+- SPEC-054 Matrix Verification / Cross-Signing request descriptors, public
+  response parsers, and verification to-device content envelopes only
+- SPEC-057 Matrix Federation Backfill / Event Auth / State IDs parser-only
+  backfill request shapes, backfill/event-auth PDUs, state ID responses, and
+  state-resolution interop records only
 - SPEC-068 Matrix OAuth Account Management metadata, redirect descriptors, and
   post-return reconciliation signals only
 - SPEC-069 Matrix Device Key Query request descriptor and public response

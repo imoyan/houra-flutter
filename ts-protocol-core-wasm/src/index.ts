@@ -26,6 +26,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-054",
   "SPEC-055",
   "SPEC-056",
+  "SPEC-057",
   "SPEC-068",
   "SPEC-069",
   "SPEC-085",
@@ -50,9 +51,16 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixFederationKeyQueryResponseJson(responseBody: string): string;
   parseMatrixFederationMakeJoinResponseJson(responseBody: string): string;
   parseMatrixFederationRequestAuthDescriptorJson(responseBody: string): string;
+  parseMatrixFederationBackfillRequestJson(responseBody: string): string;
+  parseMatrixFederationBackfillResponseJson(responseBody: string): string;
+  parseMatrixFederationEventAuthResponseJson(responseBody: string): string;
   parseMatrixFederationServerNameJson(serverName: string): string;
   parseMatrixFederationSendJoinResponseJson(responseBody: string): string;
   parseMatrixFederationSigningKeyJson(responseBody: string): string;
+  parseMatrixFederationStateIdsResponseJson(responseBody: string): string;
+  parseMatrixFederationStateResolutionInteropRecordJson(
+    responseBody: string,
+  ): string;
   parseMatrixFederationTransactionJson(responseBody: string): string;
   parseMatrixFederationTransactionResponseJson(responseBody: string): string;
   parseMatrixFederationVersionJson(responseBody: string): string;
@@ -663,6 +671,75 @@ export interface MatrixFederationRequestAuthDescriptor {
   signed_json_fields: string[];
 }
 
+export interface MatrixFederationRequestAuthorization {
+  scheme: "X-Matrix";
+  origin: string;
+  destination: string;
+  key: string;
+  signed_json: boolean;
+}
+
+export interface MatrixFederationBackfillRequest {
+  method: "GET";
+  path: string;
+  from_event_ids: string[];
+  limit: number;
+  authorization: MatrixFederationRequestAuthorization;
+}
+
+export interface MatrixFederationPdu {
+  content: Record<string, unknown>;
+  event_id: string;
+  origin_server_ts: number;
+  room_id: string;
+  sender: string;
+  depth: number;
+  prev_events: string[];
+  auth_events: string[];
+  hashes: Record<string, string>;
+  signatures: Record<string, Record<string, string>>;
+  state_key?: string;
+  type: string;
+  unsigned?: Record<string, unknown>;
+}
+
+export interface MatrixFederationBackfillResponse {
+  origin: string;
+  origin_server_ts: number;
+  pdus: MatrixFederationPdu[];
+}
+
+export interface MatrixFederationEventAuthResponse {
+  auth_chain: MatrixFederationPdu[];
+}
+
+export interface MatrixFederationStateIdsResponse {
+  pdu_ids: string[];
+  auth_chain_ids: string[];
+}
+
+export interface MatrixFederationStateResolutionInteropStep {
+  id: string;
+  contract: string;
+  required: boolean;
+  endpoint?: string;
+  allowed_results?: string[];
+}
+
+export interface MatrixFederationStateResolutionInteropRecord {
+  matrix_spec_version: string;
+  matrix_spec_source: string;
+  checked_at: string;
+  required_contracts: string[];
+  local_server: string;
+  remote_server: string;
+  room_id: string;
+  room_version: string;
+  target_event_id: string;
+  steps: MatrixFederationStateResolutionInteropStep[];
+  required_evidence: string[];
+}
+
 export interface MatrixVerificationSasFlow {
   transaction_id: string;
   transport: string;
@@ -968,6 +1045,15 @@ export interface HouraProtocolCoreFacade {
   parseMatrixFederationKeyQueryResponse(
     responseBody: string,
   ): ProtocolResult<MatrixFederationKeyQueryResponse>;
+  parseMatrixFederationBackfillRequest(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationBackfillRequest>;
+  parseMatrixFederationBackfillResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationBackfillResponse>;
+  parseMatrixFederationEventAuthResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationEventAuthResponse>;
   parseMatrixFederationMakeJoinResponse(
     responseBody: string,
   ): ProtocolResult<MatrixFederationMakeJoinResponse>;
@@ -983,6 +1069,12 @@ export interface HouraProtocolCoreFacade {
   parseMatrixFederationSigningKey(
     responseBody: string,
   ): ProtocolResult<MatrixFederationSigningKey>;
+  parseMatrixFederationStateIdsResponse(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationStateIdsResponse>;
+  parseMatrixFederationStateResolutionInteropRecord(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationStateResolutionInteropRecord>;
   parseMatrixFederationTransaction(
     responseBody: string,
   ): ProtocolResult<MatrixFederationTransaction>;
@@ -1336,6 +1428,27 @@ export function createHouraProtocolCore(
       );
       return readMatrixFederationKeyQueryResponseEnvelope(envelope);
     },
+    parseMatrixFederationBackfillRequest(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationBackfillRequestJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationBackfillRequestEnvelope(envelope);
+    },
+    parseMatrixFederationBackfillResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationBackfillResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationBackfillResponseEnvelope(envelope);
+    },
+    parseMatrixFederationEventAuthResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationEventAuthResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationEventAuthResponseEnvelope(envelope);
+    },
     parseMatrixFederationMakeJoinResponse(responseBody: string) {
       const envelope = parseJsonObject(
         binding.parseMatrixFederationMakeJoinResponseJson(responseBody),
@@ -1370,6 +1483,22 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixFederationSigningKeyEnvelope(envelope);
+    },
+    parseMatrixFederationStateIdsResponse(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationStateIdsResponseJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationStateIdsResponseEnvelope(envelope);
+    },
+    parseMatrixFederationStateResolutionInteropRecord(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationStateResolutionInteropRecordJson(
+          responseBody,
+        ),
+        "parse envelope",
+      );
+      return readMatrixFederationStateResolutionInteropRecordEnvelope(envelope);
     },
     parseMatrixFederationTransaction(responseBody: string) {
       const envelope = parseJsonObject(
@@ -2301,6 +2430,44 @@ function readMatrixFederationKeyQueryResponseEnvelope(
   }));
 }
 
+function readMatrixFederationBackfillRequestEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationBackfillRequest> {
+  return readProtocolResult(envelope, (value) => ({
+    method: readString(value, "method", "invalid_envelope") as "GET",
+    path: readString(value, "path", "invalid_envelope"),
+    from_event_ids: readStringArray(value, "from_event_ids", "invalid_envelope"),
+    limit: readNumber(value, "limit", "invalid_envelope"),
+    authorization: readMatrixFederationRequestAuthorization(
+      readRecord(value, "authorization", "federation.backfill_request"),
+    ),
+  }));
+}
+
+function readMatrixFederationBackfillResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationBackfillResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    origin: readString(value, "origin", "invalid_envelope"),
+    origin_server_ts: readNumber(value, "origin_server_ts", "invalid_envelope"),
+    pdus: readRecordArray(value, "pdus", "federation.backfill_response").map(
+      readMatrixFederationPdu,
+    ),
+  }));
+}
+
+function readMatrixFederationEventAuthResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationEventAuthResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    auth_chain: readRecordArray(
+      value,
+      "auth_chain",
+      "federation.event_auth_response",
+    ).map(readMatrixFederationPdu),
+  }));
+}
+
 function readMatrixFederationDestinationResolutionFailureEnvelope(
   envelope: Record<string, unknown>,
 ): ProtocolResult<MatrixFederationDestinationResolutionFailure> {
@@ -2337,6 +2504,45 @@ function readMatrixFederationRequestAuthDescriptorEnvelope(
       ),
     };
   });
+}
+
+function readMatrixFederationStateIdsResponseEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationStateIdsResponse> {
+  return readProtocolResult(envelope, (value) => ({
+    pdu_ids: readStringArray(value, "pdu_ids", "invalid_envelope"),
+    auth_chain_ids: readStringArray(value, "auth_chain_ids", "invalid_envelope"),
+  }));
+}
+
+function readMatrixFederationStateResolutionInteropRecordEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationStateResolutionInteropRecord> {
+  return readProtocolResult(envelope, (value) => ({
+    matrix_spec_version: readString(value, "matrix_spec_version", "invalid_envelope"),
+    matrix_spec_source: readString(value, "matrix_spec_source", "invalid_envelope"),
+    checked_at: readString(value, "checked_at", "invalid_envelope"),
+    required_contracts: readStringArray(
+      value,
+      "required_contracts",
+      "invalid_envelope",
+    ),
+    local_server: readString(value, "local_server", "invalid_envelope"),
+    remote_server: readString(value, "remote_server", "invalid_envelope"),
+    room_id: readString(value, "room_id", "invalid_envelope"),
+    room_version: readString(value, "room_version", "invalid_envelope"),
+    target_event_id: readString(value, "target_event_id", "invalid_envelope"),
+    steps: readRecordArray(
+      value,
+      "steps",
+      "federation.state_resolution_interop",
+    ).map(readMatrixFederationStateResolutionInteropStep),
+    required_evidence: readStringArray(
+      value,
+      "required_evidence",
+      "invalid_envelope",
+    ),
+  }));
 }
 
 function readMatrixVerificationSasFlowEnvelope(
@@ -4031,6 +4237,69 @@ function readMatrixClientEvent(
   });
   if (value.unsigned !== null && value.unsigned !== undefined) {
     result.unsigned = readRecord(value, "unsigned", "client event");
+  }
+  return result;
+}
+
+function readMatrixFederationRequestAuthorization(
+  value: Record<string, unknown>,
+): MatrixFederationRequestAuthorization {
+  return {
+    scheme: readString(value, "scheme", "invalid_envelope") as "X-Matrix",
+    origin: readString(value, "origin", "invalid_envelope"),
+    destination: readString(value, "destination", "invalid_envelope"),
+    key: readString(value, "key", "invalid_envelope"),
+    signed_json: readBoolean(value, "signed_json"),
+  };
+}
+
+function readMatrixFederationPdu(
+  value: Record<string, unknown>,
+): MatrixFederationPdu {
+  const result: MatrixFederationPdu = {
+    content: readRecord(value, "content", "federation.pdu"),
+    event_id: readString(value, "event_id", "invalid_envelope"),
+    origin_server_ts: readNumber(value, "origin_server_ts", "invalid_envelope"),
+    room_id: readString(value, "room_id", "invalid_envelope"),
+    sender: readString(value, "sender", "invalid_envelope"),
+    depth: readNumber(value, "depth", "invalid_envelope"),
+    prev_events: readStringArray(value, "prev_events", "invalid_envelope"),
+    auth_events: readStringArray(value, "auth_events", "invalid_envelope"),
+    hashes: readStringRecord(readRecord(value, "hashes", "federation.pdu")),
+    signatures: readNestedStringRecord(
+      value,
+      "signatures",
+      "federation.pdu.signatures",
+    ),
+    type: readString(value, "type", "invalid_envelope"),
+  };
+  readOptionalString(value, "state_key", (stateKey) => {
+    result.state_key = stateKey;
+  });
+  readOptionalRecord(value, "unsigned", (unsigned) => {
+    result.unsigned = unsigned;
+  });
+  return result;
+}
+
+function readMatrixFederationStateResolutionInteropStep(
+  value: Record<string, unknown>,
+): MatrixFederationStateResolutionInteropStep {
+  const result: MatrixFederationStateResolutionInteropStep = {
+    id: readString(value, "id", "invalid_envelope"),
+    contract: readString(value, "contract", "invalid_envelope"),
+    required: readBoolean(value, "required"),
+  };
+  readOptionalString(value, "endpoint", (endpoint) => {
+    result.endpoint = endpoint;
+  });
+  const allowedResults = value.allowed_results;
+  if (allowedResults !== undefined && allowedResults !== null) {
+    result.allowed_results = readStringArray(
+      value,
+      "allowed_results",
+      "invalid_envelope",
+    );
   }
   return result;
 }

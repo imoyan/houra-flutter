@@ -5,23 +5,26 @@ The name comes from horagai, a conch shell used to signal over distance.
 
 ## Status
 
-Draft. The current implementation covers the MVP client profiles from
+Draft.
+
+Public Flutter SDK claim: the current draft covers the MVP client profiles from
 SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
-SPEC-010, SPEC-011, and SPEC-020. It also includes parser-only Dart SDK
-coverage for SPEC-051 Matrix key upload / claim, SPEC-052 Matrix to-device /
-encrypted-room envelopes, SPEC-068 Matrix OAuth account-management helper
-envelopes, and SPEC-069 Matrix device key query request descriptors and public
-response parsing, plus SPEC-085 Matrix event retrieval / membership history
-request descriptors and public response envelopes, and SPEC-090 Matrix
-relations / threads / reactions parser-only helpers, and SPEC-093 Matrix sync
-breadth extension parser helpers, and SPEC-095 Matrix media repository parser
-helpers, and SPEC-097 Matrix federation version/key lifecycle parser helpers,
-without claiming Matrix OAuth, E2EE, relation aggregation correctness, thread
-ordering, sync long-poll runtime, token persistence, fanout timing, media binary
-transfer, thumbnail generation, preview crawling, remote fetch,
-range/resumable transfer, encrypted attachment behavior, federation DNS/TLS
-runtime, notary fallback, request signature verification, outbound federation
-execution, Client-Server support, or Server-Server API support.
+SPEC-010, SPEC-011, and SPEC-020. It also exposes parser-only request
+descriptors, public response envelopes, or parser helpers for SPEC-051,
+SPEC-052, SPEC-053, SPEC-054, SPEC-057, SPEC-069, SPEC-085, SPEC-090, SPEC-093,
+SPEC-095, and SPEC-097.
+
+Claim scope rule: shared-core adoption records below do not extend the Flutter
+SDK claim unless they explicitly say that the Dart SDK or Flutter SDK
+prototype exposes the surface.
+
+The package does not claim Matrix OAuth, E2EE, relation aggregation
+correctness, thread ordering, sync long-poll runtime, token persistence,
+fanout timing, media binary transfer, thumbnail generation, preview crawling,
+remote fetch, range/resumable transfer, encrypted attachment behavior,
+federation DNS/TLS runtime, notary fallback, request signature verification,
+outbound federation execution, Client-Server support, or Server-Server API
+support.
 
 ## Repository Role
 
@@ -194,11 +197,9 @@ must be split into SPEC-sized follow-up issues and tied to the corresponding
 `houra-spec/test-vectors/core/matrix-appservice-*`,
 `matrix-identity-*`, and `matrix-push-*` vectors.
 
-Federation state interop helper candidate gate for issue #72: SPEC-057 remains
-a federation interop gate, not a production federation implementation. Labs may
-adopt parser-only helpers for backfill request/response bodies, event auth
-responses, state ID responses, and state-resolution interop evidence records.
-Room-version/state algorithm helpers are a separate candidate path and require
+Federation room-version/state algorithm candidate gate after issue #72 parser
+adoption: SPEC-057 parser-only helpers are adopted below, but room-version /
+state algorithm helpers remain a separate candidate path and still require
 parity vectors, p95 runtime thresholds, payload size/depth limits, artifact
 boundary review, and CI runtime impact review before implementation. Server
 persistence, missing-event recovery policy, request authentication, federation
@@ -429,7 +430,7 @@ taking ownership of DNS/TLS runtime, notary fallback, key-cache persistence,
 request signature verification, private signing-key storage, outbound
 federation execution, or Server-Server API support advertisement.
 
-SPEC-054 adoption record for issue #69: the Rust prototype now consumes the
+SPEC-054 shared-core adoption record for issue #69: the Rust prototype now consumes the
 `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
 (`v0.2.0-pre.58-43-g395c400`) SPEC-054 SAS verification, cross-signing key
 lifecycle, invalid-signature, missing-token, and wrong-device failure vectors
@@ -440,17 +441,6 @@ wrong-device failure JSON envelopes without taking ownership of local SAS
 calculation, Ed25519 verification, Olm/Megolm sessions, cross-signing private
 keys, trust decisions, QR verification, account recovery UI, token persistence,
 or Matrix E2EE support advertisement.
-
-SPEC-053 adoption record for issue #68: the Rust prototype now consumes the
-`houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
-(`v0.2.0-pre.58-43-g395c400`) SPEC-053 key backup version lifecycle, session
-upload/restore, wrong-version, missing-session, owner-scope, and logout/relogin
-recovery vectors for parser-only key backup metadata adoption. The WASM wrapper
-and TypeScript facade expose version metadata, room key backup session metadata,
-upload response, error, owner-scope gate, and recovery evidence JSON envelopes
-without taking ownership of Megolm backup encryption/decryption, room key
-storage, recovery secret storage, backup ownership authorization policy,
-logout/relogin UX, token persistence, or Matrix E2EE support advertisement.
 
 SPEC-055 adoption record for issue #70: the Rust prototype now consumes the
 `houra-spec` SPEC-055 Matrix federation discovery and signing-key vectors for
@@ -469,6 +459,18 @@ response, send_join response, invite request, and invite response JSON
 envelopes without taking ownership of request authentication, network send,
 retry, storage, event acceptance policy, signing keys, room persistence, or
 full federation behavior.
+
+SPEC-057 shared-core adoption record for issue #72: the Rust prototype now
+consumes the `houra-spec` SPEC-057 backfill, event_auth, state_ids, and
+state-resolution interop vectors for parser-only federation recovery metadata
+adoption. The representative state-resolution vector remains a parity anchor
+only and does not widen room-version algorithm claims. The Dart SDK,
+WASM wrapper, and TypeScript facade expose backfill request shapes, backfill
+response PDUs, event-auth PDUs, state IDs responses, and state-resolution
+interop records without taking ownership of server persistence, missing-event
+recovery policy, request authentication, federation retry/backoff, remote
+trust policy, room-version state-resolution algorithms, full state-resolution
+correctness, or production federation behavior.
 
 SPEC-069 Dart SDK adoption record for issue #99: the Flutter SDK prototype now
 consumes the sibling `houra-spec` `SPEC-069` device key query vectors for
@@ -490,6 +492,29 @@ This is parser-only coverage; key generation, key storage, claim lifecycle,
 signature verification, trust UI, secure storage, Olm/Megolm sessions,
 encrypted-room behavior, key backup, verification UX, and Matrix E2EE support
 advertisement stay outside this repository.
+
+SPEC-053 Dart SDK adoption record for issue #68: the Flutter SDK prototype now consumes the
+sibling `houra-spec` `SPEC-053` key backup version lifecycle and room-key
+session upload / restore vectors for
+`POST|GET|PUT /_matrix/client/v3/room_keys/version...` and
+`PUT|GET /_matrix/client/v3/room_keys/keys/{roomId}/{sessionId}` request
+descriptor construction, public version metadata parsing, public backup-session
+metadata parsing, upload response parsing, and Matrix `M_*` error-envelope
+mapping. This is parser-only coverage; Megolm backup encryption/decryption,
+recovery secret storage, backup ownership authorization policy,
+logout/relogin UX, token persistence, and Matrix E2EE support advertisement
+stay outside this repository.
+
+SPEC-054 Dart SDK adoption record for issue #69: the Flutter SDK prototype now consumes the
+sibling `houra-spec` `SPEC-054` cross-signing and verification vectors for
+`POST /_matrix/client/v3/keys/device_signing/upload`,
+`POST /_matrix/client/v3/keys/signatures/upload`, optional cross-signing maps
+on `POST /_matrix/client/v3/keys/query`, and public SAS verification to-device
+content envelope parsing, including cancel and invalid-signature / missing-token
+Matrix `M_*` error-envelope mapping. This is parser-only coverage; local SAS
+calculation, Ed25519 verification, trust decisions, QR verification, account
+recovery UX, token persistence, and Matrix E2EE support advertisement stay
+outside this repository.
 
 SPEC-052 Dart SDK adoption record for issue #67: the Flutter SDK prototype now
 consumes the sibling `houra-spec` `SPEC-052` to-device and encrypted-room
@@ -664,9 +689,11 @@ Run these checks before sending SDK-facing changes for review. The same sequence
 is the expected local verification for example and API documentation updates.
 
 `tool/check_spec_sync.dart` also runs `../houra-spec/tool/check_spec.dart`
-before checking bundled theme, vector references, and the repo-local `SPEC-039`
-protocol-core integration gate. If `HOURA_SPEC_ROOT` is set, that path is used
-instead of `../houra-spec`.
+before checking bundled theme, vector references, README Status / Pre-1.0
+Release Decision Flutter SDK support claims against Dart contract tests and
+README adoption records, and the repo-local `SPEC-039` protocol-core
+integration gate. If `HOURA_SPEC_ROOT` is set, that path is used instead of
+`../houra-spec`.
 
 For the Rust protocol core prototype, run:
 
@@ -768,8 +795,13 @@ Current decision: keep this package unpublished while the SDK remains a draft.
   `../houra-spec` or `HOURA_SPEC_ROOT`.
 - Supported contract claim: keep the public Flutter SDK claim limited to
   SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
-  SPEC-010, SPEC-011, and SPEC-020 until matching canonical contracts and
-  vectors expand the SDK surface.
+  SPEC-010, SPEC-011, SPEC-020, SPEC-051, SPEC-052, SPEC-053, SPEC-054,
+  SPEC-057,
+  SPEC-069, SPEC-085, SPEC-090, SPEC-093, SPEC-095, and SPEC-097.
+- Claim expansion rule: shared-core adoption records do not extend the Flutter
+  SDK claim unless they explicitly say that the Dart SDK or Flutter SDK
+  prototype exposes the surface and matching Dart contract tests plus README
+  adoption records document the new surface.
 
 Before publishing to pub.dev, open a separate release PR that removes
 `publish_to: none` only after package ownership, repository metadata,
@@ -862,10 +894,10 @@ Completed shared-core history:
 - #65, #66, #68, #69, and #118 completed the current E2EE-adjacent and
   OAuth-adjacent parser-only adoption surface for SPEC-069, SPEC-051, SPEC-053,
   SPEC-054, and SPEC-068.
-- #70, #71, and #123 completed the current federation parser-only adoption
-  surface for SPEC-055, SPEC-056, and SPEC-097.
-- #72 and #73 completed candidate criteria for SPEC-057 and SPEC-058 through
-  SPEC-060; implementation is tracked by the deferred issues below.
+- #70, #71, #72, and #123 completed the current federation parser-only adoption
+  surface for SPEC-055, SPEC-056, SPEC-057, and SPEC-097.
+- #73 completed candidate criteria for SPEC-058 through SPEC-060;
+  implementation is tracked by the deferred issues below.
 - #74, #75, #76, #77, #79, #80, #81, and #82 completed artifact manifest,
   binding candidate, publish-readiness, parity/performance evidence, and OSS
   readiness planning gates.
