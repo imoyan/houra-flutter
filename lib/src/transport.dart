@@ -11,10 +11,11 @@ final class HouraRequest {
     required this.pathSegments,
     Map<String, String> queryParameters = const {},
     Map<String, String> headers = const {},
-    this.accessToken,
+    String? accessToken,
     Object? body,
   })  : queryParameters = _validateQueryParameters(queryParameters),
         headers = Map.unmodifiable(headers),
+        accessToken = _validateAccessToken(accessToken),
         body = body == null ? null : _validateJsonBody(body);
 
   final String method;
@@ -218,6 +219,13 @@ String? _optionalNonEmptyString(Object? value) {
     return value;
   }
   return null;
+}
+
+String? _validateAccessToken(String? accessToken) {
+  if (accessToken != null && accessToken.trim().isEmpty) {
+    throw HouraTransportException('accessToken must be non-empty.');
+  }
+  return accessToken;
 }
 
 Object _validateJsonBody(Object body) {

@@ -719,10 +719,11 @@ and a per-request timeout. If no HTTP client is passed, `HouraClient.close()`
 closes the SDK-created client. If a host passes its own HTTP client, the host
 keeps lifecycle ownership.
 
-Authentication calls return tokens and authenticated APIs accept tokens, but the
-SDK does not persist access tokens. Sync-token persistence is also host-owned:
-call `sync.sync()` with a host-stored `since` value, or inject a
-`HouraSyncTokenStore` into `sync.pollOnce()` when a small adapter is useful.
+Authentication calls return tokens and authenticated APIs accept non-empty
+bearer tokens, but the SDK does not persist access tokens. Sync-token
+persistence is also host-owned: call `sync.sync()` with a host-stored `since`
+value, or inject a `HouraSyncTokenStore` into `sync.pollOnce()` when a small
+adapter is useful.
 
 SDK failures are typed as `HouraException` subclasses:
 

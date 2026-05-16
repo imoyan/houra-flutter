@@ -6,9 +6,10 @@
 /// token persistence, sync-token persistence, retries, cancellation policy,
 /// media storage, and UI behavior.
 ///
-/// SDK calls throw typed [HouraException] subclasses for transport failures,
-/// non-success HTTP responses, malformed contract responses, and malformed
-/// theme token files.
+/// Authenticated SDK calls accept non-empty bearer tokens from the host. SDK
+/// calls throw typed [HouraException] subclasses for request setup and
+/// transport failures, non-success HTTP responses, malformed contract
+/// responses, and malformed theme token files.
 library houra;
 
 export 'src/auth.dart';
