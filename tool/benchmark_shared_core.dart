@@ -3,6 +3,11 @@ import 'dart:io';
 
 void main(List<String> args) {
   final iterations = _readIntOption(args, '--iterations') ?? 200;
+  if (iterations <= 0) {
+    stderr.writeln('--iterations must be positive.');
+    exitCode = 64;
+    return;
+  }
   final outputPath = _readStringOption(args, '--output');
   final includeExternal = !args.contains('--no-external');
   final specRoot = Platform.environment['HOURA_SPEC_ROOT'] ?? '../houra-spec';

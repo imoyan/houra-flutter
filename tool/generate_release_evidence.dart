@@ -229,7 +229,7 @@ void main(List<String> args) {
           'surface_kind': 'typescript-facade-baseline',
           'role': 'current production path baseline',
           'command':
-              'cd ts-protocol-core-wasm && HOURA_SPEC_ROOT=../../houra-spec npm run benchmark -- --iterations 200 --json',
+              'cd ts-protocol-core-wasm && HOURA_SPEC_ROOT=../../houra-spec npm --silent run benchmark -- --iterations 200 --json',
         },
         {
           'surface_kind': 'rust-native',

@@ -499,6 +499,17 @@ void checkSharedCoreBenchmarkHarness(List<String> failures) {
         );
       }
     }
+    final tsSurface = measuredSurfaces.whereType<Map>().where(
+          (surface) => surface['surface_kind'] == 'typescript-facade-baseline',
+        );
+    if (tsSurface.isEmpty ||
+        !tsSurface.first['command'].toString().contains(
+              'npm --silent run benchmark',
+            )) {
+      failures.add(
+        'shared_core_benchmark_harness TypeScript command must use npm --silent for JSON output.',
+      );
+    }
   }
   final optionalSurfaces = benchmark['optional_surfaces'];
   if (optionalSurfaces is! List ||

@@ -104,6 +104,22 @@ void main() {
       ),
     );
     expect(
+      benchmark['measured_surfaces'],
+      contains(
+        isA<Map>()
+            .having(
+              (surface) => surface['surface_kind'],
+              'surface_kind',
+              'typescript-facade-baseline',
+            )
+            .having(
+              (surface) => surface['command'].toString(),
+              'command',
+              contains('npm --silent run benchmark'),
+            ),
+      ),
+    );
+    expect(
       benchmark['optional_surfaces'],
       contains(
         isA<Map>()
@@ -167,5 +183,18 @@ void main() {
         ),
       ),
     );
+  });
+
+  test('benchmark harness rejects non-positive iteration counts', () {
+    final result = Process.runSync('dart', [
+      'run',
+      'tool/benchmark_shared_core.dart',
+      '--iterations',
+      '0',
+      '--no-external',
+    ]);
+
+    expect(result.exitCode, isNot(0));
+    expect(result.stderr.toString(), contains('--iterations must be positive'));
   });
 }
