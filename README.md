@@ -11,8 +11,8 @@ Public Flutter SDK claim: the current draft covers the MVP client profiles from
 SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
 SPEC-010, SPEC-011, and SPEC-020. It also exposes parser-only request
 descriptors, public response envelopes, or parser helpers for SPEC-051,
-SPEC-052, SPEC-053, SPEC-054, SPEC-057, SPEC-069, SPEC-085, SPEC-090, SPEC-093,
-SPEC-095, SPEC-097, and SPEC-098.
+SPEC-052, SPEC-053, SPEC-054, SPEC-057, SPEC-059, SPEC-069, SPEC-076, SPEC-085,
+SPEC-090, SPEC-093, SPEC-095, SPEC-097, and SPEC-098.
 
 Claim scope rule: shared-core adoption records below do not extend the Flutter
 SDK claim unless they explicitly say that the Dart SDK or Flutter SDK
@@ -196,6 +196,27 @@ consent or notification UI stay outside this repository. Implementation work
 must be split into SPEC-sized follow-up issues and tied to the corresponding
 `houra-spec/test-vectors/core/matrix-appservice-*`,
 `matrix-identity-*`, and `matrix-push-*` vectors.
+
+SPEC-059 Dart SDK adoption record for issue #127: the Flutter SDK prototype now
+consumes the `houra-spec` snapshot `26a47461237d30efb2310bd688559b73d6dc998b`
+Identity Service boundary, lookup/hash-details, validation/bind/unbind,
+public-key/signature, provider-delivery boundary, and `SPEC-076` full-breadth
+gap inventory vectors. The Dart SDK exposes parser-only request descriptors,
+public response parsers, Matrix error envelopes, lifecycle evidence cases, and
+privacy-sensitive redaction helpers. Provider delivery, consent UI,
+contact-upload UX, invitation storage, ephemeral invitation signing, production
+key rotation, network lookup, and Identity Service support advertisement remain
+host/service-owned and fail-closed. This adoption records representative parser
+coverage only; it does not claim Matrix Identity Service full-breadth runtime
+support.
+
+SPEC-076 Dart SDK adoption record for issue #127: the Flutter SDK prototype now
+consumes the same `houra-spec` snapshot
+`26a47461237d30efb2310bd688559b73d6dc998b` for the Identity Service
+full-breadth gap inventory vector. The Dart SDK exposes parser evidence and
+fail-closed release-evidence checks for the inventory only; it does not claim
+runtime ownership for provider delivery, consent UI, invitation storage,
+ephemeral invitation signing, or Matrix Identity Service support advertisement.
 
 Federation room-version/state algorithm candidate gate after issue #72 parser
 adoption: SPEC-057 parser-only helpers are adopted below, but room-version /
@@ -807,8 +828,9 @@ Current decision: keep this package unpublished while the SDK remains a draft.
 - Supported contract claim: keep the public Flutter SDK claim limited to
   SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
   SPEC-010, SPEC-011, SPEC-020, SPEC-051, SPEC-052, SPEC-053, SPEC-054,
-  SPEC-057,
-  SPEC-069, SPEC-085, SPEC-090, SPEC-093, SPEC-095, SPEC-097, and SPEC-098.
+  SPEC-057, SPEC-059,
+  SPEC-069, SPEC-076, SPEC-085, SPEC-090, SPEC-093, SPEC-095, SPEC-097, and
+  SPEC-098.
 - Claim expansion rule: shared-core adoption records do not extend the Flutter
   SDK claim unless they explicitly say that the Dart SDK or Flutter SDK
   prototype exposes the surface and matching Dart contract tests plus README
@@ -924,8 +946,10 @@ Deferred implementation backlog:
   envelopes and directory/query/OpenID helpers.
 - #128 completed the Dart SDK Push Gateway parser helper surface for pusher,
   push-rule, sync-visibility, malformed descriptor, and redaction evidence.
-- #126 and #127 track Application Service and Identity Service full-breadth
-  parser helper work.
+- #127 completed the Dart SDK Identity Service parser helper surface for
+  request descriptors, public response parsers, error envelopes, lifecycle
+  evidence, and redaction helpers. #126 tracks the remaining Application
+  Service parser helper work.
 - #129, #130, and #131 track Room Version helper and fixture-runner candidates.
 - #132 tracks E2EE full-breadth parser artifacts.
 - #133 tracks the adopted shared crypto metadata / redaction / release evidence
