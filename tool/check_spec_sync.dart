@@ -39,6 +39,8 @@ void main() {
   checkSpec093ProtocolCoreGate(failures);
   checkSpec095ProtocolCoreGate(failures);
   checkSpec097ProtocolCoreGate(failures);
+  checkSpec099FlutterSdkGate(failures);
+  checkSpec100FlutterSdkGate(failures);
 
   if (failures.isNotEmpty) {
     stderr.writeln('Spec sync check failed:');
@@ -297,10 +299,7 @@ void checkFlutterSdkSupportClaim(List<String> failures) {
     'README Flutter SDK adoption records',
   );
 
-  final expectedSpecIds = [
-    ..._flutterSdkBaseSpecIds,
-    ...parserOnlySpecIds,
-  ];
+  final expectedSpecIds = [..._flutterSdkBaseSpecIds, ...parserOnlySpecIds];
 
   final statusSection = extractMarkdownSection(source, '## Status');
   if (statusSection == null) {
@@ -586,8 +585,9 @@ void checkSpec049ProtocolCoreGate(List<String> failures) {
     }
     final decoded = jsonDecode(vector.readAsStringSync());
     if (decoded is! Map<String, Object?> || decoded['contract'] != 'SPEC-049') {
-      failures
-          .add('SPEC-049 vector has an unexpected contract id: $vectorPath');
+      failures.add(
+        'SPEC-049 vector has an unexpected contract id: $vectorPath',
+      );
     }
   }
   checkReleaseEvidenceAdoption(
@@ -666,8 +666,9 @@ void checkSpec049ProtocolCoreGate(List<String> failures) {
     final source = file.readAsStringSync();
     for (final fragment in entry.value) {
       if (!source.contains(fragment)) {
-        failures
-            .add('${entry.key} is missing SPEC-049 gate fragment: $fragment');
+        failures.add(
+          '${entry.key} is missing SPEC-049 gate fragment: $fragment',
+        );
       }
     }
   }
@@ -1190,9 +1191,7 @@ void checkSpec093ProtocolCoreGate(List<String> failures) {
   final contract = File(
     '${specRoot.path}/contracts/SPEC-093-matrix-sync-breadth-extensions.md',
   );
-  final vectors = [
-    'test-vectors/sync/matrix-sync-breadth-extensions.json',
-  ];
+  final vectors = ['test-vectors/sync/matrix-sync-breadth-extensions.json'];
   if (!contract.existsSync()) {
     failures.add('Missing SPEC-093 contract: ${contract.path}');
     return;
@@ -1271,9 +1270,7 @@ void checkSpec095ProtocolCoreGate(List<String> failures) {
   final contract = File(
     '${specRoot.path}/contracts/SPEC-095-matrix-media-repository-breadth.md',
   );
-  final vectors = [
-    'test-vectors/media/matrix-media-repository-breadth.json',
-  ];
+  final vectors = ['test-vectors/media/matrix-media-repository-breadth.json'];
   if (!contract.existsSync()) {
     failures.add('Missing SPEC-095 contract: ${contract.path}');
     return;
@@ -1434,6 +1431,131 @@ void checkSpec097ProtocolCoreGate(List<String> failures) {
   );
 }
 
+void checkSpec099FlutterSdkGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final contract = File(
+    '${specRoot.path}/contracts/SPEC-099-matrix-federation-pdu-edu-parser-helpers.md',
+  );
+  final vectors = [
+    'test-vectors/events/matrix-federation-pdu-edu-parser-helpers.json',
+  ];
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-099 contract: ${contract.path}');
+    return;
+  }
+  checkVectorsHaveContract(failures, specRoot, 'SPEC-099', vectors);
+  checkReleaseEvidenceAdoption(
+    failures,
+    blockName: 'federation_pdu_edu_parser_adoption',
+    issue: 124,
+    specId: 'SPEC-099',
+    parityVectors: vectors,
+    parserOnlySurfaces: [
+      'federation transaction envelope',
+      'typed PDU envelope',
+      'typed EDU envelope',
+      'canonical JSON input descriptor',
+      'per-PDU response descriptor',
+    ],
+    outOfScope: [
+      'event auth',
+      'state resolution',
+      'hash calculation',
+      'signature verification',
+      'storage mutation',
+      'soft-fail policy',
+      'outbound federation execution',
+      'Server-Server API support advertisement',
+    ],
+  );
+
+  checkRequiredFragments(
+    failures,
+    specId: 'SPEC-099',
+    requiredFragmentsByFile: {
+      'AGENTS.md': ['SPEC-099'],
+      'README.md': ['SPEC-099', 'PDU / EDU'],
+      'lib/src/models.dart': [
+        'HouraMatrixFederationTransaction',
+        'HouraMatrixFederationEdu',
+        'HouraMatrixFederationCanonicalJsonInputDescriptor',
+        'HouraMatrixFederationTransactionResponse',
+      ],
+      'test/federation_parser_helpers_contract_test.dart': [
+        'SPEC-099',
+        'matrix-federation-pdu-edu-parser-helpers.json',
+      ],
+      'test/public_api_test.dart': [
+        'HouraMatrixFederationTransaction',
+        'HouraMatrixFederationCanonicalJsonInputDescriptor',
+      ],
+    },
+  );
+}
+
+void checkSpec100FlutterSdkGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final contract = File(
+    '${specRoot.path}/contracts/SPEC-100-matrix-federation-directory-query-openid-parser-helpers.md',
+  );
+  final vectors = [
+    'test-vectors/core/matrix-federation-directory-query-openid-parser-helpers.json',
+  ];
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-100 contract: ${contract.path}');
+    return;
+  }
+  checkVectorsHaveContract(failures, specRoot, 'SPEC-100', vectors);
+  checkReleaseEvidenceAdoption(
+    failures,
+    blockName: 'federation_directory_query_openid_parser_adoption',
+    issue: 125,
+    specId: 'SPEC-100',
+    parityVectors: vectors,
+    parserOnlySurfaces: [
+      'federation public rooms response',
+      'federation hierarchy response',
+      'federation directory query response',
+      'federation profile query response',
+      'federation generic query response',
+      'federation OpenID userinfo response',
+    ],
+    outOfScope: [
+      'remote network fetch',
+      'visibility decision',
+      'profile privacy policy',
+      'OpenID token verification',
+      'trust decision',
+      'rate limiting',
+      'cache persistence',
+      'Server-Server API support advertisement',
+    ],
+  );
+
+  checkRequiredFragments(
+    failures,
+    specId: 'SPEC-100',
+    requiredFragmentsByFile: {
+      'AGENTS.md': ['SPEC-100'],
+      'README.md': ['SPEC-100', 'directory / query / OpenID'],
+      'lib/src/models.dart': [
+        'HouraMatrixFederationPublicRoomsResponse',
+        'HouraMatrixFederationHierarchyResponse',
+        'HouraMatrixFederationDirectoryQueryResponse',
+        'HouraMatrixFederationOpenIdUserinfoResponse',
+      ],
+      'test/federation_parser_helpers_contract_test.dart': [
+        'SPEC-100',
+        'matrix-federation-directory-query-openid-parser-helpers.json',
+      ],
+      'test/public_api_test.dart': [
+        'HouraMatrixFederationPublicRoomsResponse',
+        'HouraMatrixFederationOpenIdUserinfoResponse',
+      ],
+    },
+  );
+}
+
 void checkSpec057ProtocolCoreGate(List<String> failures) {
   final specRoot = canonicalSpecRoot();
   final contract = File(
@@ -1456,14 +1578,17 @@ void checkSpec057ProtocolCoreGate(List<String> failures) {
     'SPEC-057',
     vectors
         .where(
-            (path) => !path.contains('matrix-state-resolution-representative'))
+          (path) => !path.contains('matrix-state-resolution-representative'),
+        )
         .toList(),
   );
   final representative = File(
-      '${specRoot.path}/test-vectors/events/matrix-state-resolution-representative.json');
+    '${specRoot.path}/test-vectors/events/matrix-state-resolution-representative.json',
+  );
   if (!representative.existsSync()) {
     failures.add(
-        'Missing SPEC-041 representative state vector: ${representative.path}');
+      'Missing SPEC-041 representative state vector: ${representative.path}',
+    );
   }
   checkReleaseEvidenceAdoption(
     failures,
@@ -1559,8 +1684,9 @@ void checkSpec048ProtocolCoreGate(List<String> failures) {
     }
     final decoded = jsonDecode(vector.readAsStringSync());
     if (decoded is! Map<String, Object?> || decoded['contract'] != 'SPEC-048') {
-      failures
-          .add('SPEC-048 vector has an unexpected contract id: $vectorPath');
+      failures.add(
+        'SPEC-048 vector has an unexpected contract id: $vectorPath',
+      );
     }
   }
   checkReleaseEvidenceAdoption(
@@ -1638,8 +1764,9 @@ void checkSpec048ProtocolCoreGate(List<String> failures) {
     final source = file.readAsStringSync();
     for (final fragment in entry.value) {
       if (!source.contains(fragment)) {
-        failures
-            .add('${entry.key} is missing SPEC-048 gate fragment: $fragment');
+        failures.add(
+          '${entry.key} is missing SPEC-048 gate fragment: $fragment',
+        );
       }
     }
   }
@@ -1678,8 +1805,9 @@ void checkRequiredFragments(
     final source = file.readAsStringSync();
     for (final fragment in entry.value) {
       if (!source.contains(fragment)) {
-        failures
-            .add('${entry.key} is missing $specId gate fragment: $fragment');
+        failures.add(
+          '${entry.key} is missing $specId gate fragment: $fragment',
+        );
       }
     }
   }

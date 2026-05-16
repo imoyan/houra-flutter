@@ -51,6 +51,16 @@ void main() {
     expect(houra.HouraMatrixCrossSigningKey, isA<Type>());
     expect(houra.HouraMatrixSignedJsonObject, isA<Type>());
     expect(houra.HouraKeySignatureUploadResponse, isA<Type>());
+    expect(houra.HouraMatrixFederationTransaction, isA<Type>());
+    expect(houra.HouraMatrixFederationEdu, isA<Type>());
+    expect(
+      houra.HouraMatrixFederationCanonicalJsonInputDescriptor,
+      isA<Type>(),
+    );
+    expect(houra.HouraMatrixFederationPublicRoomsResponse, isA<Type>());
+    expect(houra.HouraMatrixFederationHierarchyResponse, isA<Type>());
+    expect(houra.HouraMatrixFederationDirectoryQueryResponse, isA<Type>());
+    expect(houra.HouraMatrixFederationOpenIdUserinfoResponse, isA<Type>());
     expect(houra.HouraMatrixVerificationRequestContent, isA<Type>());
     expect(houra.HouraMatrixVerificationReadyContent, isA<Type>());
     expect(houra.HouraMatrixVerificationStartContent, isA<Type>());

@@ -400,10 +400,7 @@ final class HouraMatrixThreadSummary {
   factory HouraMatrixThreadSummary.fromJson(Map<String, Object?> json) {
     return HouraMatrixThreadSummary(
       count: _requiredNonNegativeInt(json, 'count'),
-      currentUserParticipated: _requiredBool(
-        json,
-        'current_user_participated',
-      ),
+      currentUserParticipated: _requiredBool(json, 'current_user_participated'),
       latestEvent: HouraMatrixClientEvent.fromJson(
         _requiredJsonObject(json, 'latest_event'),
       ),
@@ -672,9 +669,7 @@ final class HouraMatrixSyncRequestDescriptor {
   final String responseParser;
   final bool adoptedRuntimeBehavior;
 
-  factory HouraMatrixSyncRequestDescriptor.fromJson(
-    Map<String, Object?> json,
-  ) {
+  factory HouraMatrixSyncRequestDescriptor.fromJson(Map<String, Object?> json) {
     final descriptor = HouraMatrixSyncRequestDescriptor(
       method: _requiredString(json, 'method'),
       path: _requiredString(json, 'path'),
@@ -1049,7 +1044,8 @@ final class HouraMatrixMediaThumbnailMetadata {
     final method = _requiredString(json, 'method');
     if (method != 'scale' && method != 'crop') {
       throw HouraResponseFormatException(
-          'Expected supported thumbnail method.');
+        'Expected supported thumbnail method.',
+      );
     }
     final contentUri = _requiredString(json, 'content_uri');
     _parseMatrixMediaContentUri(contentUri);
@@ -1762,7 +1758,7 @@ final class HouraMatrixFederationRequestDescriptor {
       method: _requiredString(json, 'method'),
       path: _requiredString(json, 'path'),
       pathParams: _optionalJsonObject(json, 'path_params') ?? const {},
-      queryParams: _requiredJsonObject(json, 'query_params'),
+      queryParams: _optionalJsonObject(json, 'query_params') ?? const {},
       requiresAuth: _requiredBool(json, 'requires_auth'),
       responseParser: _requiredString(json, 'response_parser'),
       adoptedRuntimeBehavior: _requiredBool(json, 'adopted_runtime_behavior'),
@@ -1807,9 +1803,7 @@ final class HouraMatrixFederationSigningKey {
   final int validUntilTs;
   final Map<String, Map<String, String>> signatures;
 
-  factory HouraMatrixFederationSigningKey.fromJson(
-    Map<String, Object?> json,
-  ) {
+  factory HouraMatrixFederationSigningKey.fromJson(Map<String, Object?> json) {
     final serverName = _requiredString(json, 'server_name');
     _validateMatrixFederationServerName(serverName);
     final verifyKeys = _requiredFederationVerifyKeys(json, 'verify_keys');
@@ -2011,7 +2005,7 @@ final class HouraMatrixFederationBackfillRequest {
   }
 }
 
-/// SPEC-057 parser-only Matrix federation PDU envelope.
+/// SPEC-057 / SPEC-099 parser-only Matrix federation PDU envelope.
 final class HouraMatrixFederationPdu {
   const HouraMatrixFederationPdu({
     required this.eventId,
@@ -2057,10 +2051,151 @@ final class HouraMatrixFederationPdu {
       authEvents: _requiredStringList(json, 'auth_events'),
       content: _requiredJsonObject(json, 'content'),
       hashes: _requiredStringMap(json, 'hashes'),
-      signatures: _requiredNestedStringMap(json, 'signatures'),
+      signatures: _requiredFederationSignatures(json, 'signatures'),
       stateKey: _optionalString(json, 'state_key'),
       unsigned: _optionalJsonObject(json, 'unsigned'),
       raw: Map<String, Object?>.unmodifiable(json),
+    );
+  }
+}
+
+/// SPEC-099 parser-only Matrix federation EDU envelope.
+final class HouraMatrixFederationEdu {
+  const HouraMatrixFederationEdu({
+    required this.eduType,
+    required this.content,
+  });
+
+  final String eduType;
+  final Map<String, Object?> content;
+
+  factory HouraMatrixFederationEdu.fromJson(Map<String, Object?> json) {
+    return HouraMatrixFederationEdu(
+      eduType: _requiredString(json, 'edu_type'),
+      content: _requiredJsonObject(json, 'content'),
+    );
+  }
+}
+
+/// SPEC-099 parser-only Matrix federation transaction envelope.
+final class HouraMatrixFederationTransaction {
+  const HouraMatrixFederationTransaction({
+    required this.origin,
+    required this.originServerTs,
+    required this.pdus,
+    required this.edus,
+  });
+
+  final String origin;
+  final int originServerTs;
+  final List<HouraMatrixFederationPdu> pdus;
+  final List<HouraMatrixFederationEdu> edus;
+
+  factory HouraMatrixFederationTransaction.fromJson(Map<String, Object?> json) {
+    final origin = _requiredString(json, 'origin');
+    _validateMatrixFederationServerName(origin);
+    final pdus = _requiredFederationPdus(json, 'pdus', maxItems: 50);
+    final edus = _requiredFederationEdus(json, 'edus', maxItems: 100);
+    return HouraMatrixFederationTransaction(
+      origin: origin,
+      originServerTs: _requiredNonNegativeInt(json, 'origin_server_ts'),
+      pdus: pdus,
+      edus: edus,
+    );
+  }
+}
+
+/// SPEC-099 canonical JSON input descriptor for event hash/signature surfaces.
+final class HouraMatrixFederationCanonicalJsonInputDescriptor {
+  const HouraMatrixFederationCanonicalJsonInputDescriptor({
+    required this.eventId,
+    required this.inputFields,
+    required this.privateKeyPresent,
+    required this.hashCalculated,
+    required this.signatureVerified,
+  });
+
+  final String eventId;
+  final List<String> inputFields;
+  final bool privateKeyPresent;
+  final bool hashCalculated;
+  final bool signatureVerified;
+
+  factory HouraMatrixFederationCanonicalJsonInputDescriptor.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final inputFields = _requiredBoundedStringList(
+      json,
+      'input_fields',
+      maxItems: 32,
+    );
+    if (inputFields.isEmpty) {
+      throw HouraResponseFormatException(
+        'Expected bounded canonical JSON input fields.',
+      );
+    }
+    final descriptor = HouraMatrixFederationCanonicalJsonInputDescriptor(
+      eventId: _requiredString(json, 'event_id'),
+      inputFields: List.unmodifiable(inputFields),
+      privateKeyPresent: _requiredBool(json, 'private_key_present'),
+      hashCalculated: _requiredBool(json, 'hash_calculated'),
+      signatureVerified: _requiredBool(json, 'signature_verified'),
+    );
+    if (descriptor.privateKeyPresent ||
+        descriptor.hashCalculated ||
+        descriptor.signatureVerified) {
+      throw HouraResponseFormatException(
+        'Expected parser-only canonical JSON descriptor.',
+      );
+    }
+    return descriptor;
+  }
+}
+
+/// SPEC-099 parser-only Matrix federation transaction response result.
+final class HouraMatrixFederationPduResult {
+  const HouraMatrixFederationPduResult({this.error});
+
+  final String? error;
+
+  factory HouraMatrixFederationPduResult.fromJson(Map<String, Object?> json) {
+    return HouraMatrixFederationPduResult(
+      error: _optionalString(json, 'error'),
+    );
+  }
+}
+
+/// SPEC-099 parser-only Matrix federation transaction response.
+final class HouraMatrixFederationTransactionResponse {
+  const HouraMatrixFederationTransactionResponse({required this.pdus});
+
+  final Map<String, HouraMatrixFederationPduResult> pdus;
+
+  factory HouraMatrixFederationTransactionResponse.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final value = json['pdus'];
+    if (value is! Map) {
+      throw HouraResponseFormatException(
+        'Expected Matrix federation transaction response PDUs.',
+      );
+    }
+    return HouraMatrixFederationTransactionResponse(
+      pdus: Map<String, HouraMatrixFederationPduResult>.unmodifiable(
+        value.cast<String, Object?>().map((eventId, result) {
+          if (eventId.isEmpty || result is! Map) {
+            throw HouraResponseFormatException(
+              'Expected Matrix federation PDU result.',
+            );
+          }
+          return MapEntry(
+            eventId,
+            HouraMatrixFederationPduResult.fromJson(
+              result.cast<String, Object?>(),
+            ),
+          );
+        }),
+      ),
     );
   }
 }
@@ -2085,7 +2220,8 @@ final class HouraMatrixFederationBackfillResponse {
     final value = json['pdus'];
     if (value is! List) {
       throw HouraResponseFormatException(
-          'Expected Matrix federation PDU array.');
+        'Expected Matrix federation PDU array.',
+      );
     }
     return HouraMatrixFederationBackfillResponse(
       origin: origin,
@@ -2102,6 +2238,231 @@ final class HouraMatrixFederationBackfillResponse {
           );
         }),
       ),
+    );
+  }
+}
+
+/// SPEC-100 parser-only Matrix federation room summary.
+final class HouraMatrixFederationRoomSummary {
+  const HouraMatrixFederationRoomSummary({
+    required this.roomId,
+    required this.numJoinedMembers,
+    required this.worldReadable,
+    required this.guestCanJoin,
+    this.name,
+    this.topic,
+    this.canonicalAlias,
+    this.joinRule,
+    this.roomType,
+    this.childrenState = const [],
+  });
+
+  final String roomId;
+  final int numJoinedMembers;
+  final bool worldReadable;
+  final bool guestCanJoin;
+  final String? name;
+  final String? topic;
+  final String? canonicalAlias;
+  final String? joinRule;
+  final String? roomType;
+  final List<HouraMatrixFederationChildStateEvent> childrenState;
+
+  factory HouraMatrixFederationRoomSummary.fromJson(Map<String, Object?> json) {
+    final childrenState = _optionalFederationChildState(
+      json,
+      'children_state',
+      maxItems: 20,
+    );
+    return HouraMatrixFederationRoomSummary(
+      roomId: _requiredString(json, 'room_id'),
+      numJoinedMembers: _requiredNonNegativeInt(json, 'num_joined_members'),
+      worldReadable: _requiredBool(json, 'world_readable'),
+      guestCanJoin: _requiredBool(json, 'guest_can_join'),
+      name: _optionalString(json, 'name'),
+      topic: _optionalString(json, 'topic'),
+      canonicalAlias: _optionalString(json, 'canonical_alias'),
+      joinRule: _optionalString(json, 'join_rule'),
+      roomType: _optionalString(json, 'room_type'),
+      childrenState: childrenState,
+    );
+  }
+}
+
+/// SPEC-100 parser-only Matrix federation child state event summary.
+final class HouraMatrixFederationChildStateEvent {
+  const HouraMatrixFederationChildStateEvent({
+    required this.type,
+    required this.stateKey,
+    required this.content,
+  });
+
+  final String type;
+  final String stateKey;
+  final Map<String, Object?> content;
+
+  factory HouraMatrixFederationChildStateEvent.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraMatrixFederationChildStateEvent(
+      type: _requiredString(json, 'type'),
+      stateKey: _requiredString(json, 'state_key'),
+      content: _requiredJsonObject(json, 'content'),
+    );
+  }
+}
+
+/// SPEC-100 parser-only Matrix federation public rooms response.
+final class HouraMatrixFederationPublicRoomsResponse {
+  const HouraMatrixFederationPublicRoomsResponse({
+    required this.chunk,
+    this.nextBatch,
+    this.prevBatch,
+    this.totalRoomCountEstimate,
+  });
+
+  final List<HouraMatrixFederationRoomSummary> chunk;
+  final String? nextBatch;
+  final String? prevBatch;
+  final int? totalRoomCountEstimate;
+
+  factory HouraMatrixFederationPublicRoomsResponse.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final chunk = _requiredFederationRoomSummaries(
+      json,
+      'chunk',
+      maxItems: 50,
+    );
+    return HouraMatrixFederationPublicRoomsResponse(
+      chunk: chunk,
+      nextBatch: _optionalString(json, 'next_batch'),
+      prevBatch: _optionalString(json, 'prev_batch'),
+      totalRoomCountEstimate: _optionalNonNegativeInt(
+        json,
+        'total_room_count_estimate',
+      ),
+    );
+  }
+}
+
+/// SPEC-100 parser-only Matrix federation hierarchy response.
+final class HouraMatrixFederationHierarchyResponse {
+  const HouraMatrixFederationHierarchyResponse({
+    required this.rooms,
+    required this.inaccessibleChildren,
+    this.nextBatch,
+  });
+
+  final List<HouraMatrixFederationRoomSummary> rooms;
+  final List<String> inaccessibleChildren;
+  final String? nextBatch;
+
+  factory HouraMatrixFederationHierarchyResponse.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final rooms = _requiredFederationRoomSummaries(
+      json,
+      'rooms',
+      maxItems: 50,
+    );
+    final inaccessibleChildren = _requiredBoundedStringList(
+      json,
+      'inaccessible_children',
+      maxItems: 50,
+    );
+    return HouraMatrixFederationHierarchyResponse(
+      rooms: rooms,
+      inaccessibleChildren: List.unmodifiable(inaccessibleChildren),
+      nextBatch: _optionalString(json, 'next_batch'),
+    );
+  }
+}
+
+/// SPEC-100 parser-only Matrix federation directory query response.
+final class HouraMatrixFederationDirectoryQueryResponse {
+  const HouraMatrixFederationDirectoryQueryResponse({
+    required this.roomId,
+    required this.servers,
+  });
+
+  final String roomId;
+  final List<String> servers;
+
+  factory HouraMatrixFederationDirectoryQueryResponse.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final servers = _requiredBoundedStringList(
+      json,
+      'servers',
+      maxItems: 20,
+    );
+    if (servers.isEmpty) {
+      throw HouraResponseFormatException(
+        'Expected bounded Matrix federation server list.',
+      );
+    }
+    for (final server in servers) {
+      _validateMatrixFederationServerName(server);
+    }
+    return HouraMatrixFederationDirectoryQueryResponse(
+      roomId: _requiredString(json, 'room_id'),
+      servers: List.unmodifiable(servers),
+    );
+  }
+}
+
+/// SPEC-100 parser-only Matrix federation profile query response.
+final class HouraMatrixFederationProfileQueryResponse {
+  const HouraMatrixFederationProfileQueryResponse({
+    this.displayName,
+    this.avatarUrl,
+  });
+
+  final String? displayName;
+  final String? avatarUrl;
+
+  factory HouraMatrixFederationProfileQueryResponse.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraMatrixFederationProfileQueryResponse(
+      displayName: _optionalString(json, 'displayname'),
+      avatarUrl: _optionalString(json, 'avatar_url'),
+    );
+  }
+}
+
+/// SPEC-100 parser-only Matrix federation generic query response descriptor.
+final class HouraMatrixFederationGenericQueryResponse {
+  const HouraMatrixFederationGenericQueryResponse({
+    required this.queryType,
+    required this.responseObjectPresent,
+  });
+
+  final String queryType;
+  final bool responseObjectPresent;
+
+  factory HouraMatrixFederationGenericQueryResponse.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraMatrixFederationGenericQueryResponse(
+      queryType: _requiredString(json, 'query_type'),
+      responseObjectPresent: _requiredBool(json, 'response_object_present'),
+    );
+  }
+}
+
+/// SPEC-100 parser-only Matrix federation OpenID userinfo response.
+final class HouraMatrixFederationOpenIdUserinfoResponse {
+  const HouraMatrixFederationOpenIdUserinfoResponse({required this.subject});
+
+  final String subject;
+
+  factory HouraMatrixFederationOpenIdUserinfoResponse.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraMatrixFederationOpenIdUserinfoResponse(
+      subject: _requiredString(json, 'sub'),
     );
   }
 }
@@ -2310,10 +2671,7 @@ final class HouraDeviceKeyQueryResponse {
       failures: _requiredJsonObject(json, 'failures'),
       deviceKeys: _requiredDeviceKeyUsers(json, 'device_keys'),
       masterKeys: _optionalCrossSigningKeyUsers(json, 'master_keys'),
-      selfSigningKeys: _optionalCrossSigningKeyUsers(
-        json,
-        'self_signing_keys',
-      ),
+      selfSigningKeys: _optionalCrossSigningKeyUsers(json, 'self_signing_keys'),
       userSigningKeys: _optionalCrossSigningKeyUsers(json, 'user_signing_keys'),
     );
   }
@@ -2481,10 +2839,7 @@ final class HouraKeyBackupVersion {
 
 /// SPEC-053 Matrix room-key backup upload response.
 final class HouraKeyBackupUploadResponse {
-  const HouraKeyBackupUploadResponse({
-    required this.etag,
-    required this.count,
-  });
+  const HouraKeyBackupUploadResponse({required this.etag, required this.count});
 
   final String etag;
   final int count;
@@ -2561,7 +2916,8 @@ final class HouraMatrixCrossSigningKey {
   Map<String, Object?> toJson() {
     if (usage.isEmpty) {
       throw const HouraResponseFormatException(
-          'Expected string array "usage".');
+        'Expected string array "usage".',
+      );
     }
     if (userId == null) {
       throw const HouraResponseFormatException(
@@ -2833,7 +3189,8 @@ final class HouraMatrixVerificationKeyContent {
   final Map<String, Object?> raw;
 
   factory HouraMatrixVerificationKeyContent.fromJson(
-      Map<String, Object?> json) {
+    Map<String, Object?> json,
+  ) {
     return HouraMatrixVerificationKeyContent(
       key: _requiredString(json, 'key'),
       transactionId: _requiredString(json, 'transaction_id'),
@@ -2863,7 +3220,8 @@ final class HouraMatrixVerificationMacContent {
   final Map<String, Object?> raw;
 
   factory HouraMatrixVerificationMacContent.fromJson(
-      Map<String, Object?> json) {
+    Map<String, Object?> json,
+  ) {
     return HouraMatrixVerificationMacContent(
       keys: _requiredString(json, 'keys'),
       mac: _requiredStringMap(json, 'mac'),
@@ -2942,6 +3300,19 @@ int _requiredNonNegativeInt(Map<String, Object?> json, String key) {
     return value;
   }
   throw HouraResponseFormatException('Expected non-negative integer "$key".');
+}
+
+int? _optionalNonNegativeInt(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value == null) {
+    return null;
+  }
+  if (value is int && value >= 0) {
+    return value;
+  }
+  throw HouraResponseFormatException(
+    'Expected optional non-negative integer "$key".',
+  );
 }
 
 Map<String, Object?> _requiredJsonObject(
@@ -3051,6 +3422,28 @@ List<String> _requiredStringList(Map<String, Object?> json, String key) {
   return List.unmodifiable(result);
 }
 
+List<String> _requiredBoundedStringList(
+  Map<String, Object?> json,
+  String key, {
+  required int maxItems,
+}) {
+  final value = json[key];
+  if (value is! List) {
+    throw HouraResponseFormatException('Expected string array "$key".');
+  }
+  if (value.length > maxItems) {
+    throw HouraResponseFormatException('Expected bounded string array "$key".');
+  }
+  final result = <String>[];
+  for (final item in value) {
+    if (item is! String || item.isEmpty) {
+      throw HouraResponseFormatException('Expected string array "$key".');
+    }
+    result.add(item);
+  }
+  return List.unmodifiable(result);
+}
+
 List<String> _optionalStringList(Map<String, Object?> json, String key) {
   final value = json[key];
   if (value == null) {
@@ -3074,7 +3467,8 @@ List<String> _optionalMatrixUserIdList(Map<String, Object?> json, String key) {
   for (final value in values) {
     if (!value.startsWith('@')) {
       throw HouraResponseFormatException(
-          'Expected Matrix user ID array "$key".');
+        'Expected Matrix user ID array "$key".',
+      );
     }
   }
   return values;
@@ -3279,8 +3673,10 @@ void _validateMatrixMediaDescriptor(
         );
       }
     case 'media_preview_url':
-      _validateMatrixMediaQueryKeys(
-          descriptor.queryParams, const {'url', 'ts'});
+      _validateMatrixMediaQueryKeys(descriptor.queryParams, const {
+        'url',
+        'ts',
+      });
       final url = descriptor.queryParams['url'];
       if (url is! String || url.isEmpty) {
         throw HouraResponseFormatException(
@@ -3421,11 +3817,25 @@ void _validateMatrixFederationDescriptor(
     '/_matrix/key/v2/query': 'federation_key_query_response',
     '/_matrix/key/v2/query/{serverName}/{keyId}':
         'federation_key_query_response',
-    '/_matrix/federation/v1/send/{txnId}': 'federation_request_auth_descriptor',
+    '/_matrix/federation/v1/send/{txnId}': {
+      'federation_request_auth_descriptor',
+      'federation_transaction_response_descriptor',
+    },
+    '/_matrix/federation/v1/publicRooms': 'federation_public_rooms_response',
+    '/_matrix/federation/v1/hierarchy/{roomId}':
+        'federation_hierarchy_response',
+    '/_matrix/federation/v1/query/directory':
+        'federation_directory_query_response',
+    '/_matrix/federation/v1/query/profile': 'federation_profile_query_response',
+    '/_matrix/federation/v1/openid/userinfo':
+        'federation_openid_userinfo_response',
   };
   final expectedParser = expectedParsers[descriptor.path];
+  final parserMatches = expectedParser is Set<String>
+      ? expectedParser.contains(descriptor.responseParser)
+      : descriptor.responseParser == expectedParser;
   if (expectedParser == null ||
-      descriptor.responseParser != expectedParser ||
+      !parserMatches ||
       descriptor.adoptedRuntimeBehavior != false) {
     throw HouraResponseFormatException(
       'Unsupported Matrix federation request descriptor.',
@@ -3438,12 +3848,33 @@ void _validateMatrixFederationDescriptor(
       (descriptor.path == '/_matrix/key/v2/query/{serverName}/{keyId}' &&
           (descriptor.method != 'GET' || descriptor.requiresAuth)) ||
       (descriptor.path == '/_matrix/federation/v1/send/{txnId}' &&
-          (descriptor.method != 'PUT' || !descriptor.requiresAuth))) {
+          (descriptor.method != 'PUT' || !descriptor.requiresAuth)) ||
+      (descriptor.path == '/_matrix/federation/v1/publicRooms' &&
+          (descriptor.method != 'GET' && descriptor.method != 'POST' ||
+              !descriptor.requiresAuth)) ||
+      (descriptor.path == '/_matrix/federation/v1/hierarchy/{roomId}' &&
+          (descriptor.method != 'GET' || !descriptor.requiresAuth)) ||
+      (descriptor.path == '/_matrix/federation/v1/query/directory' &&
+          (descriptor.method != 'GET' || !descriptor.requiresAuth)) ||
+      (descriptor.path == '/_matrix/federation/v1/query/profile' &&
+          (descriptor.method != 'GET' || !descriptor.requiresAuth)) ||
+      (descriptor.path == '/_matrix/federation/v1/openid/userinfo' &&
+          (descriptor.method != 'GET' || descriptor.requiresAuth))) {
     throw HouraResponseFormatException(
       'Unsupported Matrix federation descriptor method.',
     );
   }
-  if (descriptor.queryParams.isNotEmpty) {
+  final allowedQueryParams = switch (descriptor.path) {
+    '/_matrix/federation/v1/publicRooms' => {'limit', 'since'},
+    '/_matrix/federation/v1/hierarchy/{roomId}' => {'suggested_only'},
+    '/_matrix/federation/v1/query/directory' => {'room_alias'},
+    '/_matrix/federation/v1/query/profile' => {'user_id'},
+    '/_matrix/federation/v1/openid/userinfo' => {'access_token'},
+    _ => const <String>{},
+  };
+  if (descriptor.queryParams.keys.any(
+    (key) => !allowedQueryParams.contains(key),
+  )) {
     throw HouraResponseFormatException(
       'Unsupported Matrix federation query parameters.',
     );
@@ -3470,6 +3901,11 @@ void _validateMatrixFederationDescriptor(
     throw HouraResponseFormatException(
       'Expected Matrix federation transaction ID.',
     );
+  }
+  final roomId = descriptor.pathParams['roomId'];
+  if (descriptor.path.contains('{roomId}') &&
+      (roomId is! String || !roomId.startsWith('!'))) {
+    throw HouraResponseFormatException('Expected Matrix federation room ID.');
   }
 }
 
@@ -3630,6 +4066,141 @@ Map<String, Map<String, String>> _requiredNestedStringMap(
   );
 }
 
+Map<String, Map<String, String>> _requiredFederationSignatures(
+  Map<String, Object?> json,
+  String key,
+) {
+  final signatures = _requiredNestedStringMap(json, key);
+  if (signatures.isEmpty || signatures.length > 8) {
+    throw HouraResponseFormatException('Expected federation signatures.');
+  }
+  for (final entry in signatures.entries) {
+    _validateMatrixFederationServerName(entry.key);
+    if (entry.value.isEmpty || entry.value.length > 8) {
+      throw HouraResponseFormatException('Expected federation signatures.');
+    }
+    for (final keyId in entry.value.keys) {
+      _validateMatrixFederationKeyId(keyId);
+    }
+  }
+  return signatures;
+}
+
+List<HouraMatrixFederationPdu> _requiredFederationPdus(
+  Map<String, Object?> json,
+  String key, {
+  required int maxItems,
+}) {
+  final value = json[key];
+  if (value is! List) {
+    throw HouraResponseFormatException('Expected Matrix federation PDU array.');
+  }
+  if (value.length > maxItems) {
+    throw HouraResponseFormatException(
+      'Expected bounded Matrix federation PDU array.',
+    );
+  }
+  return List<HouraMatrixFederationPdu>.unmodifiable(
+    value.map((item) {
+      if (item is Map) {
+        return HouraMatrixFederationPdu.fromJson(item.cast<String, Object?>());
+      }
+      throw HouraResponseFormatException(
+        'Expected Matrix federation PDU object.',
+      );
+    }),
+  );
+}
+
+List<HouraMatrixFederationEdu> _requiredFederationEdus(
+  Map<String, Object?> json,
+  String key, {
+  required int maxItems,
+}) {
+  final value = json[key];
+  if (value is! List) {
+    throw HouraResponseFormatException('Expected Matrix federation EDU array.');
+  }
+  if (value.length > maxItems) {
+    throw HouraResponseFormatException(
+      'Expected bounded Matrix federation EDU array.',
+    );
+  }
+  return List<HouraMatrixFederationEdu>.unmodifiable(
+    value.map((item) {
+      if (item is Map) {
+        return HouraMatrixFederationEdu.fromJson(item.cast<String, Object?>());
+      }
+      throw HouraResponseFormatException(
+        'Expected Matrix federation EDU object.',
+      );
+    }),
+  );
+}
+
+List<HouraMatrixFederationRoomSummary> _requiredFederationRoomSummaries(
+  Map<String, Object?> json,
+  String key, {
+  required int maxItems,
+}) {
+  final value = json[key];
+  if (value is! List) {
+    throw HouraResponseFormatException(
+      'Expected Matrix federation room summaries.',
+    );
+  }
+  if (value.length > maxItems) {
+    throw HouraResponseFormatException(
+      'Expected bounded Matrix federation room summaries.',
+    );
+  }
+  return List<HouraMatrixFederationRoomSummary>.unmodifiable(
+    value.map((item) {
+      if (item is Map) {
+        return HouraMatrixFederationRoomSummary.fromJson(
+          item.cast<String, Object?>(),
+        );
+      }
+      throw HouraResponseFormatException(
+        'Expected Matrix federation room summary.',
+      );
+    }),
+  );
+}
+
+List<HouraMatrixFederationChildStateEvent> _optionalFederationChildState(
+  Map<String, Object?> json,
+  String key, {
+  required int maxItems,
+}) {
+  final value = json[key];
+  if (value == null) {
+    return const [];
+  }
+  if (value is! List) {
+    throw HouraResponseFormatException(
+      'Expected Matrix federation child state.',
+    );
+  }
+  if (value.length > maxItems) {
+    throw HouraResponseFormatException(
+      'Expected bounded Matrix federation child state.',
+    );
+  }
+  return List<HouraMatrixFederationChildStateEvent>.unmodifiable(
+    value.map((item) {
+      if (item is Map) {
+        return HouraMatrixFederationChildStateEvent.fromJson(
+          item.cast<String, Object?>(),
+        );
+      }
+      throw HouraResponseFormatException(
+        'Expected Matrix federation child state event.',
+      );
+    }),
+  );
+}
+
 Map<String, Map<String, String>> _optionalNestedStringMap(
   Map<String, Object?> json,
   String key,
@@ -3674,7 +4245,8 @@ Map<String, HouraMatrixCrossSigningKey> _optionalCrossSigningKeyUsers(
   }
   if (value is! Map) {
     throw HouraResponseFormatException(
-        'Expected cross-signing key map "$key".');
+      'Expected cross-signing key map "$key".',
+    );
   }
   return Map<String, HouraMatrixCrossSigningKey>.unmodifiable(
     value.cast<String, Object?>().map((userId, keyValue) {
@@ -3725,7 +4297,8 @@ Map<String, Map<String, HouraMatrixDeviceKey>> _requiredDeviceKeyUsers(
 }
 
 List<HouraMatrixToDeviceEvent> _optionalToDeviceEvents(
-    Map<String, Object?> json) {
+  Map<String, Object?> json,
+) {
   final toDevice = json['to_device'];
   if (toDevice == null) {
     return const [];
