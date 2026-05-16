@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:houra/houra.dart' as houra;
 
@@ -89,5 +91,51 @@ void main() {
     expect(houra.houraPasswordLoginType, 'houra.login.password');
     expect(houra.houraUserIdentifierType, 'houra.id.user');
     expect(houra.houraTextMessageType, 'houra.text');
+  });
+
+  test('public entrypoint keeps transport internals out of the export surface',
+      () {
+    final entrypoint = File('lib/houra.dart').readAsStringSync();
+
+    expect(entrypoint, contains("export 'src/auth.dart';"));
+    expect(entrypoint, contains("export 'src/errors.dart';"));
+    expect(entrypoint, isNot(contains("export 'src/transport.dart';")));
+  });
+
+  test('authenticated public calls reject empty bearer tokens before transport',
+      () async {
+    final client = houra.HouraClient(
+      serverBaseUri: Uri.parse('https://example.test'),
+    );
+    addTearDown(client.close);
+
+    await expectLater(
+      client.auth.whoami(accessToken: ''),
+      throwsA(
+        isA<houra.HouraTransportException>().having(
+          (error) => error.message,
+          'message',
+          'accessToken must be non-empty.',
+        ),
+      ),
+    );
+  });
+
+  test('typed HTTP exceptions expose metadata without logging full body', () {
+    final longBody = '${' secret'.padRight(220, 'x')}\nnext line';
+    final error = houra.HouraHttpException(
+      statusCode: 403,
+      uri: Uri.parse('https://example.test/_houra/client/rooms'),
+      responseBody: longBody,
+      code: 'M_FORBIDDEN',
+      serverMessage: 'Forbidden',
+    );
+
+    expect(error, isA<houra.HouraException>());
+    expect(error.message, contains('HTTP 403'));
+    expect(error.message, contains('M_FORBIDDEN'));
+    expect(error.toString(), isNot(contains(longBody)));
+    expect(error.responseBodySummary, hasLength(200));
+    expect(error.responseBodySummary, endsWith('...'));
   });
 }
