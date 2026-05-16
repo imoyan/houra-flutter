@@ -940,6 +940,7 @@ final class HouraMediaMetadata {
 /// SPEC-095 parser-only Matrix media repository request descriptor.
 final class HouraMatrixMediaRequestDescriptor {
   const HouraMatrixMediaRequestDescriptor({
+    required this.id,
     required this.method,
     required this.path,
     required this.pathParams,
@@ -949,6 +950,7 @@ final class HouraMatrixMediaRequestDescriptor {
     required this.adoptedRuntimeBehavior,
   });
 
+  final String id;
   final String method;
   final String path;
   final Map<String, Object?> pathParams;
@@ -961,6 +963,7 @@ final class HouraMatrixMediaRequestDescriptor {
     Map<String, Object?> json,
   ) {
     final descriptor = HouraMatrixMediaRequestDescriptor(
+      id: _requiredString(json, 'id'),
       method: _requiredString(json, 'method'),
       path: _requiredString(json, 'path'),
       pathParams: _optionalJsonObject(json, 'path_params') ?? const {},
@@ -1117,6 +1120,9 @@ final class HouraMatrixMediaContentDisposition {
       prefix.length,
       filenamePart.length - 1,
     );
+    if (rawFilename.contains('%')) {
+      throw HouraResponseFormatException('Expected safe media filename.');
+    }
     final filename = _decodeMediaFilename(rawFilename);
     _validateSafeMediaFilename(filename);
     return HouraMatrixMediaContentDisposition(
@@ -1618,35 +1624,54 @@ void _validateMatrixMediaDescriptor(
       'Expected Matrix media path parameters.',
     );
   }
-  if (descriptor.path ==
-      '/_matrix/client/v1/media/thumbnail/{serverName}/{mediaId}') {
-    _validateMatrixMediaThumbnailQuery(descriptor.queryParams);
-  } else {
-    for (final entry in descriptor.queryParams.entries) {
-      switch (entry.key) {
-        case 'url':
-        case 'filename':
-          if (entry.value is! String || (entry.value as String).isEmpty) {
-            throw HouraResponseFormatException(
-              'Expected non-empty Matrix media query string.',
-            );
-          }
-        case 'ts':
-          if (entry.value is! int || (entry.value as int) < 0) {
-            throw HouraResponseFormatException(
-              'Expected non-negative Matrix media timestamp.',
-            );
-          }
-        default:
-          throw HouraResponseFormatException(
-            'Unsupported Matrix media query parameter "${entry.key}".',
-          );
+  switch (descriptor.responseParser) {
+    case 'media_config':
+    case 'media_upload_create':
+      if (descriptor.queryParams.isNotEmpty) {
+        throw HouraResponseFormatException(
+          'Unsupported Matrix media query parameters.',
+        );
       }
-    }
+    case 'media_preview_url':
+      _validateMatrixMediaQueryKeys(
+          descriptor.queryParams, const {'url', 'ts'});
+      final url = descriptor.queryParams['url'];
+      if (url is! String || url.isEmpty) {
+        throw HouraResponseFormatException(
+          'Expected non-empty Matrix media preview URL.',
+        );
+      }
+      final ts = descriptor.queryParams['ts'];
+      if (ts != null && (ts is! int || ts < 0)) {
+        throw HouraResponseFormatException(
+          'Expected non-negative Matrix media timestamp.',
+        );
+      }
+    case 'media_thumbnail_metadata':
+      _validateMatrixMediaThumbnailQuery(descriptor.queryParams);
+    case 'media_upload_resume':
+      _validateMatrixMediaQueryKeys(descriptor.queryParams, const {'filename'});
+      final filename = descriptor.queryParams['filename'];
+      if (filename != null) {
+        if (filename is! String) {
+          throw HouraResponseFormatException(
+            'Expected non-empty Matrix media query string.',
+          );
+        }
+        _validateSafeMediaFilename(filename);
+      }
   }
 }
 
 void _validateMatrixMediaThumbnailQuery(Map<String, Object?> queryParams) {
+  _validateMatrixMediaQueryKeys(queryParams, const {
+    'width',
+    'height',
+    'method',
+    'timeout_ms',
+    'allow_remote',
+    'animated',
+  });
   for (final entry in queryParams.entries) {
     final value = entry.value;
     switch (entry.key) {
@@ -1676,10 +1701,26 @@ void _validateMatrixMediaThumbnailQuery(Map<String, Object?> queryParams) {
             'Expected boolean Matrix media thumbnail option.',
           );
         }
-      default:
-        throw HouraResponseFormatException(
-          'Unsupported Matrix media thumbnail query parameter "${entry.key}".',
-        );
+    }
+  }
+  if (queryParams['width'] == null ||
+      queryParams['height'] == null ||
+      queryParams['method'] == null) {
+    throw HouraResponseFormatException(
+      'Expected required Matrix media thumbnail query parameters.',
+    );
+  }
+}
+
+void _validateMatrixMediaQueryKeys(
+  Map<String, Object?> queryParams,
+  Set<String> allowedKeys,
+) {
+  for (final key in queryParams.keys) {
+    if (!allowedKeys.contains(key)) {
+      throw HouraResponseFormatException(
+        'Unsupported Matrix media query parameter "$key".',
+      );
     }
   }
 }
@@ -1719,6 +1760,8 @@ void _validateSafeMediaFilename(String value) {
       value.contains('/') ||
       value.contains(r'\') ||
       value.contains('"') ||
+      value.contains('%') ||
+      value.contains('..') ||
       value.codeUnits.any((unit) => unit < 0x20 || unit == 0x7f)) {
     throw HouraResponseFormatException('Expected safe media filename.');
   }

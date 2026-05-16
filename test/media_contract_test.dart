@@ -83,6 +83,7 @@ void main() {
         .map(HouraMatrixMediaRequestDescriptor.fromJson)
         .toList();
     expect(parsedDescriptors, hasLength(vector.expected['descriptor_count']));
+    expect(parsedDescriptors.first.id, 'media-config');
     expect(parsedDescriptors.first.responseParser, 'media_config');
 
     final config = HouraMatrixMediaConfig.fromJson(
@@ -115,6 +116,38 @@ void main() {
       () => HouraMatrixMediaContentDisposition.parse(
         responses['unsafe_content_disposition'] as String,
       ),
+      throwsA(isA<HouraResponseFormatException>()),
+    );
+    expect(
+      () => HouraMatrixMediaContentDisposition.parse(
+        'attachment; filename="avatar%2Epng"',
+      ),
+      throwsA(isA<HouraResponseFormatException>()),
+    );
+    expect(
+      () => HouraMatrixMediaRequestDescriptor.fromJson({
+        'id': 'media-config-invalid-query',
+        'method': 'GET',
+        'path': '/_matrix/client/v1/media/config',
+        'path_params': <String, Object?>{},
+        'query_params': {'url': 'https://example.test/article'},
+        'requires_auth': true,
+        'adopted_runtime_behavior': false,
+        'response_parser': 'media_config',
+      }),
+      throwsA(isA<HouraResponseFormatException>()),
+    );
+    expect(
+      () => HouraMatrixMediaRequestDescriptor.fromJson({
+        'id': 'media-preview-url-missing-url',
+        'method': 'GET',
+        'path': '/_matrix/client/v1/media/preview_url',
+        'path_params': <String, Object?>{},
+        'query_params': {'ts': 1710000000000},
+        'requires_auth': true,
+        'adopted_runtime_behavior': false,
+        'response_parser': 'media_preview_url',
+      }),
       throwsA(isA<HouraResponseFormatException>()),
     );
     expect(
