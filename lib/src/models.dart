@@ -1295,6 +1295,294 @@ final class HouraMatrixPushParserEvidenceCase {
   }
 }
 
+/// SPEC-059 parser-only Identity Service request descriptor.
+final class HouraMatrixIdentityRequestDescriptor {
+  const HouraMatrixIdentityRequestDescriptor({
+    required this.method,
+    required this.path,
+    required this.query,
+    required this.body,
+    required this.authorizationScheme,
+  });
+
+  final String method;
+  final String path;
+  final Map<String, Object?> query;
+  final Map<String, Object?> body;
+  final String? authorizationScheme;
+
+  factory HouraMatrixIdentityRequestDescriptor.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final method = _requiredString(json, 'method');
+    if (!const {'GET', 'POST'}.contains(method)) {
+      throw HouraResponseFormatException(
+        'Unsupported Matrix Identity Service method.',
+      );
+    }
+    final path = _requiredString(json, 'path');
+    _validateMatrixIdentityPath(path);
+    final authorization = _optionalJsonObject(json, 'authorization');
+    final scheme =
+        authorization == null ? null : _requiredString(authorization, 'scheme');
+    if (scheme != null && scheme != 'Bearer') {
+      throw HouraResponseFormatException(
+        'Expected Matrix Identity Service bearer auth.',
+      );
+    }
+    return HouraMatrixIdentityRequestDescriptor(
+      method: method,
+      path: path,
+      query: _optionalJsonObject(json, 'query') ?? const {},
+      body: _optionalJsonObject(json, 'body') ?? const {},
+      authorizationScheme: scheme,
+    );
+  }
+}
+
+/// SPEC-059 Identity Service hash details response.
+final class HouraMatrixIdentityHashDetails {
+  const HouraMatrixIdentityHashDetails({
+    required this.algorithms,
+    required this.lookupPepper,
+  });
+
+  final List<String> algorithms;
+  final String lookupPepper;
+
+  factory HouraMatrixIdentityHashDetails.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final algorithms = _requiredStringList(json, 'algorithms');
+    if (!algorithms.contains('sha256')) {
+      throw HouraResponseFormatException(
+        'Expected Matrix Identity Service sha256 support.',
+      );
+    }
+    return HouraMatrixIdentityHashDetails(
+      algorithms: algorithms,
+      lookupPepper: _requiredString(json, 'lookup_pepper'),
+    );
+  }
+}
+
+/// SPEC-059 Identity Service lookup response.
+final class HouraMatrixIdentityLookupResponse {
+  const HouraMatrixIdentityLookupResponse({required this.mappings});
+
+  final Map<String, String> mappings;
+
+  factory HouraMatrixIdentityLookupResponse.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final mappings = _requiredStringMap(json, 'mappings');
+    for (final mxid in mappings.values) {
+      _validateMatrixIdentityMxid(mxid);
+    }
+    return HouraMatrixIdentityLookupResponse(mappings: mappings);
+  }
+}
+
+/// SPEC-059 Identity Service validation session response.
+final class HouraMatrixIdentityValidationSession {
+  const HouraMatrixIdentityValidationSession({required this.sid});
+
+  final String sid;
+
+  factory HouraMatrixIdentityValidationSession.fromJson(
+    Map<String, Object?> json,
+  ) {
+    return HouraMatrixIdentityValidationSession(
+      sid: _requiredString(json, 'sid'),
+    );
+  }
+}
+
+/// SPEC-059 Identity Service validated 3PID response.
+final class HouraMatrixIdentityValidatedThreePid {
+  const HouraMatrixIdentityValidatedThreePid({
+    required this.address,
+    required this.medium,
+    required this.validatedAt,
+  });
+
+  final String address;
+  final String medium;
+  final int validatedAt;
+
+  factory HouraMatrixIdentityValidatedThreePid.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final medium = _requiredString(json, 'medium');
+    _validateMatrixIdentityMedium(medium);
+    return HouraMatrixIdentityValidatedThreePid(
+      address: _requiredString(json, 'address'),
+      medium: medium,
+      validatedAt: _requiredNonNegativeInt(json, 'validated_at'),
+    );
+  }
+}
+
+/// SPEC-059 signed 3PID association response.
+final class HouraMatrixIdentityAssociation {
+  const HouraMatrixIdentityAssociation({
+    required this.address,
+    required this.medium,
+    required this.mxid,
+    required this.notAfter,
+    required this.notBefore,
+    required this.signatures,
+    required this.ts,
+  });
+
+  final String address;
+  final String medium;
+  final String mxid;
+  final int notAfter;
+  final int notBefore;
+  final Map<String, Map<String, String>> signatures;
+  final int ts;
+
+  factory HouraMatrixIdentityAssociation.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final medium = _requiredString(json, 'medium');
+    _validateMatrixIdentityMedium(medium);
+    final mxid = _requiredString(json, 'mxid');
+    _validateMatrixIdentityMxid(mxid);
+    final notAfter = _requiredNonNegativeInt(json, 'not_after');
+    final notBefore = _requiredNonNegativeInt(json, 'not_before');
+    if (notAfter <= notBefore) {
+      throw HouraResponseFormatException(
+        'Expected Matrix Identity Service association validity window.',
+      );
+    }
+    return HouraMatrixIdentityAssociation(
+      address: _requiredString(json, 'address'),
+      medium: medium,
+      mxid: mxid,
+      notAfter: notAfter,
+      notBefore: notBefore,
+      signatures: _requiredNestedStringMap(json, 'signatures'),
+      ts: _requiredNonNegativeInt(json, 'ts'),
+    );
+  }
+}
+
+/// SPEC-059 Identity Service Matrix error envelope.
+final class HouraMatrixIdentityErrorEnvelope {
+  const HouraMatrixIdentityErrorEnvelope({
+    required this.status,
+    required this.errcode,
+  });
+
+  final int status;
+  final String errcode;
+
+  factory HouraMatrixIdentityErrorEnvelope.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final status = _requiredNonNegativeInt(json, 'status');
+    if (status < 400) {
+      throw HouraResponseFormatException(
+        'Expected Matrix Identity Service error status.',
+      );
+    }
+    final errcode = _requiredString(json, 'errcode');
+    if (!errcode.startsWith('M_')) {
+      throw HouraResponseFormatException(
+        'Expected Matrix Identity Service errcode.',
+      );
+    }
+    return HouraMatrixIdentityErrorEnvelope(
+      status: status,
+      errcode: errcode,
+    );
+  }
+}
+
+/// SPEC-076/092/094/096 Identity Service parser evidence case.
+final class HouraMatrixIdentityEvidenceCase {
+  const HouraMatrixIdentityEvidenceCase({
+    required this.id,
+    required this.kind,
+    required this.request,
+    required this.status,
+    required this.redactedFields,
+    required this.result,
+    this.errcode,
+    this.medium,
+    this.authProof,
+    this.keyState,
+    this.signatureState,
+    this.associationState,
+    this.providerHandoff,
+    this.sessionState,
+  });
+
+  final String id;
+  final String kind;
+  final HouraMatrixIdentityRequestDescriptor request;
+  final int status;
+  final List<String> redactedFields;
+  final String result;
+  final String? errcode;
+  final String? medium;
+  final String? authProof;
+  final String? keyState;
+  final String? signatureState;
+  final String? associationState;
+  final String? providerHandoff;
+  final String? sessionState;
+
+  factory HouraMatrixIdentityEvidenceCase.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final result = _requiredString(json, 'result');
+    if (result != 'accepted' && result != 'rejected') {
+      throw HouraResponseFormatException(
+        'Unsupported Matrix Identity Service evidence result.',
+      );
+    }
+    final medium = _optionalString(json, 'medium');
+    if (medium != null) {
+      _validateMatrixIdentityMedium(medium);
+    }
+    return HouraMatrixIdentityEvidenceCase(
+      id: _requiredString(json, 'id'),
+      kind: _requiredString(json, 'kind'),
+      request: HouraMatrixIdentityRequestDescriptor.fromJson(
+        _requiredJsonObject(json, 'request'),
+      ),
+      status: _requiredNonNegativeInt(json, 'status'),
+      errcode: _optionalString(json, 'errcode'),
+      medium: medium,
+      authProof: _optionalString(json, 'auth_proof'),
+      keyState: _optionalString(json, 'key_state'),
+      signatureState: _optionalString(json, 'signature_state'),
+      associationState: _optionalString(json, 'association_state'),
+      providerHandoff: _optionalString(json, 'provider_handoff'),
+      sessionState: _optionalString(json, 'session_state'),
+      redactedFields: _requiredStringList(json, 'redacted_fields'),
+      result: result,
+    );
+  }
+}
+
+/// SPEC-059/076 redaction helper for Identity Service evidence artifacts.
+final class HouraMatrixIdentityEvidenceRedactor {
+  static const redactionMarker = 'identity-redacted';
+
+  const HouraMatrixIdentityEvidenceRedactor();
+
+  Map<String, Object?> redact(Map<String, Object?> value) {
+    return Map<String, Object?>.unmodifiable({
+      for (final entry in value.entries)
+        entry.key: _redactIdentityEvidenceValue(entry.key, entry.value),
+    });
+  }
+}
+
 /// SPEC-098 redaction helper for push evidence artifacts.
 final class HouraMatrixPushEvidenceRedactor {
   static const redactionMarker = 'push-redacted';
@@ -1334,6 +1622,79 @@ void _validateMatrixPushRuleId(String value) {
   if (value.startsWith('.') || value.contains('/') || value.contains(r'\')) {
     throw HouraResponseFormatException('Expected Matrix push rule ID.');
   }
+}
+
+void _validateMatrixIdentityPath(String value) {
+  if (!value.startsWith('/_matrix/identity/')) {
+    throw HouraResponseFormatException(
+      'Expected Matrix Identity Service path.',
+    );
+  }
+  if (value.contains('..') || value.contains('//')) {
+    throw HouraResponseFormatException(
+      'Expected safe Matrix Identity Service path.',
+    );
+  }
+}
+
+void _validateMatrixIdentityMedium(String value) {
+  if (value != 'email' && value != 'msisdn') {
+    throw HouraResponseFormatException(
+      'Expected Matrix Identity Service 3PID medium.',
+    );
+  }
+}
+
+void _validateMatrixIdentityMxid(String value) {
+  if (!value.startsWith('@') || !value.contains(':') || value.contains(' ')) {
+    throw HouraResponseFormatException(
+      'Expected Matrix Identity Service MXID.',
+    );
+  }
+}
+
+Object? _redactIdentityEvidenceValue(String key, Object? value) {
+  const sensitiveKeys = {
+    'identity_token',
+    'access_token',
+    'token',
+    'validation_token',
+    'client_secret',
+    'lookup_pepper',
+    'pepper',
+    'hashed_3pid',
+    'full_3pid',
+    'threepid',
+    'address',
+    'email',
+    'msisdn',
+    'signature',
+    'signatures',
+    'public_key',
+    'private_key',
+    'ephemeral_key',
+    'provider_payload',
+    'provider_log',
+    'local_template_path',
+  };
+  if (sensitiveKeys.contains(key)) {
+    return HouraMatrixIdentityEvidenceRedactor.redactionMarker;
+  }
+  if (value is Map) {
+    return Map<String, Object?>.unmodifiable({
+      for (final entry in value.entries)
+        entry.key.toString(): _redactIdentityEvidenceValue(
+          entry.key.toString(),
+          entry.value,
+        ),
+    });
+  }
+  if (value is List) {
+    return List<Object?>.unmodifiable(
+      value.map((item) => _redactIdentityEvidenceValue(key, item)),
+    );
+  }
+  return value;
 }
 
 Object? _redactPushEvidenceValue(String key, Object? value) {

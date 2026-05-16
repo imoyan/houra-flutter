@@ -39,6 +39,8 @@ const expectedReleaseEvidenceSpecIds = [
   ...expectedProtocolSpecIds,
   'SPEC-079',
   'SPEC-081',
+  'SPEC-059',
+  'SPEC-076',
   'SPEC-098',
 ];
 
@@ -728,7 +730,7 @@ void main(List<String> args) {
     },
     'ecosystem_service_parser_candidates': {
       'issue': 73,
-      'status': 'candidate-only-implementation-deferred',
+      'status': 'identity-parser-adopted-candidates-remain',
       'spec_ids': ['SPEC-058', 'SPEC-059', 'SPEC-060'],
       'labs_owned_candidates': {
         'SPEC-058': [
@@ -777,6 +779,44 @@ void main(List<String> args) {
         'owning application service deployment or bridge protocol behavior',
         'owning identity provider delivery or consent policy',
         'owning APNS, FCM, Web Push, or vendor credential handling',
+      ],
+    },
+    'identity_service_parser_helper_dart_adoption': {
+      'issue': 127,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-059', 'SPEC-076'],
+      'spec_snapshot': '26a47461237d30efb2310bd688559b73d6dc998b',
+      'vectors': [
+        'test-vectors/core/matrix-identity-service-boundary-basic.json',
+        'test-vectors/core/matrix-identity-lookup-hash-details-basic.json',
+        'test-vectors/core/matrix-identity-validation-bind-basic.json',
+        'test-vectors/core/matrix-identity-unbind-auth-failures.json',
+        'test-vectors/core/matrix-identity-bind-unbind-lifecycle-boundary.json',
+        'test-vectors/core/matrix-identity-validation-provider-delivery-boundary.json',
+        'test-vectors/core/matrix-identity-public-key-signature-boundary.json',
+        'test-vectors/core/matrix-identity-service-full-breadth-gap-inventory.json',
+      ],
+      'implemented_surface': [
+        'Identity Service request descriptors',
+        'hash details and lookup response parsers',
+        'validation session and validated 3PID parsers',
+        'signed association parser',
+        'Matrix error envelope parser',
+        'lifecycle evidence case parser',
+        'privacy-sensitive redaction helper',
+      ],
+      'fail_closed_claims': [
+        'Identity Service full-breadth runtime support is not claimed',
+        'Matrix versions advertisement is not widened',
+        'provider delivery and consent UI remain host/service-owned',
+        'invitation storage and ephemeral invitation signing remain out of scope',
+      ],
+      'out_of_scope': [
+        'owning Identity Service deployment',
+        'storing Identity Service tokens or validation secrets',
+        'performing network lookup or provider delivery',
+        'owning contact upload UX or consent UI',
+        'claiming production key rotation or invitation signing support',
       ],
     },
     'federation_backfill_auth_state_parser_adoption': {
