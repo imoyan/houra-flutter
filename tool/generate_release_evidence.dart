@@ -46,6 +46,8 @@ const expectedReleaseEvidenceSpecIds = [
   'SPEC-098',
   'SPEC-099',
   'SPEC-100',
+  'SPEC-078',
+  'SPEC-083',
 ];
 
 void main(List<String> args) {
@@ -620,6 +622,65 @@ void main(List<String> args) {
         'rate limiting',
         'cache persistence',
         'Server-Server API support advertisement',
+      ],
+    },
+    'room_version_parser_fixture_adoption': {
+      'issues': [129, 130, 131],
+      'status': 'parser-fixture-adopted',
+      'spec_ids': ['SPEC-078', 'SPEC-083'],
+      'parity_vectors': [
+        'test-vectors/rooms/matrix-room-versions-full-algorithm-gap-inventory.json',
+        'test-vectors/events/matrix-room-version-event-decision-artifacts.json',
+      ],
+      'parser_only_surfaces': [
+        'Room Versions full-algorithm gap lane parser',
+        'event format / canonical JSON / hash-signature lane evidence parser',
+        'bounded event-decision artifact parser',
+        'auth-rule fixture inventory runner',
+        'state-resolution fixture inventory runner',
+      ],
+      'fail_closed_claims': [
+        'Room Versions full-algorithm support is not claimed',
+        'Matrix versions advertisement is not widened',
+        'federation get-missing-events support is not claimed',
+        'resource bounds reject unbounded graph, network, and database work',
+      ],
+      'out_of_scope': [
+        'complete room-version authorization algorithms',
+        'complete state-resolution algorithms',
+        'event hash calculation',
+        'event signature verification',
+        'storage mutation',
+        'network lookup',
+        'Room Versions support advertisement',
+      ],
+    },
+    'e2ee_parser_artifact_adoption': {
+      'issue': 132,
+      'status': 'parser-fixture-adopted',
+      'spec_ids': ['SPEC-079'],
+      'parity_vectors': [
+        'test-vectors/messaging/matrix-olm-megolm-full-e2ee-gap-inventory.json',
+      ],
+      'parser_only_surfaces': [
+        'Olm/Megolm full-breadth gap lane parser',
+        'encrypted event envelope parser evidence lane',
+        'key, backup, verification, and cross-signing public payload helper lane',
+        'secret/local-path redaction evidence lane',
+      ],
+      'fail_closed_claims': [
+        'Olm/Megolm full E2EE support is not claimed',
+        'Matrix versions advertisement is not widened',
+        'local cryptographic primitive implementation is not introduced',
+      ],
+      'out_of_scope': [
+        'crypto stack selection',
+        'Olm/Megolm encryption or decryption',
+        'secure storage',
+        'device trust decisions',
+        'verification UX',
+        'key backup recovery UX',
+        'Matrix E2EE support advertisement',
       ],
     },
     'oauth_account_management_parser_adoption': {

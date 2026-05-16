@@ -11,9 +11,9 @@ Public Flutter SDK claim: the current draft covers the MVP client profiles from
 SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
 SPEC-010, SPEC-011, and SPEC-020. It also exposes parser-only request
 descriptors, public response envelopes, or parser helpers for SPEC-051,
-SPEC-052, SPEC-053, SPEC-054, SPEC-057, SPEC-058, SPEC-059, SPEC-069, SPEC-075,
-SPEC-076, SPEC-085, SPEC-090, SPEC-093, SPEC-095, SPEC-097, SPEC-098,
-SPEC-099, and SPEC-100.
+SPEC-052, SPEC-053, SPEC-054, SPEC-057, SPEC-058, SPEC-059, SPEC-069,
+SPEC-075, SPEC-076, SPEC-078, SPEC-079, SPEC-083, SPEC-085, SPEC-090,
+SPEC-093, SPEC-095, SPEC-097, SPEC-098, SPEC-099, and SPEC-100.
 
 Claim scope rule: shared-core adoption records below do not extend the Flutter
 SDK claim unless they explicitly say that the Dart SDK or Flutter SDK
@@ -24,8 +24,8 @@ correctness, thread ordering, sync long-poll runtime, token persistence,
 fanout timing, media binary transfer, thumbnail generation, preview crawling,
 remote fetch, range/resumable transfer, encrypted attachment behavior,
 federation DNS/TLS runtime, notary fallback, request signature verification,
-outbound federation execution, Client-Server support, or Server-Server API
-support.
+outbound federation execution, full Room Versions algorithms, Client-Server
+support, or Server-Server API support.
 
 ## Repository Role
 
@@ -501,6 +501,33 @@ of remote network fetch, visibility decision, profile privacy policy, OpenID
 token verification, trust decision, rate limiting, cache persistence, or
 Server-Server API support advertisement.
 
+SPEC-078 / SPEC-083 Dart SDK adoption record for issues #129, #130, and #131:
+the Flutter SDK prototype now consumes the `houra-spec` snapshot
+`26a47461237d30efb2310bd688559b73d6dc998b` Room Versions gap inventory and
+event-decision artifact vectors. The Dart SDK exposes parser-only full-algorithm
+gap lane evidence, bounded event-decision artifacts, auth-rule fixture inventory
+results, and state-resolution fixture inventory results without taking
+ownership of complete authorization algorithms, complete state-resolution
+algorithms, event hash calculation, event signature verification, storage
+mutation, network lookup, federation get-missing-events runtime, or Room
+Versions support advertisement.
+
+SPEC-083 Dart SDK adoption record for issue #129: the Flutter SDK prototype now
+uses the bounded event-decision artifact vector as the concrete event-format
+fixture surface under the SPEC-078 Room Versions gap inventory. This record is
+parser-only and does not add hash calculation, signature verification, event
+auth, storage mutation, federation fetch, or Room Versions support
+advertisement.
+
+SPEC-079 Dart SDK adoption record for issue #132: the Flutter SDK prototype now
+consumes the `houra-spec` snapshot
+`26a47461237d30efb2310bd688559b73d6dc998b` Olm/Megolm full E2EE gap inventory
+vector. The Dart SDK exposes parser-only gap lane evidence for encrypted event
+envelopes, key/backup/verification/cross-signing public payload helper lanes,
+and secret/local-path redaction evidence without selecting a crypto stack,
+implementing Olm/Megolm primitives, owning secure storage, changing device trust
+decisions, or widening Matrix E2EE support advertisement.
+
 SPEC-054 shared-core adoption record for issue #69: the Rust prototype now consumes the
 `houra-spec` snapshot `395c400ba6b025ed983dcf7fa10743b2deac928d`
 (`v0.2.0-pre.58-43-g395c400`) SPEC-054 SAS verification, cross-signing key
@@ -867,9 +894,9 @@ Current decision: keep this package unpublished while the SDK remains a draft.
 - Supported contract claim: keep the public Flutter SDK claim limited to
   SPEC-001, SPEC-003, SPEC-004, SPEC-006, SPEC-007, SPEC-008, SPEC-009,
   SPEC-010, SPEC-011, SPEC-020, SPEC-051, SPEC-052, SPEC-053, SPEC-054,
-  SPEC-057, SPEC-058, SPEC-059,
-  SPEC-069, SPEC-075, SPEC-076, SPEC-085, SPEC-090, SPEC-093, SPEC-095,
-  SPEC-097, SPEC-098, SPEC-099, and SPEC-100.
+  SPEC-057, SPEC-058, SPEC-059, SPEC-069, SPEC-075, SPEC-076, SPEC-078,
+  SPEC-079, SPEC-083, SPEC-085, SPEC-090, SPEC-093, SPEC-095, SPEC-097,
+  SPEC-098, SPEC-099, and SPEC-100.
 - Claim expansion rule: shared-core adoption records do not extend the Flutter
   SDK claim unless they explicitly say that the Dart SDK or Flutter SDK
   prototype exposes the surface and matching Dart contract tests plus README
@@ -991,8 +1018,10 @@ Deferred implementation backlog:
 - #127 completed the Dart SDK Identity Service parser helper surface for
   request descriptors, public response parsers, error envelopes, lifecycle
   evidence, and redaction helpers.
-- #129, #130, and #131 track Room Version helper and fixture-runner candidates.
-- #132 tracks E2EE full-breadth parser artifacts.
+- #129, #130, and #131 completed the Dart SDK Room Versions parser helper and
+  fixture-runner evidence surface for SPEC-078 / SPEC-083.
+- #132 completed the Dart SDK E2EE full-breadth parser artifact evidence
+  surface for SPEC-079.
 - #133 tracks the adopted shared crypto metadata / redaction / release evidence
   helper; future work should extend it only with a focused spec/vector update.
 
