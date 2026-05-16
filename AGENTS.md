@@ -35,6 +35,9 @@ contract clarification.
 - Do not treat lab code as canonical or production behavior.
 - Keep this repository focused on public SDK, Rust protocol-core, thin binding,
   and package-usage experiments.
+- Production Houra client and server work stays on the TypeScript path in
+  `../houra-client` and `../houra-server` unless a focused adoption issue
+  explicitly proves and accepts a shared artifact.
 - Do not add business adoption demos, customer proposal samples, legacy-system
   migration walkthroughs, or provider API-key/token-based AI demos here. Keep
   those in separate private integration or adoption sample repositories until
@@ -54,6 +57,9 @@ contract clarification.
 - Labs may prototype common boundaries when they reduce duplicate
   implementation, repeated decisions, contract drift, validation gaps, or
   maintenance cost across Houra repositories.
+- Labs is the place to keep benchmark, parity, package-size, startup, and
+  rollback evidence for future commonization. A lab prototype is not a default
+  dependency for production TypeScript code.
 - Good candidates include parser, normalizer, and input-checker cores, domain primitives,
   identifier/URI/date/amount helpers, error mapping, retry/idempotency policy,
   config and feature-flag interpretation, capability advertisement gates,
@@ -194,9 +200,9 @@ CI uses `HOURA_SPEC_ROOT` after checking out the sibling
 - Run SDK hardening only after the sibling spec freeze checklist exists.
 - Keep public API ergonomics, examples, theme adapter stability, and error
   handling docs tied to canonical contracts and vectors.
-- Treat `rust-protocol-core/` as the future `houra-core` candidate and
-  `ts-protocol-core-wasm/` as the first representative TypeScript binding
-  candidate. Other languages should remain thin adapters until the Rust core
-  and TypeScript path stabilize.
+- Treat `rust-protocol-core/` and `ts-protocol-core-wasm/` as optional
+  shared-core benchmark and packaging candidates. The current production path is
+  TypeScript in `../houra-client` and `../houra-server`; other languages should
+  remain thin adapters until a focused adoption issue proves a shared artifact.
 - Leave pub.dev publication, package name, and versioning for a separate release
   decision issue while `publish_to: none` remains set.

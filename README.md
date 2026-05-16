@@ -32,7 +32,8 @@ support, or Server-Server API support.
 This public repository is for Houra implementation experiments:
 
 - Flutter SDK prototype code.
-- Rust-first shared protocol-core experiments.
+- Optional Rust/WASM shared protocol-core experiments for benchmark and future
+  commonization evidence.
 - WASM, TypeScript, Dart FFI, or other thin binding prototypes.
 - Minimal SDK usage examples that exercise the public API surface.
 
@@ -48,12 +49,14 @@ application replacement or integration demo.
 The expected long-term shape is:
 
 - `houra-spec`: canonical contracts, vectors, and design.
-- `houra-core`: a thin Rust protocol / parser / state core promoted from
-  `rust-protocol-core/` when it is ready.
-- `houra-ts`: the representative TypeScript SDK or binding promoted from the
-  TypeScript facade work when it is ready.
-- Other language bindings: thin adapters added by demand after the Rust core
-  and TypeScript representative path are stable.
+- `houra-client` and `houra-server`: the production TypeScript client and server
+  implementation path.
+- `houra-labs`: optional shared-core and binding candidates kept for parity,
+  packaging, startup, p95 benchmark, and rollback evidence.
+- `houra-core`: a possible shared protocol / parser / state artifact promoted
+  from lab work only after a focused adoption issue accepts the evidence.
+- Other language bindings: thin adapters added by demand after the TypeScript
+  production path and any adopted shared artifact are stable.
 - Private integration sample repositories: Gennai OSS, Java MVC, SPA, Local
   LLM, Gemini, and business process integration demos.
 
@@ -72,7 +75,7 @@ typing, and read marker parser-only vectors, the `SPEC-047` Matrix filters,
 presence, and capabilities parser-only vectors, and the `SPEC-068` Matrix OAuth
 account-management parser-only vectors, and the `SPEC-085` Matrix event
 retrieval / membership history parser-only vector. It is not published,
-canonical, or required by the Flutter SDK.
+canonical, or required by the Flutter SDK, `houra-client`, or `houra-server`.
 
 The Rust prototype exposes `abi_version()` and `artifact_manifest()` as
 implementation metadata for future TS / Dart bindings. Bindings can use that
