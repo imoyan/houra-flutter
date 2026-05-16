@@ -4987,14 +4987,25 @@ pub fn parse_matrix_media_upload_create_response_json(bytes: &[u8]) -> String {
 pub fn parse_matrix_media_content_disposition_filename(
     value: &str,
 ) -> Result<MatrixMediaFilename, ProtocolError> {
-    let Some(filename) = value
-        .split(';')
-        .map(str::trim)
-        .find_map(|part| part.strip_prefix("filename="))
+    let mut parts = value.split(';').map(str::trim);
+    let Some(disposition) = parts.next() else {
+        return Err(invalid_media_field("content_disposition.filename"));
+    };
+    if disposition != "inline" && disposition != "attachment" {
+        return Err(invalid_media_field("content_disposition.disposition"));
+    }
+    let Some(filename_part) = parts.next() else {
+        return Err(invalid_media_field("content_disposition.filename"));
+    };
+    if parts.next().is_some() {
+        return Err(invalid_media_field("content_disposition.filename"));
+    }
+    let Some(filename) = filename_part
+        .strip_prefix("filename=\"")
+        .and_then(|part| part.strip_suffix('"'))
     else {
         return Err(invalid_media_field("content_disposition.filename"));
     };
-    let filename = filename.trim_matches('"');
     validate_safe_media_filename(filename, "content_disposition.filename")?;
     Ok(MatrixMediaFilename {
         filename: filename.to_owned(),
@@ -11929,6 +11940,18 @@ mod tests {
 
         let envelope = parse_matrix_media_content_disposition_filename_envelope(
             "inline; filename=\"..%2Fsecret.png\"",
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_media_field");
+
+        let envelope = parse_matrix_media_content_disposition_filename_envelope(
+            "form-data; filename=\"avatar.png\"",
+        );
+        assert!(!envelope.ok);
+        assert_eq!(envelope.error.unwrap().code, "invalid_media_field");
+
+        let envelope = parse_matrix_media_content_disposition_filename_envelope(
+            "attachment; filename=avatar.png",
         );
         assert!(!envelope.ok);
         assert_eq!(envelope.error.unwrap().code, "invalid_media_field");
