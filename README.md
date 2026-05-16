@@ -811,7 +811,7 @@ cd rust-protocol-core-wasm
 cargo fmt --check
 cargo test
 rustup target add wasm32-unknown-unknown
-cargo build --target wasm32-unknown-unknown
+cargo build --release --target wasm32-unknown-unknown
 ```
 
 For the TypeScript WASM facade prototype, run:
@@ -876,7 +876,7 @@ docker run --rm \
   -v "$PWD":/workspace/houra-labs \
   -w /workspace/houra-labs/rust-protocol-core-wasm \
   rust:1 \
-  sh -lc 'apt-get update >/tmp/apt-update.log && apt-get install -y rustfmt libstd-rust-dev-wasm32 >/tmp/apt-install.log && rustfmt --check src/lib.rs && cargo test --locked && cargo build --locked --target wasm32-unknown-unknown'
+  sh -lc 'apt-get update >/tmp/apt-update.log && apt-get install -y rustfmt libstd-rust-dev-wasm32 >/tmp/apt-install.log && rustfmt --check src/lib.rs && cargo test --locked && cargo build --locked --release --target wasm32-unknown-unknown'
 ```
 
 ## Pre-1.0 SDK Hardening Checklist

@@ -43,7 +43,7 @@ void main() {
         }
         final lowerContents = contents.toLowerCase();
         for (final term in forbidden) {
-          if (lowerContents.contains(term.toLowerCase()) &&
+          if (_containsForbiddenTerm(lowerContents, term) &&
               !_isAllowedForbiddenTerm(entity, term, lowerContents)) {
             violations.add('${entity.path}: $term');
           }
@@ -81,6 +81,40 @@ bool _isAllowedForbiddenTerm(File file, String term, String lowerContents) {
   return (path.endsWith('/design/ui.surface.schema.json') ||
           path.endsWith('/design/ui-surfaces/product-mvp.json')) &&
       lowerContents.contains('consumer_repos');
+}
+
+bool _containsForbiddenTerm(String lowerContents, String term) {
+  final legacyAtoToken = _word([65, 84, 79]);
+  final lowerTerm = term.toLowerCase();
+  if (term != legacyAtoToken) {
+    return lowerContents.contains(lowerTerm);
+  }
+  return _containsAsciiToken(lowerContents, lowerTerm);
+}
+
+bool _containsAsciiToken(String contents, String token) {
+  var searchOffset = 0;
+  while (searchOffset < contents.length) {
+    final index = contents.indexOf(token, searchOffset);
+    if (index == -1) {
+      return false;
+    }
+    final before =
+        index == 0 || !_isAsciiAlphaNumeric(contents.codeUnitAt(index - 1));
+    final afterIndex = index + token.length;
+    final after = afterIndex == contents.length ||
+        !_isAsciiAlphaNumeric(contents.codeUnitAt(afterIndex));
+    if (before && after) {
+      return true;
+    }
+    searchOffset = index + token.length;
+  }
+  return false;
+}
+
+bool _isAsciiAlphaNumeric(int codeUnit) {
+  return (codeUnit >= 97 && codeUnit <= 122) ||
+      (codeUnit >= 48 && codeUnit <= 57);
 }
 
 String _word(List<int> codes) => String.fromCharCodes(codes);
