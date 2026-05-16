@@ -1132,12 +1132,243 @@ final class HouraMatrixMediaContentDisposition {
   }
 }
 
+/// SPEC-098 parser-only Push Gateway pusher descriptor.
+final class HouraMatrixPushPusherDescriptor {
+  const HouraMatrixPushPusherDescriptor({
+    required this.kind,
+    required this.appId,
+    required this.appDisplayName,
+    required this.deviceDisplayName,
+    required this.lang,
+    required this.url,
+    required this.replacementPolicy,
+    this.profileTag,
+    this.format,
+  });
+
+  final String kind;
+  final String appId;
+  final String appDisplayName;
+  final String deviceDisplayName;
+  final String lang;
+  final Uri url;
+  final String replacementPolicy;
+  final String? profileTag;
+  final String? format;
+
+  factory HouraMatrixPushPusherDescriptor.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final kind = _requiredString(json, 'kind');
+    if (kind != 'http_pusher') {
+      throw HouraResponseFormatException('Expected HTTP pusher descriptor.');
+    }
+    final url = _parseMatrixPushNotifyUrl(_requiredString(json, 'url'));
+    return HouraMatrixPushPusherDescriptor(
+      kind: kind,
+      appId: _requiredString(json, 'app_id'),
+      appDisplayName: _requiredString(json, 'app_display_name'),
+      deviceDisplayName: _requiredString(json, 'device_display_name'),
+      lang: _requiredString(json, 'lang'),
+      profileTag: _optionalString(json, 'profile_tag'),
+      format: _optionalString(json, 'format'),
+      url: url,
+      replacementPolicy: _requiredString(json, 'replacement_policy'),
+    );
+  }
+}
+
+/// SPEC-098 parser-only Push Gateway push-rule descriptor.
+final class HouraMatrixPushRuleDescriptor {
+  const HouraMatrixPushRuleDescriptor({
+    required this.kind,
+    required this.ruleId,
+    required this.enabled,
+    required this.conditions,
+    required this.actions,
+    required this.tweaks,
+  });
+
+  final String kind;
+  final String ruleId;
+  final bool enabled;
+  final List<Map<String, Object?>> conditions;
+  final List<Object?> actions;
+  final Map<String, Object?> tweaks;
+
+  factory HouraMatrixPushRuleDescriptor.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final kind = _requiredString(json, 'kind');
+    if (!const {'override', 'content', 'room', 'sender', 'underride'}
+        .contains(kind)) {
+      throw HouraResponseFormatException('Unsupported Matrix push rule kind.');
+    }
+    final ruleId = _requiredString(json, 'rule_id');
+    _validateMatrixPushRuleId(ruleId);
+    final actions = _requiredArray(json, 'actions');
+    for (final action in actions) {
+      if (action is String) {
+        if (action.isEmpty) {
+          throw HouraResponseFormatException(
+            'Expected Matrix push rule action.',
+          );
+        }
+      } else if (action is Map) {
+        final actionMap = action.cast<String, Object?>();
+        final setTweak = _requiredString(actionMap, 'set_tweak');
+        if (setTweak.isEmpty) {
+          throw HouraResponseFormatException(
+            'Expected Matrix push rule tweak.',
+          );
+        }
+      } else {
+        throw HouraResponseFormatException(
+          'Expected Matrix push rule action.',
+        );
+      }
+    }
+    return HouraMatrixPushRuleDescriptor(
+      kind: kind,
+      ruleId: ruleId,
+      enabled: _requiredBool(json, 'enabled'),
+      conditions: _requiredObjectList(json, 'conditions'),
+      actions: List<Object?>.unmodifiable(actions),
+      tweaks: _optionalJsonObject(json, 'tweaks') ?? const {},
+    );
+  }
+}
+
+/// SPEC-098 parser-only Push Gateway evidence case.
+final class HouraMatrixPushParserEvidenceCase {
+  const HouraMatrixPushParserEvidenceCase({
+    required this.id,
+    required this.kind,
+    required this.inputSurface,
+    required this.status,
+    required this.normalizedFields,
+    required this.redactedFields,
+    required this.result,
+    this.errcode,
+  });
+
+  final String id;
+  final String kind;
+  final String inputSurface;
+  final int status;
+  final List<String> normalizedFields;
+  final List<String> redactedFields;
+  final String result;
+  final String? errcode;
+
+  factory HouraMatrixPushParserEvidenceCase.fromJson(
+    Map<String, Object?> json,
+  ) {
+    final kind = _requiredString(json, 'kind');
+    if (!const {
+      'pusher_descriptor',
+      'push_rule_descriptor',
+      'sync_visibility_descriptor',
+      'malformed_descriptor',
+      'redaction_helper',
+    }.contains(kind)) {
+      throw HouraResponseFormatException(
+        'Unsupported Matrix push parser evidence kind.',
+      );
+    }
+    final result = _requiredString(json, 'result');
+    if (result != 'accepted' && result != 'rejected') {
+      throw HouraResponseFormatException(
+        'Unsupported Matrix push parser evidence result.',
+      );
+    }
+    return HouraMatrixPushParserEvidenceCase(
+      id: _requiredString(json, 'id'),
+      kind: kind,
+      inputSurface: _requiredString(json, 'input_surface'),
+      status: _requiredNonNegativeInt(json, 'status'),
+      errcode: _optionalString(json, 'errcode'),
+      normalizedFields: _requiredStringList(json, 'normalized_fields'),
+      redactedFields: _requiredStringList(json, 'redacted_fields'),
+      result: result,
+    );
+  }
+}
+
+/// SPEC-098 redaction helper for push evidence artifacts.
+final class HouraMatrixPushEvidenceRedactor {
+  static const redactionMarker = 'push-redacted';
+
+  const HouraMatrixPushEvidenceRedactor();
+
+  Map<String, Object?> redact(Map<String, Object?> value) {
+    return Map<String, Object?>.unmodifiable({
+      for (final entry in value.entries)
+        entry.key: _redactPushEvidenceValue(entry.key, entry.value),
+    });
+  }
+}
+
 String _decodeMediaFilename(String value) {
   try {
     return Uri.decodeComponent(value);
   } on FormatException {
     throw HouraResponseFormatException('Expected decodable media filename.');
   }
+}
+
+Uri _parseMatrixPushNotifyUrl(String value) {
+  final uri = Uri.tryParse(value);
+  if (uri == null ||
+      uri.scheme != 'https' ||
+      uri.host.isEmpty ||
+      uri.path != '/_matrix/push/v1/notify' ||
+      uri.hasFragment ||
+      uri.userInfo.isNotEmpty) {
+    throw HouraResponseFormatException('Expected Matrix push notify URL.');
+  }
+  return uri;
+}
+
+void _validateMatrixPushRuleId(String value) {
+  if (value.startsWith('.') || value.contains('/') || value.contains(r'\')) {
+    throw HouraResponseFormatException('Expected Matrix push rule ID.');
+  }
+}
+
+Object? _redactPushEvidenceValue(String key, Object? value) {
+  const sensitiveKeys = {
+    'pushkey',
+    'gateway_url',
+    'vendor_token',
+    'gateway_credentials',
+    'message_content',
+    'local_path',
+    'provider_response',
+    'body',
+    'formatted_body',
+    'room_name',
+    'room_alias',
+    'sender_display_name',
+  };
+  if (sensitiveKeys.contains(key)) {
+    return HouraMatrixPushEvidenceRedactor.redactionMarker;
+  }
+  if (value is Map) {
+    return Map<String, Object?>.unmodifiable({
+      for (final entry in value.entries)
+        entry.key.toString(): _redactPushEvidenceValue(
+          entry.key.toString(),
+          entry.value,
+        ),
+    });
+  }
+  if (value is List) {
+    return List<Object?>.unmodifiable(
+      value.map((item) => _redactPushEvidenceValue(key, item)),
+    );
+  }
+  return value;
 }
 
 /// SPEC-097 parser-only Matrix federation request descriptor.
@@ -2393,6 +2624,14 @@ List<Map<String, Object?>> _requiredObjectList(
       throw HouraResponseFormatException('Expected object array "$key".');
     }),
   );
+}
+
+List<Object?> _requiredArray(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value is List) {
+    return List<Object?>.unmodifiable(value);
+  }
+  throw HouraResponseFormatException('Expected array "$key".');
 }
 
 List<HouraEvent> _requiredEventList(Map<String, Object?> json, String key) {

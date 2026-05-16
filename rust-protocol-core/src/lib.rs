@@ -25,8 +25,8 @@ pub const MATRIX_CLIENT_VERSIONS_PATH: &str = "/_matrix/client/versions";
 const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
     "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047", "SPEC-048", "SPEC-049",
-    "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-057", "SPEC-068", "SPEC-069", "SPEC-085",
-    "SPEC-090", "SPEC-093", "SPEC-095", "SPEC-097",
+    "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-057", "SPEC-068", "SPEC-069",
+    "SPEC-085", "SPEC-090", "SPEC-093", "SPEC-095", "SPEC-097",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -5924,7 +5924,9 @@ pub fn parse_matrix_federation_backfill_request(
         serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
     let method = required_federation_string(wire.method, "federation.backfill_request.method")?;
     if method != "GET" {
-        return Err(invalid_federation_field("federation.backfill_request.method"));
+        return Err(invalid_federation_field(
+            "federation.backfill_request.method",
+        ));
     }
     let path = required_federation_string(wire.path, "federation.backfill_request.path")?;
     if !path.starts_with("/_matrix/federation/v1/backfill/") {
@@ -5933,10 +5935,8 @@ pub fn parse_matrix_federation_backfill_request(
     let query = wire
         .query
         .ok_or_else(|| invalid_federation_field("federation.backfill_request.query"))?;
-    let from_event_ids = required_federation_string_array(
-        query.v,
-        "federation.backfill_request.query.v",
-    )?;
+    let from_event_ids =
+        required_federation_string_array(query.v, "federation.backfill_request.query.v")?;
     let limit = match query.limit {
         Some(limit) if limit > 0 => limit as u64,
         _ => {
@@ -6145,10 +6145,7 @@ pub fn parse_matrix_federation_state_resolution_interop_record(
                         ),
                     )?;
                     for result in &results {
-                        if result != "accepted"
-                            && result != "soft_failed"
-                            && result != "rejected"
-                        {
+                        if result != "accepted" && result != "soft_failed" && result != "rejected" {
                             return Err(invalid_federation_field(&format!(
                                 "federation.state_resolution_interop.steps.{index}.allowed_results"
                             )));
@@ -6239,10 +6236,8 @@ pub fn parse_matrix_federation_state_resolution_interop_record_envelope(
 }
 
 pub fn parse_matrix_federation_state_resolution_interop_record_json(bytes: &[u8]) -> String {
-    serde_json::to_string(&parse_matrix_federation_state_resolution_interop_record_envelope(
-        bytes,
-    ))
-    .expect("parse envelope serialization should be infallible")
+    serde_json::to_string(&parse_matrix_federation_state_resolution_interop_record_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
 }
 
 pub fn parse_matrix_verification_sas_flow(
@@ -10092,8 +10087,8 @@ mod tests {
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
                 "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047",
                 "SPEC-048", "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056",
-                "SPEC-057",
-                "SPEC-068", "SPEC-069", "SPEC-085", "SPEC-090", "SPEC-093", "SPEC-095", "SPEC-097"
+                "SPEC-057", "SPEC-068", "SPEC-069", "SPEC-085", "SPEC-090", "SPEC-093", "SPEC-095",
+                "SPEC-097"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -11506,12 +11501,12 @@ mod tests {
 
     #[test]
     fn parses_spec_057_federation_backfill_auth_and_state_vectors() {
-        let backfill = read_spec_vector("test-vectors/events/matrix-federation-backfill-basic.json");
+        let backfill =
+            read_spec_vector("test-vectors/events/matrix-federation-backfill-basic.json");
         assert_eq!(backfill["contract"], "SPEC-057");
-        let parsed_request = parse_matrix_federation_backfill_request(
-            backfill["request"].to_string().as_bytes(),
-        )
-        .expect("SPEC-057 backfill request should parse");
+        let parsed_request =
+            parse_matrix_federation_backfill_request(backfill["request"].to_string().as_bytes())
+                .expect("SPEC-057 backfill request should parse");
         assert_eq!(parsed_request.method, "GET");
         assert_eq!(parsed_request.from_event_ids, vec!["$event3:example.test"]);
         assert_eq!(parsed_request.limit, 2);
@@ -11524,7 +11519,10 @@ mod tests {
         assert_eq!(parsed_response.origin, "example.test");
         assert_eq!(parsed_response.pdus.len(), 1);
         assert_eq!(parsed_response.pdus[0].depth, 2);
-        assert_eq!(parsed_response.pdus[0].prev_events, vec!["$event1:example.test"]);
+        assert_eq!(
+            parsed_response.pdus[0].prev_events,
+            vec!["$event1:example.test"]
+        );
 
         let event_auth =
             read_spec_vector("test-vectors/events/matrix-federation-event-auth-basic.json");
@@ -11536,7 +11534,8 @@ mod tests {
         assert_eq!(parsed_auth.auth_chain[0].event_type, "m.room.create");
         assert_eq!(parsed_auth.auth_chain[1].event_type, "m.room.power_levels");
 
-        let state_ids = read_spec_vector("test-vectors/events/matrix-federation-state-ids-basic.json");
+        let state_ids =
+            read_spec_vector("test-vectors/events/matrix-federation-state-ids-basic.json");
         let parsed_state_ids = parse_matrix_federation_state_ids_response(
             state_ids["response"]["body"].to_string().as_bytes(),
         )
