@@ -1,12 +1,29 @@
 import 'package:flutter/material.dart';
 
+import 'errors.dart';
 import 'theme_tokens.dart';
+
+const _materialThemeColorTokens = {
+  'primary',
+  'secondary',
+  'accent',
+  'error',
+  'surface',
+  'text',
+  'border',
+  'background',
+  'surfaceRaised',
+  'focus',
+  'shadow',
+  'textMuted',
+};
 
 /// Flutter adapter for platform-neutral Houra theme tokens.
 final class HouraFlutterTheme {
   const HouraFlutterTheme._();
 
   static ThemeData themeData(HouraResolvedTheme theme) {
+    _requireMaterialThemeTokens(theme);
     final brightness = switch (theme.variant) {
       HouraThemeVariant.light => Brightness.light,
       HouraThemeVariant.dark => Brightness.dark,
@@ -47,6 +64,19 @@ final class HouraFlutterTheme {
       decorationColor: _color(theme.colorHex('textMuted')),
     );
   }
+}
+
+void _requireMaterialThemeTokens(HouraResolvedTheme theme) {
+  final missing = _materialThemeColorTokens
+      .where((token) => !theme.colors.containsKey(token))
+      .toList(growable: false);
+  if (missing.isEmpty) {
+    return;
+  }
+  throw HouraThemeFormatException(
+    'Resolved theme is missing required Flutter color tokens: '
+    '${missing.join(', ')}.',
+  );
 }
 
 Color _color(String hex) {
