@@ -313,7 +313,7 @@ function binding(overrides = {}) {
                 event_id: "$create:example.test",
                 type: "m.room.create",
                 room_id: "!room:example.test",
-                sender: "@creator:example.test",
+                  sender: "@author:example.test",
                 origin_server_ts: 1778409000000,
                 depth: 1,
                 prev_events: [],
