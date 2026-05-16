@@ -691,26 +691,49 @@ contract and design-token validation.
 
 ## Usage
 
+The repository includes a local package-usage example at `example/main.dart`
+that exercises the public SDK surface against an in-memory fake server through
+a host-owned `http.Client`. It does not require a live server, token storage,
+provider API key, or business integration setup. Because the public entrypoint
+also exports the Flutter theme adapter, run the example regression through
+Flutter test tooling:
+
+```bash
+flutter test test/example_usage_test.dart
+```
+
 ```dart
 import 'package:houra/houra.dart';
 
 Future<void> main() async {
-  final client = HouraClient(serverBaseUri: Uri.parse('https://example.test'));
+  final client = HouraClient(
+    serverBaseUri: Uri.parse('https://example.test'),
+    httpClient: hostOwnedHttpClient,
+  );
   try {
     final versions = await client.discovery.fetchVersions();
     final flows = await client.auth.fetchLoginFlows();
-    final rooms = await client.sync.listRooms(accessToken: 'token-1');
+    final session = await client.auth.loginWithPassword(
+      username: '@alice:example.test',
+      password: exampleOnlyPassword,
+    );
+    final rooms = await client.sync.listRooms(
+      accessToken: session.accessToken,
+    );
     print(versions.apiVersion);
     print(flows.flows.map((flow) => flow.type).join(', '));
     print(rooms.rooms.map((room) => room.roomId).join(', '));
   } finally {
     client.close();
+    hostOwnedHttpClient.close();
   }
 }
 ```
 
-See `example/main.dart` for a minimal command-line usage example backed by the
-current contract surface.
+See `example/main.dart` for a minimal usage example backed by the current
+contract surface. The example covers discovery, login flow discovery,
+login/session, room list, timeline, send message, media metadata, host-owned
+sync token persistence, and shared theme token resolution.
 
 ### API ownership boundaries
 
