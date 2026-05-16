@@ -73,4 +73,44 @@ void main() {
       isFalse,
     );
   });
+
+  test('release evidence generation includes conformance coverage report', () {
+    final result = Process.runSync('dart', [
+      'run',
+      'tool/generate_release_evidence.dart',
+    ]);
+
+    expect(result.exitCode, 0, reason: result.stderr.toString());
+    final decoded =
+        jsonDecode(result.stdout.toString()) as Map<String, Object?>;
+    final report = decoded['conformance_coverage']! as Map<String, Object?>;
+    final surfaces = report['surfaces']! as List;
+    final surfaceKinds = {
+      for (final surface in surfaces)
+        (surface as Map<String, Object?>)['surface_kind'] as String,
+    };
+
+    expect(report['report_kind'], conformanceCoverageReportKind);
+    expect(report['redaction'], 'metadata-only-no-raw-requests-or-secrets');
+    expect(report['non_normative'], isTrue);
+    expect(
+      surfaceKinds,
+      containsAll({
+        'flutter-sdk',
+        'rust-protocol-core-manifest',
+        'rust-wasm-wrapper-exports',
+        'typescript-wasm-facade',
+        'release-evidence',
+      }),
+    );
+
+    final flutterSurface = surfaces.cast<Map<String, Object?>>().singleWhere(
+          (surface) => surface['surface_kind'] == 'flutter-sdk',
+        );
+    expect(flutterSurface['spec_ids'], containsAll(flutterSdkBaseSpecIds));
+    expect(
+      flutterSurface['test_gates'],
+      contains('HOURA_SPEC_ROOT=../houra-spec flutter test'),
+    );
+  });
 }

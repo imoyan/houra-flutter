@@ -1,21 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'release_evidence_helpers.dart';
+
 Map<String, Object?>? _releaseEvidenceCache;
 bool _releaseEvidenceReadAttempted = false;
-
-const _flutterSdkBaseSpecIds = [
-  'SPEC-001',
-  'SPEC-003',
-  'SPEC-004',
-  'SPEC-006',
-  'SPEC-007',
-  'SPEC-008',
-  'SPEC-009',
-  'SPEC-010',
-  'SPEC-011',
-  'SPEC-020',
-];
 
 void main() {
   final failures = <String>[];
@@ -25,6 +14,7 @@ void main() {
   checkVectorReferences(failures);
   checkDocReferences(failures);
   checkFlutterSdkSupportClaim(failures);
+  checkConformanceCoverageReport(failures);
   checkSpec039ProtocolCoreGate(failures);
   checkSpec040ProtocolCoreGate(failures);
   checkSpec048ProtocolCoreGate(failures);
@@ -279,7 +269,7 @@ void checkFlutterSdkSupportClaim(List<String> failures) {
   final source = readme.readAsStringSync();
   final contractTestSpecIds = readDartContractTestSpecIds();
   final parserOnlySpecIds = contractTestSpecIds
-      .where((specId) => !_flutterSdkBaseSpecIds.contains(specId))
+      .where((specId) => !flutterSdkBaseSpecIds.contains(specId))
       .toList()
     ..sort(compareSpecIds);
   final adoptionSpecIds = readFlutterSdkAdoptionSpecIds(source);
@@ -299,7 +289,7 @@ void checkFlutterSdkSupportClaim(List<String> failures) {
     'README Flutter SDK adoption records',
   );
 
-  final expectedSpecIds = [..._flutterSdkBaseSpecIds, ...parserOnlySpecIds];
+  final expectedSpecIds = [...flutterSdkBaseSpecIds, ...parserOnlySpecIds];
 
   final statusSection = extractMarkdownSection(source, '## Status');
   if (statusSection == null) {
@@ -386,6 +376,195 @@ void checkFlutterSdkSupportClaim(List<String> failures) {
       }
     }
   }
+}
+
+void checkConformanceCoverageReport(List<String> failures) {
+  final evidence = readGeneratedReleaseEvidence(failures);
+  if (evidence == null) {
+    return;
+  }
+  final report = evidence['conformance_coverage'];
+  if (report is! Map<String, Object?>) {
+    failures.add('Release evidence is missing conformance_coverage report.');
+    return;
+  }
+  if (report['schema_version'] != conformanceCoverageSchemaVersion) {
+    failures.add(
+      'conformance_coverage schema_version must be '
+      '$conformanceCoverageSchemaVersion.',
+    );
+  }
+  if (report['report_kind'] != conformanceCoverageReportKind) {
+    failures.add(
+      'conformance_coverage report_kind must be '
+      '$conformanceCoverageReportKind.',
+    );
+  }
+  if (report['redaction'] != 'metadata-only-no-raw-requests-or-secrets') {
+    failures.add('conformance_coverage redaction policy drifted.');
+  }
+  if (report['non_normative'] != true) {
+    failures.add('conformance_coverage must stay non_normative.');
+  }
+
+  final parserOnlySpecIds = readDartContractTestSpecIds()
+      .where((specId) => !flutterSdkBaseSpecIds.contains(specId))
+      .toList()
+    ..sort(compareSpecIds);
+  final expectedFlutterSpecIds = [
+    ...flutterSdkBaseSpecIds,
+    ...parserOnlySpecIds,
+  ];
+
+  final surfaces = report['surfaces'];
+  if (surfaces is! List) {
+    failures.add('conformance_coverage surfaces must be a list.');
+    return;
+  }
+  final surfaceByKind = <String, Map<String, Object?>>{};
+  for (final surface in surfaces) {
+    if (surface is! Map<String, Object?>) {
+      failures.add('conformance_coverage surface entries must be objects.');
+      continue;
+    }
+    final surfaceKind = surface['surface_kind'];
+    if (surfaceKind is! String || surfaceKind.isEmpty) {
+      failures.add('conformance_coverage surface is missing surface_kind.');
+      continue;
+    }
+    surfaceByKind[surfaceKind] = surface;
+  }
+
+  checkCoverageSurface(
+    failures,
+    surfaceByKind,
+    surfaceKind: 'flutter-sdk',
+    specIds: expectedFlutterSpecIds,
+    sourceFiles: ['lib/', 'test/*_contract_test.dart', 'README.md'],
+    testGates: [
+      'HOURA_SPEC_ROOT=../houra-spec flutter test',
+      'HOURA_SPEC_ROOT=../houra-spec dart run tool/check_spec_sync.dart',
+    ],
+  );
+  checkCoverageSurface(
+    failures,
+    surfaceByKind,
+    surfaceKind: 'rust-protocol-core-manifest',
+    specIds: protocolCoreManifestSpecIds,
+    sourceFiles: [
+      'rust-protocol-core/src/lib.rs',
+      'rust-protocol-core/Cargo.toml',
+    ],
+    testGates: [
+      'cd rust-protocol-core && HOURA_SPEC_ROOT=../../houra-spec cargo test',
+    ],
+  );
+  checkCoverageSurface(
+    failures,
+    surfaceByKind,
+    surfaceKind: 'rust-wasm-wrapper-exports',
+    specIds: protocolCoreManifestSpecIds,
+    sourceFiles: [
+      'rust-protocol-core-wasm/src/lib.rs',
+      'rust-protocol-core-wasm/Cargo.toml',
+    ],
+    testGates: [
+      'cd rust-protocol-core-wasm && cargo test',
+      'cd rust-protocol-core-wasm && cargo build --target wasm32-unknown-unknown',
+    ],
+  );
+  checkCoverageSurface(
+    failures,
+    surfaceByKind,
+    surfaceKind: 'typescript-wasm-facade',
+    specIds: protocolCoreManifestSpecIds,
+    sourceFiles: [
+      'ts-protocol-core-wasm/src/index.ts',
+      'ts-protocol-core-wasm/test/index.test.mjs',
+      'ts-protocol-core-wasm/package.json',
+    ],
+    testGates: [
+      'cd ts-protocol-core-wasm && npm run typecheck',
+      'cd ts-protocol-core-wasm && npm test',
+    ],
+  );
+  checkCoverageSurface(
+    failures,
+    surfaceByKind,
+    surfaceKind: 'release-evidence',
+    specIds: releaseEvidenceSpecIds,
+    sourceFiles: [
+      'tool/generate_release_evidence.dart',
+      'tool/check_spec_sync.dart',
+      'tool/release_evidence_helpers.dart',
+    ],
+    testGates: [
+      'HOURA_SPEC_ROOT=../houra-spec dart run tool/generate_release_evidence.dart --output build/release-evidence/houra-labs-release-evidence.json',
+      'HOURA_SPEC_ROOT=../houra-spec dart run tool/check_spec_sync.dart',
+    ],
+  );
+
+  final driftGuards = report['drift_guards'];
+  if (driftGuards is! List) {
+    failures.add('conformance_coverage drift_guards must be a list.');
+    return;
+  }
+  final guardNames = <String>{};
+  for (final guard in driftGuards) {
+    if (guard is Map<String, Object?> && guard['guard'] is String) {
+      guardNames.add(guard['guard']! as String);
+    }
+  }
+  for (final expectedGuard in [
+    'readme_flutter_sdk_claim',
+    'dart_contract_test_spec_ids',
+    'typescript_facade_spec_constants',
+    'release_evidence_coverage_report',
+  ]) {
+    if (!guardNames.contains(expectedGuard)) {
+      failures.add(
+        'conformance_coverage drift_guards is missing $expectedGuard.',
+      );
+    }
+  }
+}
+
+void checkCoverageSurface(
+  List<String> failures,
+  Map<String, Map<String, Object?>> surfaceByKind, {
+  required String surfaceKind,
+  required List<String> specIds,
+  required List<String> sourceFiles,
+  required List<String> testGates,
+}) {
+  final surface = surfaceByKind[surfaceKind];
+  if (surface == null) {
+    failures.add('conformance_coverage is missing surface: $surfaceKind.');
+    return;
+  }
+  if (surface['support_claim_status'] is! String ||
+      (surface['support_claim_status']! as String).isEmpty) {
+    failures
+        .add('$surfaceKind support_claim_status must be a non-empty string.');
+  }
+  requireOrderedSpecList(
+    failures,
+    _stringList(surface['spec_ids']),
+    specIds,
+    'conformance_coverage $surfaceKind spec_ids',
+  );
+  requireListContainsAll(
+    failures,
+    surface['source_files'],
+    sourceFiles,
+    'conformance_coverage $surfaceKind source_files',
+  );
+  requireListContainsAll(
+    failures,
+    surface['test_gates'],
+    testGates,
+    'conformance_coverage $surfaceKind test_gates',
+  );
 }
 
 void checkSpec039ProtocolCoreGate(List<String> failures) {
@@ -1919,6 +2098,16 @@ void requireListContainsAll(
   }
 }
 
+List<String> _stringList(Object? value) {
+  if (value is! List) {
+    return const [];
+  }
+  return [
+    for (final item in value)
+      if (item is String) item,
+  ];
+}
+
 void requireOrderedSpecList(
   List<String> failures,
   List<String> actual,
@@ -1942,23 +2131,6 @@ bool orderedListEquals(List actual, List<String> expected) {
     }
   }
   return true;
-}
-
-List<String> readDartContractTestSpecIds() {
-  final testRoot = Directory('test');
-  if (!testRoot.existsSync()) {
-    return const [];
-  }
-
-  final specIds = <String>{};
-  for (final file in testRoot.listSync(recursive: true).whereType<File>()) {
-    if (!file.path.endsWith('_contract_test.dart')) {
-      continue;
-    }
-    specIds.addAll(uniqueSpecIdsFromText(file.readAsStringSync()));
-  }
-  final ordered = specIds.toList()..sort(compareSpecIds);
-  return ordered;
 }
 
 List<String> readFlutterSdkAdoptionSpecIds(String source) {
@@ -2037,19 +2209,6 @@ String? extractBulletBlockStartingWith(String section, String prefix) {
   return null;
 }
 
-List<String> uniqueSpecIdsFromText(String source) {
-  final specPattern = RegExp(r'\bSPEC-\d{3}\b');
-  final seen = <String>{};
-  final specIds = <String>[];
-  for (final match in specPattern.allMatches(source)) {
-    final specId = match.group(0)!;
-    if (seen.add(specId)) {
-      specIds.add(specId);
-    }
-  }
-  return specIds;
-}
-
 List<String> duplicateValues(List<String> values) {
   final seen = <String>{};
   final duplicates = <String>{};
@@ -2067,12 +2226,6 @@ bool containsNormalizedText(String source, String fragment) {
   }
 
   return normalize(source).contains(normalize(fragment));
-}
-
-int compareSpecIds(String left, String right) {
-  final leftValue = int.parse(left.substring('SPEC-'.length));
-  final rightValue = int.parse(right.substring('SPEC-'.length));
-  return leftValue.compareTo(rightValue);
 }
 
 Directory canonicalSpecRoot() {
