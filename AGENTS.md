@@ -118,12 +118,15 @@ The current package implements:
   media config metadata, URL preview metadata, thumbnail metadata, async upload
   metadata, Content-Disposition filename helpers, and Matrix Content URI
   validation only
+- SPEC-097 Matrix Federation Version / Key Lifecycle / Request Auth
+  parser-only version metadata, key lifecycle metadata, and request-auth header
+  descriptors only
 - SPEC-079 / SPEC-081 shared crypto metadata, redaction, and release evidence
   helper only; this is not crypto stack selection, secure storage ownership, or
   E2EE support advertisement
 
-Do not add storage, encryption, federation, push gateway compatibility, or full
-Matrix compatibility without a matching contract and test-vector update.
+Do not add storage, encryption, federation runtime, push gateway compatibility,
+or full Matrix compatibility without a matching contract and test-vector update.
 
 Token persistence is host-owned. SDK core may return and attach tokens, but must
 not store them.

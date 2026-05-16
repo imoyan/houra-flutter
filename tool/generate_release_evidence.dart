@@ -31,6 +31,7 @@ const expectedProtocolSpecIds = [
   'SPEC-090',
   'SPEC-093',
   'SPEC-095',
+  'SPEC-097',
 ];
 
 const expectedReleaseEvidenceSpecIds = [
@@ -515,6 +516,29 @@ void main(List<String> args) {
         'Matrix Client-Server support advertisement',
       ],
     },
+    'federation_version_key_lifecycle_request_auth_parser_adoption': {
+      'issue': 123,
+      'status': 'parser-only-adopted',
+      'spec_ids': ['SPEC-097'],
+      'parity_vectors': [
+        'test-vectors/core/matrix-federation-version-key-lifecycle-request-auth.json',
+      ],
+      'parser_only_surfaces': [
+        'federation version metadata',
+        'federation key query lifecycle metadata',
+        'server signing key lifecycle metadata',
+        'request-auth header descriptor',
+      ],
+      'out_of_scope': [
+        'DNS/TLS runtime',
+        'notary fallback',
+        'key-cache persistence',
+        'request signature verification',
+        'private signing-key storage',
+        'outbound federation execution',
+        'Server-Server API support advertisement',
+      ],
+    },
     'oauth_account_management_parser_adoption': {
       'issue': 118,
       'status': 'parser-only-adopted',
@@ -795,7 +819,7 @@ void main(List<String> args) {
         'command': 'cargo test --locked',
         'guards': [
           'artifact manifest serializes stably',
-          'protocol artifact supported SPEC ids include SPEC-030 through SPEC-040, SPEC-045, SPEC-046, SPEC-047, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, SPEC-068, SPEC-069, SPEC-085, SPEC-090, SPEC-093, and SPEC-095',
+          'protocol artifact supported SPEC ids include SPEC-030 through SPEC-040, SPEC-045, SPEC-046, SPEC-047, SPEC-048, SPEC-049, SPEC-051, SPEC-053 through SPEC-056, SPEC-068, SPEC-069, SPEC-085, SPEC-090, SPEC-093, SPEC-095, and SPEC-097',
           'release evidence helper SPEC ids include SPEC-079 and SPEC-081 without widening protocol artifact support',
         ],
       },

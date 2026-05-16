@@ -26,7 +26,7 @@ const SUPPORTED_SPECS: &[&str] = &[
     "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036", "SPEC-037",
     "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047", "SPEC-048", "SPEC-049",
     "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056", "SPEC-068", "SPEC-069", "SPEC-085",
-    "SPEC-090", "SPEC-093", "SPEC-095",
+    "SPEC-090", "SPEC-093", "SPEC-095", "SPEC-097",
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -619,6 +619,17 @@ pub struct MatrixFederationWellKnownServer {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationVersionServer {
+    pub name: String,
+    pub version: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationVersion {
+    pub server: MatrixFederationVersionServer,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixFederationVerifyKey {
     pub key: String,
 }
@@ -661,6 +672,16 @@ pub struct MatrixFederationDestinationResolutionFailure {
     pub destination_resolved: bool,
     pub federation_request_sent: bool,
     pub backoff_recorded: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationRequestAuthDescriptor {
+    pub scheme: String,
+    pub origin: String,
+    pub destination: String,
+    pub key: String,
+    pub sig: String,
+    pub signed_json_fields: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -1442,6 +1463,13 @@ pub struct MatrixFederationWellKnownServerParseEnvelope {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationVersionParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationVersion>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct MatrixFederationSigningKeyParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixFederationSigningKey>,
@@ -1466,6 +1494,13 @@ pub struct MatrixFederationKeyQueryResponseParseEnvelope {
 pub struct MatrixFederationDestinationResolutionFailureParseEnvelope {
     pub ok: bool,
     pub value: Option<MatrixFederationDestinationResolutionFailure>,
+    pub error: Option<ProtocolErrorEnvelope>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct MatrixFederationRequestAuthDescriptorParseEnvelope {
+    pub ok: bool,
+    pub value: Option<MatrixFederationRequestAuthDescriptor>,
     pub error: Option<ProtocolErrorEnvelope>,
 }
 
@@ -2308,6 +2343,17 @@ struct MatrixFederationWellKnownServerWire {
 }
 
 #[derive(Debug, Deserialize)]
+struct MatrixFederationVersionWire {
+    server: Option<MatrixFederationVersionServerWire>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationVersionServerWire {
+    name: Option<String>,
+    version: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 struct MatrixFederationVerifyKeyWire {
     key: Option<String>,
 }
@@ -2341,6 +2387,16 @@ struct MatrixFederationKeyQueryRequestWire {
 #[derive(Debug, Deserialize)]
 struct MatrixFederationKeyQueryResponseWire {
     server_keys: Option<Vec<MatrixFederationSigningKeyWire>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MatrixFederationRequestAuthDescriptorWire {
+    scheme: Option<String>,
+    origin: Option<String>,
+    destination: Option<String>,
+    key: Option<String>,
+    sig: Option<String>,
+    signed_json_fields: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -5360,6 +5416,47 @@ pub fn parse_matrix_federation_well_known_server_json(bytes: &[u8]) -> String {
         .expect("parse envelope serialization should be infallible")
 }
 
+pub fn parse_matrix_federation_version(
+    bytes: &[u8],
+) -> Result<MatrixFederationVersion, ProtocolError> {
+    let wire: MatrixFederationVersionWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let server = wire
+        .server
+        .ok_or_else(|| invalid_federation_field("federation.version.server"))?;
+    Ok(MatrixFederationVersion {
+        server: MatrixFederationVersionServer {
+            name: required_federation_string(server.name, "federation.version.server.name")?,
+            version: required_federation_string(
+                server.version,
+                "federation.version.server.version",
+            )?,
+        },
+    })
+}
+
+pub fn parse_matrix_federation_version_envelope(
+    bytes: &[u8],
+) -> MatrixFederationVersionParseEnvelope {
+    match parse_matrix_federation_version(bytes) {
+        Ok(value) => MatrixFederationVersionParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationVersionParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_version_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_version_envelope(bytes))
+        .expect("parse envelope serialization should be infallible")
+}
+
 pub fn parse_matrix_federation_signing_key(
     bytes: &[u8],
 ) -> Result<MatrixFederationSigningKey, ProtocolError> {
@@ -5563,6 +5660,61 @@ pub fn parse_matrix_federation_destination_resolution_failure_envelope(
 pub fn parse_matrix_federation_destination_resolution_failure_json(bytes: &[u8]) -> String {
     serde_json::to_string(&parse_matrix_federation_destination_resolution_failure_envelope(bytes))
         .expect("parse envelope serialization should be infallible")
+}
+
+pub fn parse_matrix_federation_request_auth_descriptor(
+    bytes: &[u8],
+) -> Result<MatrixFederationRequestAuthDescriptor, ProtocolError> {
+    let wire: MatrixFederationRequestAuthDescriptorWire =
+        serde_json::from_slice(bytes).map_err(|error| ProtocolError::Json(error.to_string()))?;
+    let scheme = required_federation_string(wire.scheme, "federation.request_auth.scheme")?;
+    if scheme != "X-Matrix" {
+        return Err(invalid_federation_field("federation.request_auth.scheme"));
+    }
+    let origin = required_federation_string(wire.origin, "federation.request_auth.origin")?;
+    let destination =
+        required_federation_string(wire.destination, "federation.request_auth.destination")?;
+    parse_matrix_federation_server_name(&origin)?;
+    parse_matrix_federation_server_name(&destination)?;
+    let key = required_federation_string(wire.key, "federation.request_auth.key")?;
+    required_federation_key_id(&key, "federation.request_auth.key")?;
+    let sig = required_federation_string(wire.sig, "federation.request_auth.sig")?;
+    let signed_json_fields = required_federation_string_array(
+        wire.signed_json_fields,
+        "federation.request_auth.signed_json_fields",
+    )?;
+    Ok(MatrixFederationRequestAuthDescriptor {
+        scheme,
+        origin,
+        destination,
+        key,
+        sig,
+        signed_json_fields,
+    })
+}
+
+pub fn parse_matrix_federation_request_auth_descriptor_envelope(
+    bytes: &[u8],
+) -> MatrixFederationRequestAuthDescriptorParseEnvelope {
+    match parse_matrix_federation_request_auth_descriptor(bytes) {
+        Ok(value) => MatrixFederationRequestAuthDescriptorParseEnvelope {
+            ok: true,
+            value: Some(value),
+            error: None,
+        },
+        Err(error) => MatrixFederationRequestAuthDescriptorParseEnvelope {
+            ok: false,
+            value: None,
+            error: Some(error.to_envelope()),
+        },
+    }
+}
+
+pub fn parse_matrix_federation_request_auth_descriptor_json(bytes: &[u8]) -> String {
+    serde_json::to_string(&parse_matrix_federation_request_auth_descriptor_envelope(
+        bytes,
+    ))
+    .expect("parse envelope serialization should be infallible")
 }
 
 pub fn parse_matrix_verification_sas_flow(
@@ -8810,6 +8962,17 @@ fn optional_federation_timestamp(
     }
 }
 
+fn required_federation_string_array(
+    value: Option<Vec<String>>,
+    field: &str,
+) -> Result<Vec<String>, ProtocolError> {
+    let values = value.ok_or_else(|| invalid_federation_field(field))?;
+    if values.is_empty() || values.iter().any(String::is_empty) {
+        return Err(invalid_federation_field(field));
+    }
+    Ok(values)
+}
+
 fn required_federation_array(
     value: Option<Vec<Value>>,
     field: &str,
@@ -8859,7 +9022,13 @@ fn split_federation_server_name(server_name: &str) -> Result<(String, Option<u16
 }
 
 fn required_federation_key_id(key_id: &str, field: &str) -> Result<(), ProtocolError> {
-    if key_id.is_empty() || !key_id.contains(':') {
+    let suffix = key_id.strip_prefix("ed25519:");
+    if suffix.is_none_or(|value| {
+        value.is_empty()
+            || !value
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_')
+    }) {
         Err(invalid_federation_field(field))
     } else {
         Ok(())
@@ -9301,7 +9470,7 @@ mod tests {
                 "SPEC-030", "SPEC-031", "SPEC-032", "SPEC-033", "SPEC-034", "SPEC-035", "SPEC-036",
                 "SPEC-037", "SPEC-038", "SPEC-039", "SPEC-040", "SPEC-045", "SPEC-046", "SPEC-047",
                 "SPEC-048", "SPEC-049", "SPEC-051", "SPEC-053", "SPEC-054", "SPEC-055", "SPEC-056",
-                "SPEC-068", "SPEC-069", "SPEC-085", "SPEC-090", "SPEC-093", "SPEC-095"
+                "SPEC-068", "SPEC-069", "SPEC-085", "SPEC-090", "SPEC-093", "SPEC-095", "SPEC-097"
             ]
         );
         assert!(manifest.supported_binding_kinds.is_empty());
@@ -10710,6 +10879,54 @@ mod tests {
             .supported_specs
             .iter()
             .any(|spec| spec == "SPEC-055"));
+    }
+
+    #[test]
+    fn parses_spec_097_federation_version_key_lifecycle_request_auth_vectors() {
+        let vector = read_spec_vector(
+            "test-vectors/core/matrix-federation-version-key-lifecycle-request-auth.json",
+        );
+        assert_eq!(vector["contract"], "SPEC-097");
+        let event = &vector["event"];
+        let responses = &event["sample_responses"];
+
+        let version = parse_matrix_federation_version(responses["version"].to_string().as_bytes())
+            .expect("SPEC-097 federation version should parse");
+        assert_eq!(version.server.name, "Houra");
+        assert_eq!(version.server.version, "0.1.0");
+
+        let key_query = parse_matrix_federation_key_query_response(
+            responses["key_query"].to_string().as_bytes(),
+        )
+        .expect("SPEC-097 key query response should parse");
+        assert_eq!(key_query.server_keys.len(), 1);
+        assert_eq!(key_query.server_keys[0].verify_keys.len(), 2);
+        assert_eq!(key_query.server_keys[0].old_verify_keys.len(), 1);
+        assert!(key_query.server_keys[0]
+            .signatures
+            .contains_key("notary.example.test"));
+
+        let auth = parse_matrix_federation_request_auth_descriptor(
+            responses["request_auth"].to_string().as_bytes(),
+        )
+        .expect("SPEC-097 request auth descriptor should parse");
+        assert_eq!(auth.scheme, "X-Matrix");
+        assert_eq!(auth.origin, "example.test");
+        assert_eq!(auth.destination, "remote.example.test");
+        assert_eq!(auth.key, "ed25519:auto1");
+        assert!(auth.signed_json_fields.contains(&"method".to_owned()));
+
+        assert!(parse_matrix_federation_version(br#"{"server":{"name":""}}"#).is_err());
+        assert!(parse_matrix_federation_request_auth_descriptor(
+            br#"{"scheme":"X-Matrix","origin":"example.test","destination":"remote.example.test","key":"rsa:auto1","sig":"sig","signed_json_fields":["method"]}"#
+        )
+        .is_err());
+
+        let manifest = artifact_manifest_for_binding_kinds(&["wasm"]);
+        assert!(manifest
+            .supported_specs
+            .iter()
+            .any(|spec| spec == "SPEC-097"));
     }
 
     #[test]

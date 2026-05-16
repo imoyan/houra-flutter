@@ -23,6 +23,7 @@ void main() {
   checkSpec090ProtocolCoreGate(failures);
   checkSpec093ProtocolCoreGate(failures);
   checkSpec095ProtocolCoreGate(failures);
+  checkSpec097ProtocolCoreGate(failures);
 
   if (failures.isNotEmpty) {
     stderr.writeln('Spec sync check failed:');
@@ -1215,6 +1216,82 @@ void checkSpec095ProtocolCoreGate(List<String> failures) {
       'ts-protocol-core-wasm/test/index.test.mjs': [
         'SPEC-095',
         'matrix-media-repository-breadth.json',
+      ],
+    },
+  );
+}
+
+void checkSpec097ProtocolCoreGate(List<String> failures) {
+  final specRoot = canonicalSpecRoot();
+  final contract = File(
+    '${specRoot.path}/contracts/SPEC-097-matrix-federation-version-key-lifecycle-request-auth.md',
+  );
+  final vectors = [
+    'test-vectors/core/matrix-federation-version-key-lifecycle-request-auth.json',
+  ];
+  if (!contract.existsSync()) {
+    failures.add('Missing SPEC-097 contract: ${contract.path}');
+    return;
+  }
+  checkVectorsHaveContract(failures, specRoot, 'SPEC-097', vectors);
+  checkReleaseEvidenceAdoption(
+    failures,
+    blockName: 'federation_version_key_lifecycle_request_auth_parser_adoption',
+    issue: 123,
+    specId: 'SPEC-097',
+    parityVectors: vectors,
+    parserOnlySurfaces: [
+      'federation version metadata',
+      'federation key query lifecycle metadata',
+      'server signing key lifecycle metadata',
+      'request-auth header descriptor',
+    ],
+    outOfScope: [
+      'DNS/TLS runtime',
+      'notary fallback',
+      'key-cache persistence',
+      'request signature verification',
+      'private signing-key storage',
+      'outbound federation execution',
+      'Server-Server API support advertisement',
+    ],
+  );
+
+  checkRequiredFragments(
+    failures,
+    specId: 'SPEC-097',
+    requiredFragmentsByFile: {
+      'AGENTS.md': ['SPEC-097'],
+      'README.md': ['SPEC-097', 'federation version/key lifecycle'],
+      'lib/src/models.dart': [
+        'HouraMatrixFederationRequestDescriptor',
+        'HouraMatrixFederationVersion',
+        'HouraMatrixFederationSigningKey',
+        'HouraMatrixFederationOldVerifyKey',
+        'HouraMatrixFederationKeyQueryResponse',
+        'HouraMatrixFederationRequestAuthDescriptor',
+      ],
+      'test/federation_contract_test.dart': [
+        'SPEC-097',
+        'matrix-federation-version-key-lifecycle-request-auth.json',
+      ],
+      'rust-protocol-core/src/lib.rs': [
+        '"SPEC-097"',
+        'parse_matrix_federation_version',
+        'parse_matrix_federation_request_auth_descriptor',
+      ],
+      'rust-protocol-core-wasm/src/lib.rs': [
+        'parseMatrixFederationVersionJson',
+        'parseMatrixFederationRequestAuthDescriptorJson',
+      ],
+      'ts-protocol-core-wasm/src/index.ts': [
+        '"SPEC-097"',
+        'parseMatrixFederationVersion',
+        'parseMatrixFederationRequestAuthDescriptor',
+      ],
+      'ts-protocol-core-wasm/test/index.test.mjs': [
+        'SPEC-097',
+        'matrix-federation-version-key-lifecycle-request-auth.json',
       ],
     },
   );

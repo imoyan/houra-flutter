@@ -32,6 +32,7 @@ export const HOURA_PROTOCOL_CORE_SPEC_IDS = [
   "SPEC-090",
   "SPEC-093",
   "SPEC-095",
+  "SPEC-097",
 ] as const;
 
 export interface HouraProtocolCoreWasmBinding {
@@ -48,11 +49,13 @@ export interface HouraProtocolCoreWasmBinding {
   parseMatrixFederationKeyQueryRequestJson(responseBody: string): string;
   parseMatrixFederationKeyQueryResponseJson(responseBody: string): string;
   parseMatrixFederationMakeJoinResponseJson(responseBody: string): string;
+  parseMatrixFederationRequestAuthDescriptorJson(responseBody: string): string;
   parseMatrixFederationServerNameJson(serverName: string): string;
   parseMatrixFederationSendJoinResponseJson(responseBody: string): string;
   parseMatrixFederationSigningKeyJson(responseBody: string): string;
   parseMatrixFederationTransactionJson(responseBody: string): string;
   parseMatrixFederationTransactionResponseJson(responseBody: string): string;
+  parseMatrixFederationVersionJson(responseBody: string): string;
   parseMatrixFederationWellKnownServerJson(responseBody: string): string;
   parseMatrixVerificationSasFlowJson(responseBody: string): string;
   parseMatrixVerificationCancelJson(responseBody: string): string;
@@ -604,6 +607,13 @@ export interface MatrixFederationWellKnownServer {
   port?: number;
 }
 
+export interface MatrixFederationVersion {
+  server: {
+    name: string;
+    version: string;
+  };
+}
+
 export interface MatrixFederationVerifyKey {
   key: string;
 }
@@ -642,6 +652,15 @@ export interface MatrixFederationDestinationResolutionFailure {
   destination_resolved: boolean;
   federation_request_sent: boolean;
   backoff_recorded: boolean;
+}
+
+export interface MatrixFederationRequestAuthDescriptor {
+  scheme: "X-Matrix";
+  origin: string;
+  destination: string;
+  key: string;
+  sig: string;
+  signed_json_fields: string[];
 }
 
 export interface MatrixVerificationSasFlow {
@@ -952,6 +971,9 @@ export interface HouraProtocolCoreFacade {
   parseMatrixFederationMakeJoinResponse(
     responseBody: string,
   ): ProtocolResult<MatrixFederationMakeJoinResponse>;
+  parseMatrixFederationRequestAuthDescriptor(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationRequestAuthDescriptor>;
   parseMatrixFederationServerName(
     serverName: string,
   ): ProtocolResult<MatrixFederationServerName>;
@@ -967,6 +989,9 @@ export interface HouraProtocolCoreFacade {
   parseMatrixFederationTransactionResponse(
     responseBody: string,
   ): ProtocolResult<MatrixFederationTransactionResponse>;
+  parseMatrixFederationVersion(
+    responseBody: string,
+  ): ProtocolResult<MatrixFederationVersion>;
   parseMatrixFederationWellKnownServer(
     responseBody: string,
   ): ProtocolResult<MatrixFederationWellKnownServer>;
@@ -1318,6 +1343,13 @@ export function createHouraProtocolCore(
       );
       return readMatrixFederationMakeJoinResponseEnvelope(envelope);
     },
+    parseMatrixFederationRequestAuthDescriptor(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationRequestAuthDescriptorJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationRequestAuthDescriptorEnvelope(envelope);
+    },
     parseMatrixFederationServerName(serverName: string) {
       const envelope = parseJsonObject(
         binding.parseMatrixFederationServerNameJson(serverName),
@@ -1352,6 +1384,13 @@ export function createHouraProtocolCore(
         "parse envelope",
       );
       return readMatrixFederationTransactionResponseEnvelope(envelope);
+    },
+    parseMatrixFederationVersion(responseBody: string) {
+      const envelope = parseJsonObject(
+        binding.parseMatrixFederationVersionJson(responseBody),
+        "parse envelope",
+      );
+      return readMatrixFederationVersionEnvelope(envelope);
     },
     parseMatrixFederationWellKnownServer(responseBody: string) {
       const envelope = parseJsonObject(
@@ -2217,6 +2256,20 @@ function readMatrixFederationWellKnownServerEnvelope(
   });
 }
 
+function readMatrixFederationVersionEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationVersion> {
+  return readProtocolResult(envelope, (value) => {
+    const server = readRecord(value, "server", "federation.version");
+    return {
+      server: {
+        name: readString(server, "name", "invalid_envelope"),
+        version: readString(server, "version", "invalid_envelope"),
+      },
+    };
+  });
+}
+
 function readMatrixFederationSigningKeyEnvelope(
   envelope: Record<string, unknown>,
 ): ProtocolResult<MatrixFederationSigningKey> {
@@ -2258,6 +2311,32 @@ function readMatrixFederationDestinationResolutionFailureEnvelope(
     federation_request_sent: readBoolean(value, "federation_request_sent"),
     backoff_recorded: readBoolean(value, "backoff_recorded"),
   }));
+}
+
+function readMatrixFederationRequestAuthDescriptorEnvelope(
+  envelope: Record<string, unknown>,
+): ProtocolResult<MatrixFederationRequestAuthDescriptor> {
+  return readProtocolResult(envelope, (value) => {
+    const scheme = readString(value, "scheme", "invalid_envelope");
+    if (scheme !== "X-Matrix") {
+      throw new HouraProtocolCoreFacadeError(
+        "invalid_envelope",
+        "federation.request_auth.scheme must be X-Matrix.",
+      );
+    }
+    return {
+      scheme,
+      origin: readString(value, "origin", "invalid_envelope"),
+      destination: readString(value, "destination", "invalid_envelope"),
+      key: readString(value, "key", "invalid_envelope"),
+      sig: readString(value, "sig", "invalid_envelope"),
+      signed_json_fields: readStringArray(
+        value,
+        "signed_json_fields",
+        "invalid_envelope",
+      ),
+    };
+  });
 }
 
 function readMatrixVerificationSasFlowEnvelope(
