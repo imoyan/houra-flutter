@@ -243,19 +243,18 @@ void main(List<String> args) {
           'command':
               'HOURA_SPEC_ROOT=../houra-spec dart run tool/benchmark_shared_core.dart --iterations 200 --no-external',
         },
+        {
+          'surface_kind': 'go-server-candidate',
+          'role': 'server-side shared-core candidate baseline',
+          'command':
+              'cd go-protocol-core && HOURA_SPEC_ROOT=../../houra-spec go run ./cmd/benchmark_shared_core --iterations 200 --json',
+        },
       ],
       'size_evidence_commands': [
         'cd ts-protocol-core-wasm && npm run pack:dry-run',
-        'cd rust-protocol-core-wasm && cargo build --target wasm32-unknown-unknown',
+        'cd rust-protocol-core-wasm && cargo build --locked --release --target wasm32-unknown-unknown',
       ],
-      'optional_surfaces': [
-        {
-          'surface_kind': 'go-server-candidate',
-          'status': 'optional_not_implemented',
-          'reason':
-              'No Go package is owned by houra-labs; measure Go only in a focused server-side shared-core candidate issue.',
-        },
-      ],
+      'optional_surfaces': [],
       'summary_fields': [
         'surface_kind',
         'benchmark_id',
@@ -268,6 +267,7 @@ void main(List<String> args) {
       'claim_boundaries': [
         'candidate evidence only',
         'no production TypeScript client/server adoption',
+        'no production Go server adoption',
         'no public compatibility claim expansion',
         'no raw request, prompt, token, or secret capture',
       ],
@@ -1086,7 +1086,8 @@ void main(List<String> args) {
       },
       {
         'name': 'wasm-wrapper',
-        'command': 'cargo build --locked --target wasm32-unknown-unknown',
+        'command':
+            'cd rust-protocol-core-wasm && cargo build --locked --release --target wasm32-unknown-unknown',
         'guards': [
           'WASM binding kind is present in the manifest',
           'wrapper exports the manifest and JSON envelope functions',

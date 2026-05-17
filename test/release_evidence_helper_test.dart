@@ -94,6 +94,10 @@ void main() {
       contains('no production TypeScript client/server adoption'),
     );
     expect(
+      benchmark['claim_boundaries'],
+      contains('no production Go server adoption'),
+    );
+    expect(
       benchmark['measured_surfaces'],
       contains(
         isA<Map>().having(
@@ -120,7 +124,7 @@ void main() {
       ),
     );
     expect(
-      benchmark['optional_surfaces'],
+      benchmark['measured_surfaces'],
       contains(
         isA<Map>()
             .having(
@@ -129,9 +133,9 @@ void main() {
               'go-server-candidate',
             )
             .having(
-              (surface) => surface['status'],
-              'status',
-              'optional_not_implemented',
+              (surface) => surface['command'].toString(),
+              'command',
+              contains('go run ./cmd/benchmark_shared_core'),
             ),
       ),
     );

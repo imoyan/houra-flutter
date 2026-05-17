@@ -75,20 +75,29 @@ void main(List<String> args) {
         environment: {'HOURA_SPEC_ROOT': childSpecRoot},
       ),
     );
+    results.add(
+      _runJsonBenchmark(
+        surfaceKind: 'go-server-candidate',
+        command: [
+          'go',
+          'run',
+          './cmd/benchmark_shared_core',
+          '--iterations',
+          '$iterations',
+          '--json',
+        ],
+        workingDirectory: 'go-protocol-core',
+        environment: {'HOURA_SPEC_ROOT': childSpecRoot},
+      ),
+    );
   } else {
     results.addAll([
       _skippedSurface('rust-native', 'external command disabled'),
       _skippedSurface(
           'typescript-facade-baseline', 'external command disabled'),
+      _skippedSurface('go-server-candidate', 'external command disabled'),
     ]);
   }
-  results.add({
-    'surface_kind': 'go-server-candidate',
-    'status': 'optional_not_implemented',
-    'reason':
-        'houra-labs has no Go package; measure Go only in a focused server-side shared-core candidate issue.',
-    'support_claim_status': 'optional-server-candidate-only',
-  });
 
   final report = {
     'schema_version': 1,
@@ -112,7 +121,7 @@ void main(List<String> args) {
       {
         'surface_kind': 'rust-wasm-wrapper-exports',
         'command':
-            'cd rust-protocol-core-wasm && cargo build --target wasm32-unknown-unknown',
+            'cd rust-protocol-core-wasm && cargo build --locked --release --target wasm32-unknown-unknown',
         'output_policy': 'record artifact size metadata only',
       },
     ],
@@ -120,7 +129,7 @@ void main(List<String> args) {
       'raw request bodies in benchmark reports',
       'prompt, token, or secret capture',
       'production TypeScript client/server shared-core adoption',
-      'Go implementation inside houra-labs before a focused candidate issue',
+      'production Go server adoption',
       'public compatibility claim expansion',
     ],
   };

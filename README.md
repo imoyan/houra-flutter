@@ -817,7 +817,7 @@ cd rust-protocol-core-wasm
 cargo fmt --check
 cargo test
 rustup target add wasm32-unknown-unknown
-cargo build --target wasm32-unknown-unknown
+cargo build --locked --release --target wasm32-unknown-unknown
 ```
 
 For the TypeScript WASM facade prototype, run:
@@ -853,10 +853,10 @@ HOURA_SPEC_ROOT=../houra-spec dart run tool/benchmark_shared_core.dart \
 
 The harness treats the TypeScript facade baseline as the current production-path
 comparison point, Rust native as the shared-core candidate, and Dart JSON parsing
-as a local runtime baseline. Go remains optional until a focused server-side
-shared-core candidate issue adds a Go package. Benchmark output records p95 and
-payload-size metadata only; it must not record raw requests, prompts, tokens, or
-secrets.
+as a local runtime baseline. The Go server-side candidate is a parser-only
+shared-core baseline, not production server adoption. Benchmark output records
+p95 and payload-size metadata only; it must not record raw requests, prompts,
+tokens, or secrets.
 
 If Rust is not installed locally, the same checks can run in a Rust Docker image
 with this repository and `houra-spec` mounted into the container. The official
@@ -882,7 +882,7 @@ docker run --rm \
   -v "$PWD":/workspace/houra-labs \
   -w /workspace/houra-labs/rust-protocol-core-wasm \
   rust:1 \
-  sh -lc 'apt-get update >/tmp/apt-update.log && apt-get install -y rustfmt libstd-rust-dev-wasm32 >/tmp/apt-install.log && rustfmt --check src/lib.rs && cargo test --locked && cargo build --locked --target wasm32-unknown-unknown'
+  sh -lc 'apt-get update >/tmp/apt-update.log && apt-get install -y rustfmt libstd-rust-dev-wasm32 >/tmp/apt-install.log && rustfmt --check src/lib.rs && cargo test --locked && cargo build --locked --release --target wasm32-unknown-unknown'
 ```
 
 ## Pre-1.0 SDK Hardening Checklist
