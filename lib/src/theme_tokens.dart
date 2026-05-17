@@ -34,6 +34,11 @@ final class HouraThemeTokens {
   }
 
   factory HouraThemeTokens.fromJson(Map<String, Object?> json) {
+    _rejectUnexpectedKeys(
+      json,
+      const {'\$schema', 'name', 'version', 'defs', 'theme'},
+      'Theme root',
+    );
     final defs = _readStringMap(json, 'defs');
     final rawTheme = json['theme'];
     if (rawTheme is! Map<String, Object?> || rawTheme.isEmpty) {
@@ -44,13 +49,19 @@ final class HouraThemeTokens {
 
     final theme = <String, HouraThemeColorToken>{};
     for (final entry in rawTheme.entries) {
+      final tokenName = _readTokenName(entry.key, 'Theme token');
       final value = entry.value;
       if (value is! Map<String, Object?>) {
         throw HouraThemeFormatException(
           'Theme token "${entry.key}" must be an object.',
         );
       }
-      theme[entry.key] = HouraThemeColorToken(
+      _rejectUnexpectedKeys(
+        value,
+        const {'light', 'dark'},
+        'Theme token "$tokenName"',
+      );
+      theme[tokenName] = HouraThemeColorToken(
         light: _readRequiredString(value, 'light'),
         dark: _readRequiredString(value, 'dark'),
       );
@@ -143,15 +154,29 @@ Map<String, String> _readStringMap(Map<String, Object?> json, String key) {
   }
   final result = <String, String>{};
   for (final entry in value.entries) {
+    final definitionName = _readTokenName(entry.key, 'Theme definition');
     final item = entry.value;
     if (item is! String || item.trim().isEmpty) {
       throw HouraThemeFormatException(
         'Theme definition "${entry.key}" must be a non-empty string.',
       );
     }
-    result[entry.key] = item;
+    result[definitionName] = item;
   }
   return result;
+}
+
+String _readTokenName(String value, String context) {
+  final normalized = value.trim();
+  if (normalized.isEmpty) {
+    throw HouraThemeFormatException('$context name must be non-empty.');
+  }
+  if (value != normalized) {
+    throw HouraThemeFormatException(
+      '$context name must not contain leading or trailing whitespace.',
+    );
+  }
+  return normalized;
 }
 
 String _readRequiredString(Map<String, Object?> json, String key) {
@@ -162,6 +187,25 @@ String _readRequiredString(Map<String, Object?> json, String key) {
   throw HouraThemeFormatException(
     'Theme field "$key" must be a non-empty string.',
   );
+}
+
+void _rejectUnexpectedKeys(
+  Map<String, Object?> json,
+  Set<String> allowedKeys,
+  String context,
+) {
+  String? unexpected;
+  for (final key in json.keys) {
+    if (!allowedKeys.contains(key)) {
+      unexpected = key;
+      break;
+    }
+  }
+  if (unexpected != null) {
+    throw HouraThemeFormatException(
+      '$context contains unsupported field "$unexpected".',
+    );
+  }
 }
 
 bool _isHexColor(String value) {
