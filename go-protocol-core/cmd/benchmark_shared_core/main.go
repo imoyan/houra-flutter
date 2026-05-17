@@ -29,7 +29,7 @@ func main() {
 		if _, err := protocolcore.ParseMatrixClientVersionsResponseJSON(payload); err != nil {
 			panic(fmt.Sprintf("benchmark payload should parse: %v", err))
 		}
-		samples = append(samples, elapsedMicrosecondsCeil(time.Since(started)))
+		samples = append(samples, time.Since(started).Microseconds())
 	}
 	sort.Slice(samples, func(left, right int) bool {
 		return samples[left] < samples[right]
@@ -111,14 +111,6 @@ func percentile(samples []int64, percentileValue float64) int64 {
 		index++
 	}
 	return samples[index]
-}
-
-func elapsedMicrosecondsCeil(elapsed time.Duration) int64 {
-	nanos := elapsed.Nanoseconds()
-	if nanos <= 0 {
-		return 0
-	}
-	return (nanos + 999) / 1000
 }
 
 func firstSample(samples []int64) int64 {
