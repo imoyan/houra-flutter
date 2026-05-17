@@ -112,7 +112,7 @@ void main(List<String> args) {
       {
         'surface_kind': 'rust-wasm-wrapper-exports',
         'command':
-            'cd rust-protocol-core-wasm && cargo build --release --target wasm32-unknown-unknown',
+            'cd rust-protocol-core-wasm && cargo build --locked --release --target wasm32-unknown-unknown',
         'output_policy': 'record artifact size metadata only',
       },
     ],

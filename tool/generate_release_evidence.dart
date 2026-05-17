@@ -246,7 +246,7 @@ void main(List<String> args) {
       ],
       'size_evidence_commands': [
         'cd ts-protocol-core-wasm && npm run pack:dry-run',
-        'cd rust-protocol-core-wasm && cargo build --release --target wasm32-unknown-unknown',
+        'cd rust-protocol-core-wasm && cargo build --locked --release --target wasm32-unknown-unknown',
       ],
       'optional_surfaces': [
         {
@@ -1087,7 +1087,7 @@ void main(List<String> args) {
       {
         'name': 'wasm-wrapper',
         'command':
-            'cargo build --locked --release --target wasm32-unknown-unknown',
+            'cd rust-protocol-core-wasm && cargo build --locked --release --target wasm32-unknown-unknown',
         'guards': [
           'WASM binding kind is present in the manifest',
           'wrapper exports the manifest and JSON envelope functions',

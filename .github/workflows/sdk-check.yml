@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  HOURA_SPEC_REF: 26a47461237d30efb2310bd688559b73d6dc998b
+  HOURA_SPEC_REF: 135efc6893f218b87777e80e9fb33adeea430eaa
 
 jobs:
   sdk-check:
@@ -102,7 +102,7 @@ jobs:
 
       - name: Build WASM wrapper
         working-directory: houra-labs/rust-protocol-core-wasm
-        run: cargo build --locked --target wasm32-unknown-unknown
+        run: cargo build --locked --release --target wasm32-unknown-unknown
 
   ts-wasm-facade:
     name: TS WASM facade checks

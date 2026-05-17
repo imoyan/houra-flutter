@@ -811,7 +811,7 @@ cd rust-protocol-core-wasm
 cargo fmt --check
 cargo test
 rustup target add wasm32-unknown-unknown
-cargo build --release --target wasm32-unknown-unknown
+cargo build --locked --release --target wasm32-unknown-unknown
 ```
 
 For the TypeScript WASM facade prototype, run:
