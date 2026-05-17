@@ -748,6 +748,12 @@ The canonical copy is expected to live in `../houra-spec/design`; this
 package keeps bundled copies for Flutter asset loading and checks that they stay
 in sync during local development.
 
+`HouraFlutterTheme.themeData()` consumes the platform-neutral tokens listed in
+`HouraFlutterTheme.requiredColorTokens` and fails closed with
+`HouraThemeFormatException` if any mapped token is missing or does not resolve
+to `#RRGGBB` / `#AARRGGBB`. The adapter maps tokens only; hosts still own UI
+presentation and lifecycle policy.
+
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
