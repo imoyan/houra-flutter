@@ -847,10 +847,10 @@ HOURA_SPEC_ROOT=../houra-spec dart run tool/benchmark_shared_core.dart \
 
 The harness treats the TypeScript facade baseline as the current production-path
 comparison point, Rust native as the shared-core candidate, and Dart JSON parsing
-as a local runtime baseline. Go remains optional until a focused server-side
-shared-core candidate issue adds a Go package. Benchmark output records p95 and
-payload-size metadata only; it must not record raw requests, prompts, tokens, or
-secrets.
+as a local runtime baseline. The Go server-side candidate is a parser-only
+shared-core baseline, not production server adoption. Benchmark output records
+p95 and payload-size metadata only; it must not record raw requests, prompts,
+tokens, or secrets.
 
 If Rust is not installed locally, the same checks can run in a Rust Docker image
 with this repository and `houra-spec` mounted into the container. The official

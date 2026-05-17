@@ -143,6 +143,40 @@ jobs:
         working-directory: houra-labs/ts-protocol-core-wasm
         run: npm run pack:dry-run
 
+  go-protocol-core:
+    name: Go protocol core checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout houra-labs
+        uses: actions/checkout@v5
+        with:
+          path: houra-labs
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Checkout houra-spec
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.repository_owner }}/houra-spec
+          ref: ${{ env.HOURA_SPEC_REF }}
+          path: houra-spec
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: houra-labs/go-protocol-core/go.mod
+
+      - name: Test Go protocol core
+        working-directory: houra-labs/go-protocol-core
+        env:
+          HOURA_SPEC_ROOT: ../../houra-spec
+        run: go test ./...
+
+      - name: Check Go benchmark harness
+        working-directory: houra-labs/go-protocol-core
+        env:
+          HOURA_SPEC_ROOT: ../../houra-spec
+        run: go run ./cmd/benchmark_shared_core --iterations 5 --json
+
   release-evidence:
     name: Release evidence gate
     runs-on: ubuntu-latest
@@ -150,6 +184,7 @@ jobs:
       - sdk-check
       - rust-protocol-core
       - ts-wasm-facade
+      - go-protocol-core
     steps:
       - name: Checkout houra-labs
         uses: actions/checkout@v5

@@ -63,6 +63,7 @@ void checkSdkBoundary(List<String> failures) {
     'SECURITY.md',
     'design',
     'example',
+    'go-protocol-core',
     'lib',
     'pubspec.yaml',
     'rust-protocol-core',
@@ -417,10 +418,23 @@ void checkSharedCoreBenchmarkHarness(List<String> failures) {
     'ts-protocol-core-wasm/package.json': [
       '"benchmark": "npm run build && node benchmark.mjs"',
     ],
+    'go-protocol-core/go.mod': [
+      'github.com/imoyan/houra-labs/go-protocol-core',
+    ],
+    'go-protocol-core/versions.go': [
+      'ParseMatrixClientVersionsResponseJSON',
+      'versions must be non-empty',
+    ],
+    'go-protocol-core/cmd/benchmark_shared_core/main.go': [
+      'SPEC-030',
+      'spec-030-versions-parse',
+      'go-server-candidate',
+      'p95_microseconds',
+    ],
     'README.md': [
       'tool/benchmark_shared_core.dart',
       'TypeScript facade baseline',
-      'Go remains optional',
+      'Go server-side candidate',
     ],
   };
   for (final entry in requiredFragmentsByFile.entries) {
@@ -492,6 +506,7 @@ void checkSharedCoreBenchmarkHarness(List<String> failures) {
       'typescript-facade-baseline',
       'rust-native',
       'dart-json-baseline',
+      'go-server-candidate',
     ]) {
       if (!surfaceKinds.contains(surfaceKind)) {
         failures.add(
@@ -510,17 +525,28 @@ void checkSharedCoreBenchmarkHarness(List<String> failures) {
         'shared_core_benchmark_harness TypeScript command must use npm --silent for JSON output.',
       );
     }
+    final goSurface = measuredSurfaces.whereType<Map>().where(
+          (surface) => surface['surface_kind'] == 'go-server-candidate',
+        );
+    if (goSurface.isEmpty ||
+        !goSurface.first['command'].toString().contains(
+              'go run ./cmd/benchmark_shared_core',
+            )) {
+      failures.add(
+        'shared_core_benchmark_harness Go command must use go run ./cmd/benchmark_shared_core.',
+      );
+    }
   }
   final optionalSurfaces = benchmark['optional_surfaces'];
   if (optionalSurfaces is! List ||
-      !optionalSurfaces.any(
+      optionalSurfaces.any(
         (surface) =>
             surface is Map &&
             surface['surface_kind'] == 'go-server-candidate' &&
             surface['status'] == 'optional_not_implemented',
       )) {
     failures.add(
-      'shared_core_benchmark_harness optional_surfaces must keep Go as optional_not_implemented.',
+      'shared_core_benchmark_harness must not keep Go as optional_not_implemented once measured.',
     );
   }
 }
